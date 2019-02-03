@@ -30,7 +30,10 @@ async function bundle() {
     plugins: [
       resolve(),
       babel({
-        exclude: 'node_modules/**' // only transpile our source code
+        exclude: [
+          'node_modules/**',
+          'booyah/project_files/**',
+        ],
       })
     ]
   });
@@ -62,7 +65,8 @@ function copyBuildAssets() {
     './images/**',
     './scripts/**',
     './video/**',
-    './booyah/**',
+    './booyah/fonts/**/*.{css,woff,woff2}',
+    './booyah/images/**',
   ], { base: '.'})
   .pipe(gulp.dest('build/'));
 };
