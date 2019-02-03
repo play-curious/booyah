@@ -1,0 +1,41 @@
+{
+  "name": "vehicles",
+  "version": "1.0.0",
+  "description": "",
+  "main": "",
+  "dependencies": {
+    "babel-core": "^6.26.3",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "csv-parse": "^2.4.0",
+    "del": "^3.0.0",
+    "fontfaceobserver": "^2.0.13",
+    "fsevents": "^2.0.1",
+    "gulp": "^4.0.0",
+    "gulp-cli": "^2.0.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-html-replace": "^1.6.2",
+    "gulp-rename": "^1.2.3",
+    "gulp-transform": "^3.0.5",
+    "gulp-uglify": "^3.0.0",
+    "gulp-useref": "^3.1.5",
+    "howler": "^2.0.9",
+    "npm": "^6.5.0",
+    "pixi-filters": "^2.6.1",
+    "pixi.js": "^4.8.2",
+    "pump": "^2.0.1",
+    "rollup": "^0.55.0",
+    "rollup-plugin-babel": "^3.0.3",
+    "rollup-plugin-node-resolve": "^3.0.2",
+    "underscore": "^1.8.3",
+    "url-search-params-polyfill": "^2.0.2"
+  },
+  "scripts": {
+    "build": "gulp build",
+    "dist": "gulp dist",
+    "watch": "gulp watch"
+  },
+  "author": "Jesse Himmelstein",
+  "license": "MIT"
+}

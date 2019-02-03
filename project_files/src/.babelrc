@@ -1,0 +1,11 @@
+{
+  "presets": [
+    ["env", {
+      "targets": {
+        "browsers": "since 2010"
+      },
+      "modules": false
+    }]
+  ],
+  "plugins": ["external-helpers"]
+}
