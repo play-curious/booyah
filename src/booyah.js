@@ -16,10 +16,12 @@ const DEFAULT_CONFIG = {
   graphicalAssets: [],
   musicAssets: [],
   videoAssets: [], 
+  fontsAssets: [],
   speakers: [],
   speakerPosition: new PIXI.Point(50, 540),
   credits: {},
   splashScreen: null,
+  gameLogo: null,
 };
 
 const GRAPHICAL_ASSETS = [  
@@ -113,10 +115,11 @@ class FilterPauseEntity extends entity.CompositeEntity {
 }
 
 export class MenuEntity extends entity.CompositeEntity {
-  constructor(credits) {
+  constructor(credits, gameLogo) {
     super();
 
     this.credits = credits;
+    this.gameLogo = gameLogo;
   }
 
   setup(config) {
@@ -150,9 +153,11 @@ export class MenuEntity extends entity.CompositeEntity {
     this._on(this.playButton, "pointertap", this._onPlay);
     this.menuLayer.addChild(this.playButton);
 
-    const gameLogo = new PIXI.Sprite(this.config.app.loader.resources["images/logo-tragedy-fish.png"].texture);
-    gameLogo.position.set(65, 130);
-    this.menuLayer.addChild(gameLogo);
+    if(this.gameLogo) {
+      const gameLogo = new PIXI.Sprite(this.config.app.loader.resources[this.gameLogo].texture);
+      gameLogo.position.set(65, 130);
+      this.menuLayer.addChild(gameLogo);
+    }
 
     const pcLogo = new PIXI.Sprite(this.config.app.loader.resources["booyah/images/a-playcurious-game.png"].texture);
     pcLogo.anchor.set(0.5);
@@ -632,7 +637,7 @@ function loadB1() {
     }));
   app.loader.add(pixiLoaderResources).on("progress", pixiLoadProgressHandler);
 
-  const fonts = ["Roboto Condensed", "ds-digitalbold"];
+  const fonts = ["Roboto Condensed", ...booyahConfig.fontsAssets];
   const fontLoaderPromises = _.map(fonts, name => {
     return new FontFaceObserver(name).load(FONT_OBSERVER_CHARS).then(() => {
       fontLoaderProgress += 1/fonts.length;
@@ -686,7 +691,7 @@ function doneLoading() {
   loadingScene.teardown();
   loadingScene = null;
   rootEntity = null;
-  app.stage.removeChild(0);
+  app.stage.removeChildren();
 
   // The new rootEntity will contain all the sub entities
   rootEntity = new entity.CompositeEntity();
@@ -712,7 +717,7 @@ function doneLoading() {
   jukebox = new audio.Jukebox(musicAudio, { muted: startingOptions.muteMusic });
   rootEntity.addEntity(jukebox);
 
-  menuEntity = new MenuEntity(booyahConfig.credits);
+  menuEntity = new MenuEntity(booyahConfig.credits, booyahConfig.gameLogo);
   menuEntity.on("pause", () => changeGameState("paused"));
   menuEntity.on("play", () => changeGameState("playing"));
   menuEntity.on("reset", () => {
@@ -728,10 +733,10 @@ function doneLoading() {
   app.stage.addChild(rootEntity.setup(config));
 }
 
-export function makePreloader(splashScreen) {
+export function makePreloader(additionalAssets) {
   const loader = new PIXI.loaders.Loader();
   loader.add(PRELOADER_ASSETS);
-  if(splashScreen) loader.add(splashScreen);
+  loader.add(additionalAssets);
   return loader;
 }
 
@@ -758,7 +763,7 @@ export function go(config = {}) {
   util.startTiming("loadA");
 
   // Setup preloader
-  preloader = makePreloader(booyahConfig.splashScreen);
+  preloader = makePreloader(_.compact([booyahConfig.splashScreen, booyahConfig.gameLogo]));
 
   const loadingPromise = Promise.all([
     util.makeDomContentLoadPromise(document),

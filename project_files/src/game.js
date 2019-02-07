@@ -17,6 +17,5 @@ let gameTransitions = {
 
 const { app } = booyah.go({
   states: gameStates,
-  transitions: gameTransitions,
-  splashScreen: "images/splash-screen.jpg",
+  transitions: gameTransitions
 });
