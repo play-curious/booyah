@@ -26,6 +26,16 @@ export function lerpPoint(a, b, p) {
   return new PIXI.Point(a.x + p * x, a.y + p * y);
 }
 
+export function lerpColor(a, b, p) {
+  // Separate into 3 components
+  const aComponents = [(a & 0xff0000) >> 16, (a & 0x00ff00) >> 8, a & 0x0000ff];
+  const bComponents = [(b & 0xff0000) >> 16, (b & 0x00ff00) >> 8, b & 0x0000ff];
+
+  return (lerp(aComponents[0], bComponents[0], p) << 16) |
+    lerp(aComponents[1], bComponents[1], p) << 8 |
+    lerp(aComponents[2], bComponents[2], p);  
+}
+
 // Find the direction around the circle that is shorter
 // Based on https://stackoverflow.com/a/2007279
 export function angleBetweenAngles(source, target) {
