@@ -10,9 +10,25 @@ This is a HTML5 browser-based game framework, written entirely in JavaScript. Th
 A Gulp script automates the building process.
 
 
+## Development
+
+1. Install dependencies:
+  * npm and gulp-cli if you don't have them.
+  * Install ffmpeg for audio and video work. On Mac: `brew install ffmpeg --with-libvorbis --with-theora --with-libvpx`
+2. Copy or clone this directory into your project directoy as `booyah`.
+3. Copy a bunch of files from `booyah` into your project directory: `cp booyah/project_files/* .`
+4. Install the dependencies with `npm install`. 
+5. At this point, you can already test by running a local webserver and visiting `index.html`.
+
+## Production
+
+1. Use `gulp build` to compile to a version for older browsers in the `build` directory. Use `gulp watch` to automatically re-compile when you change a file. 
+2. To generate minified version in the `dist` directory, use `gulp dist`.
+
+
 ### File structure
 
-In your project folder, create a directory called `src` and make a file called `game.js` in it. It will contain your game code. 
+The `src` directory is for your game code. By default, the module `src/game.js` is executed by `index.html`. 
 
 The game code can start by importing Booyah:
 
@@ -34,18 +50,6 @@ const { app } = booyah.go({
   splashScreen: "images/splash-screen.jpg",
 });
 ```
-
-
-## Development
-
-1. Install dependencies:
-  * npm and gulp-cli if you don't have them.
-  * Install ffmpeg for audio and video work. On Mac: `brew install ffmpeg --with-libvorbis --with-theora --with-libvpx`
-2. Copy this directory into your project directoy as `booyah`.
-3. Copy a bunch of files from `booyah` into your project directory: `cp booyah\projectFiles\* .`
-4. Install the dependencies with `npm install`. 
-5. Use `gulp build` to compile to a version for older browsers in the `build` directory. Use `gulp watch` to automatically re-compile when you change a file. 
-6. To generate minified version in the `dist` directory, use `gulp dist`.
 
 
 ### Audio
