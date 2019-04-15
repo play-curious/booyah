@@ -234,7 +234,7 @@ export function makeTransitionTable(table) {
   return f;
 }
 
-
+/* Deprecated for most uses. Instead use ParallelEntity */
 export class CompositeEntity extends Entity {
   constructor(entities = []) {
     super();
@@ -312,6 +312,108 @@ export class CompositeEntity extends Entity {
     }
 
     this.entities.splice(index, 1);
+  }
+}
+
+/*
+  Allows a bunch of entities to execute in parallel.
+  Updates child entities until they ask for a transition, at which point they are torn down.
+  Requests a transition only when all child entities have completed.
+*/
+export class ParallelEntity extends Entity {
+  constructor(entities = []) {
+    super();
+
+    this.entities = entities;
+    // By default all entities are active
+    this.entityIsActive = _.map(this.entities, () => true);
+  }
+
+  setup(config) {
+    super.setup(config);
+
+    // OPT: for performance, we don't need a container if the children don't display anything
+    this.container = new PIXI.Container();
+
+    for(const entity of this.entities) {
+      if(!entity.isSetup) {
+        const childDisplay = entity.setup(config);
+        if(childDisplay) this.container.addChild(childDisplay);
+      }
+    } 
+
+    return this.container;
+  }
+
+  update(options) {
+    super.update(options);
+
+    for(let i = 0; i < this.entities.length; i++) {
+      if(this.entityIsActive[i]) {
+        const entity = this.entities[i];
+
+        entity.update(options);
+
+        if(entity.requestedTransition(options)) {
+          entity.teardown();
+
+          this.entityIsActive[i] = false;
+        }
+      }
+    }
+  } 
+
+  // Returns the answer of the first entity
+  requestedTransition(options) { 
+    super.requestedTransition(options);
+
+    return _.some(this.entityIsActive) ? null : true;
+  }
+
+  teardown() {
+    super.teardown();
+
+    for(let i = 0; i < this.entities.length; i++) {
+      if(this.entityIsActive[i]) {
+        this.entities[i].teardown();
+        this.entityIsActive[i] = false;
+      }
+    }
+  }
+
+  onSignal(signal, data) { 
+    super.onSignal(signal, data);
+
+    for(let i = 0; i < this.entities.length; i++) {
+      if(this.entityIsActive[i]) this.entities[i].onSignal(signal, data);
+    }
+  }
+
+  addEntity(entity) {
+    // If we have already been setup, setup this new entity
+    if(this.isSetup && !entity.isSetup) {
+      const childDisplay = entity.setup(this.config);
+      if(childDisplay) this.container.addChild(childDisplay);
+    }
+
+    this.entities.push(entity);
+    this.entityIsActive.push(true);
+  }
+
+  removeEntity(entity) {
+    const index = this.entities.indexOf(entity);
+    if(index === -1) throw new Error("Cannot find entity to remove");
+
+    if(entity.isSetup) {
+      entity.teardown();
+
+      if(entity.container) {
+        this.container.removeChild(entity.container);
+      }
+    }
+
+    this.entities.splice(index, 1);
+    this.entityIsActive.splice(index, 1);
   }
 }
 
@@ -581,6 +683,22 @@ export class ToggleSwitch extends Entity {
     this.spriteOff.visible = !this.isOn;
   }
 }
+
+/** Simply wraps a PIXI.DisplayObject and returns it on setup() */
+export class DisplayObjectEntity extends Entity {
+  constructor(displayObject) {
+    super();
+
+    this.displayObject = displayObject;
+  }
+
+  setup(config) {
+    super.setup(config);
+
+    return this.displayObject;
+  }
+}
+
 
 export class AnimatedSpriteEntity extends Entity {
   constructor(animatedSprite) {

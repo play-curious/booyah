@@ -567,16 +567,16 @@ function pixiLoadProgressHandler(loader, resource) {
 
 function update(timeScale) {
   const frameTime = Date.now();
-  const frameTimeDelta = frameTime - lastFrameTime;
+  const timeSinceLastFrame = frameTime - lastFrameTime;
   lastFrameTime = frameTime;
 
   // Only count "play time" as compared to clock time
   if(gameState == "playing") {
-    playTime += frameTimeDelta;
-    timeSinceStart += frameTimeDelta;
+    playTime += timeSinceLastFrame;
+    timeSinceStart += timeSinceLastFrame;
   }
 
-  const options = { playTime, timeSinceStart, timeScale, gameState };
+  const options = { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState };
 
   if(previousGameState != gameState) {
     if(previousGameState == "playing" && gameState == "paused") {
