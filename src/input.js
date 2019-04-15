@@ -62,7 +62,7 @@ export class Keyboard extends entity.Entity {
 }
 
 
-const GAMEPAD_DEAD_ZONE = 0.15;
+export const GAMEPAD_DEAD_ZONE = 0.15;
 
 export function countGamepads() {
   return _.filter(navigator.getGamepads(), _.identity).length;

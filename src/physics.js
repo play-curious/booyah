@@ -29,29 +29,27 @@ export class Simulation extends entity.ParallelEntity {
 
   setup(config) {
     this.world = new p2.World(this.worldOptions);
+    this.oldConfig = config;
 
-    config = _.extend({}, config, { 
-      world: this.world,
-    });
-
-    super.setup(config); 
-
-
+    this.container = new PIXI.Container();
     // center at origin
-    this.container.position.x = this.config.app.renderer.width/2; 
-    this.container.position.y = this.config.app.renderer.height/2;
+    this.container.position.x = config.app.renderer.width/2; 
+    this.container.position.y = config.app.renderer.height/2;
 
     this.container.scale.x =  this.zoom;  // zoom in
     this.container.scale.y = -this.zoom; // Note: we flip the y axis to make "up" the physics "up"
+    this.oldConfig.container.addChild(this.container);
 
-    return this.container;
+
+    config = _.extend({}, config, { 
+      world: this.world,
+      container: this.container,
+    });
+
+    super.setup(config); 
   }
 
   update(options) {
-    options = _.extend({}, options, { 
-      world: this.world,
-    });
-
     super.update(options);
 
     // Limit how fast the physics can catch up
@@ -60,19 +58,17 @@ export class Simulation extends entity.ParallelEntity {
   }
 
   requestedTransition(options) {
-    options = _.extend({}, options, { 
-      world: this.world,
-    });
-
     super.requestedTransition(options);
 
     return null;
   }
 
   teardown() {
-    this.world.clear()
+    this.world.clear();
 
-    super.teardown();   
+    this.oldConfig.container.removeChild(this.container);
+
+    super.teardown();
   }
 } 
 
@@ -94,7 +90,7 @@ export class BodyEntity extends entity.ParallelEntity {
 
     this.config.world.addBody(this.body);
 
-    return this.display;
+    if(this.display) this.config.container.addChild(this.display);
   }
 
   update(options) {
@@ -111,6 +107,8 @@ export class BodyEntity extends entity.ParallelEntity {
 
   teardown() {
     this.config.world.removeBody(this.body);
+
+    if(this.display) this.config.container.removeChild(this.display);
 
     super.teardown();   
   }

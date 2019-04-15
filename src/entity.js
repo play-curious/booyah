@@ -96,13 +96,9 @@ export class StateMachine extends Entity {
   setup(config) {
     super.setup(config);
 
-    this.container = new PIXI.Container();;
-
     this.endingStateReached = null;
     
     this._changeState(0, this.startingState, this.startingStateParams);
-
-    return this.container; 
   }
 
   update(options) {
@@ -157,13 +153,13 @@ export class StateMachine extends Entity {
   }
 
   teardown() { 
-    super.teardown();
-
     if(this.state) {
       this.state.teardown(); 
       this.state = null;
       this.stateName = null;
     }
+
+    super.teardown();
   }
 
   requestedTransition(options) { 
@@ -188,7 +184,6 @@ export class StateMachine extends Entity {
 
     if(this.state) {
       this.state.teardown();
-      this.container.removeChildren();
     }
 
     if(nextStateName in this.states) {
@@ -199,8 +194,7 @@ export class StateMachine extends Entity {
         this.state = nextStateDescriptor;
       }
 
-      const stateContainer = this.state.setup(this.config);
-      if(stateContainer) this.container.addChild(stateContainer);
+      this.state.setup(this.config);
     } else {
       throw new Error(`Cannot find state '${nextStateName}`);
     }
@@ -244,17 +238,11 @@ export class CompositeEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    // OPT: for performance, we don't need a container if the children don't display anything
-    this.container = new PIXI.Container();
-
     for(const entity of this.entities) {
       if(!entity.isSetup) {
-        const childDisplay = entity.setup(config);
-        if(childDisplay) this.container.addChild(childDisplay);
+        entity.setup(config);
       }
     } 
-
-    return this.container;
   }
 
   update(options) {
@@ -274,11 +262,11 @@ export class CompositeEntity extends Entity {
   }
 
   teardown() {
-    super.teardown();
-
     for(const entity of this.entities) {
       entity.teardown();
     }
+
+    super.teardown();
   }
 
   onSignal(signal, data) { 
@@ -292,8 +280,7 @@ export class CompositeEntity extends Entity {
   addEntity(entity) {
     // If we have already been setup, setup this new entity
     if(this.isSetup && !entity.isSetup) {
-      const childDisplay = entity.setup(this.config);
-      if(childDisplay) this.container.addChild(childDisplay);
+      entity.setup(this.config);
     }
 
     this.entities.push(entity);
@@ -306,9 +293,6 @@ export class CompositeEntity extends Entity {
     if(entity.isSetup) {
       entity.teardown();
 
-      if(entity.container) {
-        this.container.removeChild(entity.container);
-      }
     }
 
     this.entities.splice(index, 1);
@@ -332,17 +316,11 @@ export class ParallelEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    // OPT: for performance, we don't need a container if the children don't display anything
-    this.container = new PIXI.Container();
-
     for(const entity of this.entities) {
       if(!entity.isSetup) {
-        const childDisplay = entity.setup(config);
-        if(childDisplay) this.container.addChild(childDisplay);
+        entity.setup(config);
       }
     } 
-
-    return this.container;
   }
 
   update(options) {
@@ -371,14 +349,14 @@ export class ParallelEntity extends Entity {
   }
 
   teardown() {
-    super.teardown();
-
     for(let i = 0; i < this.entities.length; i++) {
       if(this.entityIsActive[i]) {
         this.entities[i].teardown();
         this.entityIsActive[i] = false;
       }
     }
+
+    super.teardown();
   }
 
   onSignal(signal, data) { 
@@ -392,8 +370,7 @@ export class ParallelEntity extends Entity {
   addEntity(entity) {
     // If we have already been setup, setup this new entity
     if(this.isSetup && !entity.isSetup) {
-      const childDisplay = entity.setup(this.config);
-      if(childDisplay) this.container.addChild(childDisplay);
+      entity.setup(this.config);
     }
 
     this.entities.push(entity);
@@ -406,10 +383,6 @@ export class ParallelEntity extends Entity {
 
     if(entity.isSetup) {
       entity.teardown();
-
-      if(entity.container) {
-        this.container.removeChild(entity.container);
-      }
     }
 
     this.entities.splice(index, 1);
@@ -446,9 +419,7 @@ export class EntitySequence extends Entity {
     this.currentEntityIndex = 0;
     this.lastRequestedTransition = null;
 
-    this.container = new PIXI.Container();
     this._activateEntity(0);
-    return this.container;
   }
 
   update(options) {
@@ -477,12 +448,12 @@ export class EntitySequence extends Entity {
   }
 
   teardown() {
-    super.teardown();
-
     if(this.lastRequestedTransition) return;
 
 
     this._deactivateEntity();
+
+    super.teardown();
   }
 
   onSignal(signal, data) { 
@@ -500,14 +471,12 @@ export class EntitySequence extends Entity {
   }
 
   _activateEntity(time) {
-    const childDisplay = this.entities[this.currentEntityIndex].setup(this.config);
-    if(childDisplay) this.container.addChild(childDisplay);
+    this.entities[this.currentEntityIndex].setup(this.config);
     this.childStartedAt = time;
   }
 
   _deactivateEntity() {
     this.entities[this.currentEntityIndex].teardown();
-    this.container.removeChildren();
   }
 
   _advance(transition) {
@@ -550,9 +519,9 @@ export class FunctionalEntity extends CompositeEntity {
   }
 
   teardown() {
-    super.teardown();
-
     if(this.functions.teardown) this.functions.teardown(this);
+
+    super.teardown();
   }
 
   requestedTransition(options) {
@@ -583,6 +552,50 @@ export class WaitingEntity extends Entity {
   }
 }
 
+
+export class ContainerEntity extends Entity {
+  constructor(childEntity = null) {
+    super();
+
+    this.childEntity = childEntity;
+  }
+
+  setup(config) {
+    super.setup(config);
+
+    this.container = new PIXI.Container();
+
+    config.container.addChild(this.container);
+
+    this.newConfig = _.extend({}, config, {
+      container: this.container,
+    });
+
+    if(childEntity) childEntity.setup(this.newConfig);
+  } 
+
+  update(options) {
+    super.update(options);
+
+    this.childEntity.update(options);
+  }
+
+  teardown() {
+    this.childEntity,teardown();
+
+    this.config.container.removeChild(this.container);
+
+    super.teardown();
+  }
+
+  setChildEntity(childEntity = null) {
+    if(this.childEntity) this.childEntity,teardown();
+
+    if(childEntity) childEntity.setup(this.newConfig);
+  }
+}
+
+
 export class VideoEntity extends Entity {
   constructor(videoName, options = {}) {
     super();
@@ -604,7 +617,7 @@ export class VideoEntity extends Entity {
     const texture = PIXI.VideoBaseTexture.fromVideo(this.videoElement);
     this.videoSprite = PIXI.Sprite.from(texture);
 
-    return this.videoSprite;
+    this.config.container.addChild(this.videoSprite);
   }
 
   onSignal(signal, data) {
@@ -625,24 +638,29 @@ export class VideoEntity extends Entity {
 
   teardown() {
     this.videoElement.pause();
+    this.config.container.removeChild(this.videoSprite);
 
     super.teardown();
   }
 }
 
 export class ToggleSwitch extends Entity {
-  constructor(onTexture, offTexture, isOn = true) {
+  constructor(options) {
     super();
 
-    this.onTexture = onTexture;
-    this.offTexture = offTexture;
-    this.isOn = isOn;
+    util.setupOptions(this, options, {
+      onTexture: util.REQUIRED_OPTION,
+      offTexture: util.REQUIRED_OPTION,
+      isOn: false,
+      position: new PIXI.Point(),
+    });
   }
 
   setup(options) {
     super.setup(options);
 
     this.container = new PIXI.Container();
+    this.container.position = this.position;
 
     this.spriteOn = new PIXI.Sprite(this.onTexture);
     this.spriteOn.interactive = true;
@@ -655,8 +673,14 @@ export class ToggleSwitch extends Entity {
     this.container.addChild(this.spriteOff);
 
     this._updateVisibility();
+    
+    this.config.container.addChild(this.container);
+  }
 
-    return this.container;
+  teardown() {
+    this.config.container.removeChild(this.container);
+
+    super.teardown();
   }
 
   setIsOn(isOn, silent = false) {
@@ -684,22 +708,6 @@ export class ToggleSwitch extends Entity {
   }
 }
 
-/** Simply wraps a PIXI.DisplayObject and returns it on setup() */
-export class DisplayObjectEntity extends Entity {
-  constructor(displayObject) {
-    super();
-
-    this.displayObject = displayObject;
-  }
-
-  setup(config) {
-    super.setup(config);
-
-    return this.displayObject;
-  }
-}
-
-
 export class AnimatedSpriteEntity extends Entity {
   constructor(animatedSprite) {
     super();
@@ -707,9 +715,21 @@ export class AnimatedSpriteEntity extends Entity {
     this.animatedSprite = animatedSprite;
   }
 
+  setup(config) {
+    super.setup(config);
+
+    this.config.addChild(this.animatedSprite);
+  }
+
   onSignal(signal, data = null) {
     if(signal == "pause") this.animatedSprite.stop();
     else if(signal == "play") this.animatedSprite.play();
+  }
+
+  teardown() {
+    this.config.removeChild(this.animatedSprite);
+
+    super.teardown();
   }
 }
 
@@ -719,19 +739,25 @@ export class SkipButton extends Entity {
 
     this.isDone = false;
 
-    const sprite = new PIXI.Sprite(this.config.app.loader.resources["booyah/images/button-skip.png"].texture);
-    sprite.anchor.set(0.5);
-    sprite.position.set(this.config.app.screen.width - 50, this.config.app.screen.height - 50);
-    sprite.interactive = true;
-    this._on(sprite, "pointertap", this._onSkip);
+    this.sprite = new PIXI.Sprite(this.config.app.loader.resources["booyah/images/button-skip.png"].texture);
+    this.sprite.anchor.set(0.5);
+    this.sprite.position.set(this.config.app.screen.width - 50, this.config.app.screen.height - 50);
+    this.sprite.interactive = true;
+    this._on(this.sprite, "pointertap", this._onSkip);
     
-    return sprite;
+    this.config.addChild(this.sprite);
   }
 
   requestedTransition(options) {
     super.requestedTransition(options);
 
     return this.isDone;
+  }
+
+  teardown() {
+    this.config.removeChild(this.sprite);
+
+    super.teardown();
   }
 
   _onSkip() {
@@ -759,17 +785,11 @@ export class DeflatingCompositeEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    // OPT: for performance, we don't need a container if the children don't display anything
-    this.container = new PIXI.Container();
-
     for(const entity of this.entities) {
       if(!entity.isSetup) {
-        const childDisplay = entity.setup(config);
-        if(childDisplay) this.container.addChild(childDisplay);
+        entity.setup(config);
       }
     } 
-
-    return this.container;
   }
 
   update(options) {
@@ -785,10 +805,6 @@ export class DeflatingCompositeEntity extends Entity {
         
         if(entity.isSetup) {
           entity.teardown();
-
-          if(entity.container) {
-            this.container.removeChild(entity.container);
-          }
         }
 
         this.entities.splice(i, 1);
@@ -807,11 +823,11 @@ export class DeflatingCompositeEntity extends Entity {
   }
 
   teardown() {
-    super.teardown();
-
     for(const entity of this.entities) {
       entity.teardown();
     }
+
+    super.teardown();
   }
 
   onSignal(signal, data) { 
@@ -825,8 +841,7 @@ export class DeflatingCompositeEntity extends Entity {
   addEntity(entity) {
     // If we have already been setup, setup this new entity
     if(this.isSetup && !entity.isSetup) {
-      const childDisplay = entity.setup(this.config);
-      if(childDisplay) this.container.addChild(childDisplay);
+      entity.setup(this.config);
     }
 
     this.entities.push(entity);
@@ -838,10 +853,6 @@ export class DeflatingCompositeEntity extends Entity {
 
     if(entity.isSetup) {
       entity.teardown();
-
-      if(entity.container) {
-        this.container.removeChild(entity.container);
-      }
     }
 
     this.entities.splice(index, 1);

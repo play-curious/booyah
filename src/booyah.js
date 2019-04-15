@@ -114,7 +114,7 @@ class FilterPauseEntity extends entity.CompositeEntity {
   } 
 }
 
-export class MenuEntity extends entity.CompositeEntity {
+export class MenuEntity extends entity.ParallelEntity {
   constructor(credits, gameLogo) {
     super();
 
@@ -124,6 +124,8 @@ export class MenuEntity extends entity.CompositeEntity {
 
   setup(config) {
     super.setup(config);
+
+    this.container = new PIXI.Container();
 
     this.creditsEntity = null;
 
@@ -153,6 +155,10 @@ export class MenuEntity extends entity.CompositeEntity {
     this._on(this.playButton, "pointertap", this._onPlay);
     this.menuLayer.addChild(this.playButton);
 
+    const menuLayerConfig = _.extend({}, this.config, {
+      container: this.menuLayer,
+    });
+
     if(this.gameLogo) {
       const gameLogo = new PIXI.Sprite(this.config.app.loader.resources[this.gameLogo].texture);
       gameLogo.position.set(65, 130);
@@ -165,15 +171,14 @@ export class MenuEntity extends entity.CompositeEntity {
     this.menuLayer.addChild(pcLogo);
 
     if(util.supportsFullscreen(document.getElementById("game-parent"))) {
-      this.fullScreenButton = new entity.ToggleSwitch(
-        this.config.app.loader.resources["booyah/images/fullscreen-on.png"].texture,
-        this.config.app.loader.resources["booyah/images/fullscreen-off.png"].texture,
-        false,
-      );
+      this.fullScreenButton = new entity.ToggleSwitch({
+        onTexture: this.config.app.loader.resources["booyah/images/fullscreen-on.png"].texture,
+        offTexture: this.config.app.loader.resources["booyah/images/fullscreen-off.png"].texture,
+        isOn: false,
+        position: new PIXI.Point(405, 130),
+      });
       this._on(this.fullScreenButton, "change", this._onChangeFullScreen);
-      const fullScreenButtonLayer = this.fullScreenButton.setup(config);
-      fullScreenButtonLayer.position.set(405, 130);
-      this.menuLayer.addChild(fullScreenButtonLayer);
+      this.fullScreenButton.setup(menuLayerConfig);
       this.addEntity(this.fullScreenButton);
 
       // TODO: use event listener to check if full screen was exited manually with ESC key
@@ -183,39 +188,36 @@ export class MenuEntity extends entity.CompositeEntity {
       this.menuLayer.addChild(fullScreenButton);
     }
 
-    this.musicButton = new entity.ToggleSwitch(
-      this.config.app.loader.resources["booyah/images/music-on.png"].texture,
-      this.config.app.loader.resources["booyah/images/music-off.png"].texture,
-      !this.config.jukebox.muted, 
-    );
+    this.musicButton = new entity.ToggleSwitch({
+      onTexture: this.config.app.loader.resources["booyah/images/music-on.png"].texture,
+      offTexture: this.config.app.loader.resources["booyah/images/music-off.png"].texture,
+      isOn: !this.config.jukebox.muted,
+      position: new PIXI.Point(405, 230),
+    });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn);
-    const musicButtonLayer = this.musicButton.setup(config);
-    musicButtonLayer.position.set(405, 230);
-    this.menuLayer.addChild(musicButtonLayer);
+    this.musicButton.setup(menuLayerConfig);
     this.addEntity(this.musicButton);
 
     // TODO prevent being able to turn both subtitles and sound off
 
-    this.fxButton = new entity.ToggleSwitch(
-      this.config.app.loader.resources["booyah/images/voices-on.png"].texture,
-      this.config.app.loader.resources["booyah/images/voices-off.png"].texture,
-      !this.config.narrator.muted, 
-    );
+    this.fxButton = new entity.ToggleSwitch({
+      onTexture: this.config.app.loader.resources["booyah/images/voices-on.png"].texture,
+      offTexture: this.config.app.loader.resources["booyah/images/voices-off.png"].texture,
+      isOn: !this.config.narrator.muted, 
+      position: new PIXI.Point(630, 230),
+    });
     this._on(this.fxButton, "change", this._onChangeFxIsOn);
-    const fxButtonLayer = this.fxButton.setup(config);
-    fxButtonLayer.position.set(630, 230);
-    this.menuLayer.addChild(fxButtonLayer);
+    this.fxButton.setup(menuLayerConfig);
     this.addEntity(this.fxButton);
 
-    this.subtitlesButton = new entity.ToggleSwitch(
-      this.config.app.loader.resources["booyah/images/subtitles-on.png"].texture,
-      this.config.app.loader.resources["booyah/images/subtitles-off.png"].texture,
-      this.config.narrator.showSubtitles, 
-    );
+    this.subtitlesButton = new entity.ToggleSwitch({
+      onTexture: this.config.app.loader.resources["booyah/images/subtitles-on.png"].texture,
+      offTexture: this.config.app.loader.resources["booyah/images/subtitles-off.png"].texture,
+      isOn: this.config.narrator.showSubtitles, 
+      position: new PIXI.Point(630, 130),
+    });
     this._on(this.subtitlesButton, "change", this._onChangeShowSubtitles);
-    const subtitlesButtonLayer = this.subtitlesButton.setup(config);
-    subtitlesButtonLayer.position.set(630, 130);
-    this.menuLayer.addChild(subtitlesButtonLayer);
+    this.subtitlesButton.setup(menuLayerConfig);
     this.addEntity(this.subtitlesButton);
 
 
@@ -269,7 +271,7 @@ export class MenuEntity extends entity.CompositeEntity {
       this.resetConfirmLayer.addChild(cancelResetButton);
     }
 
-    return this.container;
+    this.config.container.addChild(this.container);
   } 
 
   update(options) {
@@ -281,6 +283,12 @@ export class MenuEntity extends entity.CompositeEntity {
         this.creditsEntity = null;
       }
     }
+  }
+
+  teardown() {
+    super.teardown();
+
+    this.config.container.removeChild(this.container);
   }
 
   _onPause() {
@@ -349,6 +357,8 @@ export class CreditsEntity extends entity.CompositeEntity {
 
     this.done = false;
 
+    this.container = new PIXI.Container();
+
     let rolesText = [];
     let peopleText = [];
     let didFirstLine = false;
@@ -404,13 +414,19 @@ export class CreditsEntity extends entity.CompositeEntity {
     people.position.set(this.config.app.renderer.width / 2 + 10, this.config.app.renderer.height / 2);
     this.container.addChild(people);
 
-    return this.container;
+    this.config.container.addChild(this.container);
   }
 
   requestedTransition(options) {
     super.requestedTransition(options);
 
     return this.done;
+  }
+
+  teardown() {
+    super.teardown();
+
+    this.config.container.removeChild(this.container);
   }
 }
 
@@ -428,6 +444,8 @@ export class LoadingScene extends entity.CompositeEntity {
     this.isDone = false;
     this.progress = 0;
     this.shouldUpdateProgress = true;
+
+    this.container = new PIXI.Container();
 
     if(this.splashScreen) {
       this.container.addChild(new PIXI.Sprite(this.preloader.resources[this.splashScreen].texture));
@@ -454,7 +472,7 @@ export class LoadingScene extends entity.CompositeEntity {
     this.loadingCircle.position.set(this.config.app.screen.width / 2, this.config.app.screen.height * 3/4);
     this.loadingContainer.addChild(this.loadingCircle);
 
-    return this.container;
+    this.config.container.addChild(this.container);
   }
 
   requestedTransition(options) { 
@@ -480,6 +498,12 @@ export class LoadingScene extends entity.CompositeEntity {
     }
   }
 
+  teardown() {
+    this.config.container.removeChild(this.container);
+
+    super.teardown();
+  }
+
   updateProgress(fraction) {
     this.progress = fraction;
     this.shouldUpdateProgress = true;
@@ -498,6 +522,8 @@ export class ReadyScene extends entity.CompositeEntity {
 
     this.isDone = false;
 
+    this.container = new PIXI.Container();
+
     if(this.splashScreen) {
       this.container.addChild(new PIXI.Sprite(this.config.preloader.resources[this.splashScreen].texture));
     }
@@ -509,13 +535,19 @@ export class ReadyScene extends entity.CompositeEntity {
     button.interactive = true;
     this.container.addChild(button);
 
-    return this.container;
+    this.config.container.addChild(this.container);
   }
 
   requestedTransition(options) { 
     super.requestedTransition(options);
 
     return this.isDone;
+  }
+
+  teardown() {
+    this.config.container.removeChild(this.container);
+
+    super.teardown();
   }
 }
 
@@ -531,6 +563,8 @@ export class DoneScene extends entity.CompositeEntity {
 
     this.isDone = false;
 
+    this.container = new PIXI.Container();
+
     if(this.splashScreen) {
       this.container.addChild(new PIXI.Sprite(this.config.preloader.resources[this.splashScreen].texture));
     }
@@ -542,13 +576,19 @@ export class DoneScene extends entity.CompositeEntity {
     button.interactive = true;
     this.container.addChild(button);
 
-    return this.container;
+    this.config.container.addChild(this.container);
   }
 
   requestedTransition(options) { 
     super.requestedTransition(options);
 
     return this.isDone;
+  }
+
+  teardown() {
+    super.teardown();
+
+    this.config.container.removeChild(this.container);
   }
 }
 
@@ -691,10 +731,9 @@ function doneLoading() {
   loadingScene.teardown();
   loadingScene = null;
   rootEntity = null;
-  app.stage.removeChildren();
 
   // The new rootEntity will contain all the sub entities
-  rootEntity = new entity.CompositeEntity();
+  rootEntity = new entity.ParallelEntity();
 
   // gameSequence will have the ready and done scenes
   gameSequence = new entity.EntitySequence([
@@ -728,9 +767,11 @@ function doneLoading() {
   });
   rootEntity.addEntity(menuEntity);
 
-  const config = { app, preloader, narrator, jukebox };
+  const container = app.stage;
 
-  app.stage.addChild(rootEntity.setup(config));
+  const config = { app, preloader, narrator, jukebox, container };
+
+  rootEntity.setup(config);
 }
 
 export function makePreloader(additionalAssets) {
@@ -774,7 +815,10 @@ export function go(config = {}) {
     rootEntity = loadingScene;
 
     // The loading scene doesn't get the full config
-    app.stage.addChild(loadingScene.setup({ app }));
+    loadingScene.setup({ 
+      app,
+      container: app.stage,
+    });
     app.ticker.add(update);
   }).then(() => Promise.all([loadB1(), loadB2()]))
   .then(loadC)
