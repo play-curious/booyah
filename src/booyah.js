@@ -126,6 +126,7 @@ export class MenuEntity extends entity.ParallelEntity {
     super.setup(config);
 
     this.container = new PIXI.Container();
+    this.container.name = "menu";
 
     this.creditsEntity = null;
 
@@ -743,7 +744,11 @@ function doneLoading() {
   ], { loop: true });
 
   // Filter out the pause event for the game sequence
-  rootEntity.addEntity(new FilterPauseEntity([gameSequence]));
+  rootEntity.addEntity(
+    new FilterPauseEntity([
+      new entity.ContainerEntity([gameSequence], "gameSequence"),
+    ])
+  );
 
   speakerDisplay = new narration.SpeakerDisplay(booyahConfig.speakers, booyahConfig.speakerPosition);
   rootEntity.addEntity(speakerDisplay);

@@ -1,6 +1,30 @@
 import * as util from "./util.js";
 
 
+/** 
+  In Booyah, the game is structured as a tree of entities. This is the base class for all entities. 
+  
+  An entity has the following lifecycle:
+    1. It is instantiated using the contructor. 
+      Only parameters specific to the entity should be passed here. 
+      The entity should not make any changes to the environment here, it should wait for setup().
+    2. setup() is called just once, with a configuration. 
+      This is when the entity should add dispaly objects  to the scene, or subscribe to events.
+      The typical config contains { app, preloader, narrator, jukebox, container }
+    3. update() is called one or more times, with options. 
+      It could also never be called, in case the entity is torn down directly.\
+      Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState } 
+    4. requestTransition() is called, with the same options as update().
+      If the entity has a control flow, it can indicate that it's action is done by returning a true value 
+      For more complicated transitions, it can return an object like { name: "", params: {} }
+    5. teardown() is called just once.
+      The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
+
+  The base class will check that this lifecyle is respected, and will log errors to signal any problems.
+
+  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
+  This ensures that the base class behavior of will be called automatically.
+*/
 export class Entity extends PIXI.utils.EventEmitter {
   constructor() {
     super();
@@ -14,10 +38,12 @@ export class Entity extends PIXI.utils.EventEmitter {
     if(this.isSetup) {
       console.error("setup() called twice", this);
       console.trace();
-    }    
+    }
 
     this.config = config;
     this.isSetup = true;
+
+    this._setup(config);
   }
 
   // options include { playTime, timeSinceStart, timeScale, gameState }
@@ -26,6 +52,8 @@ export class Entity extends PIXI.utils.EventEmitter {
       console.error("update() called before setup()", this);
       console.trace();
     }
+
+    this._update(options);
   }
 
   teardown() {
@@ -33,6 +61,8 @@ export class Entity extends PIXI.utils.EventEmitter {
       console.error("teardown() called before setup()", this);
       console.trace();
     }
+
+    this._teardown();
 
     this._off(); // Remove all event listeners
 
@@ -48,7 +78,7 @@ export class Entity extends PIXI.utils.EventEmitter {
       console.trace();
     }
 
-    return null; 
+    return this._requestedTransition(); 
   } 
 
   // @signal is string, @data is whatever
@@ -56,6 +86,8 @@ export class Entity extends PIXI.utils.EventEmitter {
     if(!this.config) 
       console.error("onSignal() called before setup()", this);
   }
+
+
 
   _on(emitter, event, cb) {
     this.eventListeners.push({ emitter, event, cb });
@@ -72,6 +104,12 @@ export class Entity extends PIXI.utils.EventEmitter {
     _.each(_.filter(this.eventListeners, props), listener => listener.emitter.off(listener.event, listener.cb));
     this.eventListeners = _.reject(this.eventListeners, _.matcher(props));
   }
+
+  // Noop methods than can be overriden by subclasses
+  _setup(config) {}
+  _update(options) {}
+  _requestedTransition(options) { return null; }
+  _teardown(options) {}
 }
 
 export class StateMachine extends Entity {
@@ -553,45 +591,31 @@ export class WaitingEntity extends Entity {
 }
 
 
-export class ContainerEntity extends Entity {
-  constructor(childEntity = null) {
-    super();
+export class ContainerEntity extends ParallelEntity {
+  constructor(entities = [], name = null) {
+    super(entities);
 
-    this.childEntity = childEntity;
+    this.name = name;
   }
 
   setup(config) {
-    super.setup(config);
+    this.oldConfig = config;
 
     this.container = new PIXI.Container();
-
-    config.container.addChild(this.container);
+    this.container.name = this.name;
+    this.oldConfig.container.addChild(this.container);
 
     this.newConfig = _.extend({}, config, {
       container: this.container,
     });
 
-    if(childEntity) childEntity.setup(this.newConfig);
+    super.setup(this.newConfig);
   } 
 
-  update(options) {
-    super.update(options);
-
-    this.childEntity.update(options);
-  }
-
   teardown() {
-    this.childEntity,teardown();
-
-    this.config.container.removeChild(this.container);
-
     super.teardown();
-  }
 
-  setChildEntity(childEntity = null) {
-    if(this.childEntity) this.childEntity,teardown();
-
-    if(childEntity) childEntity.setup(this.newConfig);
+    this.oldConfig.container.removeChild(this.container);
   }
 }
 
@@ -673,7 +697,7 @@ export class ToggleSwitch extends Entity {
     this.container.addChild(this.spriteOff);
 
     this._updateVisibility();
-    
+
     this.config.container.addChild(this.container);
   }
 
