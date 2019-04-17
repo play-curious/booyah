@@ -65,7 +65,7 @@ export class Narrator extends entity.Entity {
     this.currentHowl = null;
     this.currentSoundId = null;
 
-    return this.container;
+    this.config.container.addChild(this.container);
   }
 
   update({playTime, timeScale, gameState}) {
@@ -97,6 +97,12 @@ export class Narrator extends entity.Entity {
         this._updateText();
       }
     }
+  }
+
+  teardown() {
+    this.config.container.removeChild(this.container);
+
+    super.teardown();
   }
 
   // @priority < 0 means to skip the narration if other narration is in progress
@@ -218,7 +224,7 @@ export class Narrator extends entity.Entity {
   }
 }
 
-export class SpeakerDisplay extends entity.CompositeEntity {
+export class SpeakerDisplay extends entity.Entity {
   constructor(namesToImages, position = new PIXI.Point(50, 540)) {
     super();
 
@@ -229,6 +235,7 @@ export class SpeakerDisplay extends entity.CompositeEntity {
   setup(config) {
     super.setup(config);
 
+    this.container = new PIXI.Container();
     this.container.position = this.position;
 
     // Make a hidden sprite for each texture, add it to the container
@@ -244,7 +251,13 @@ export class SpeakerDisplay extends entity.CompositeEntity {
 
     this._on(this.config.narrator, "changeSpeaker", this._onChangeSpeaker);
 
-    return this.container;
+    this.config.container.addChild(this.container);
+  }
+
+  teardown() {
+    this.config.container.removeChild(this.container);
+
+    super.teardown();
   }
 
   _onChangeSpeaker(speaker) {
@@ -316,13 +329,13 @@ export class RandomNarration extends entity.Entity {
   }
 
   teardown() {
-    super.teardown();
-
     this.currentKey = null;
+
+    super.teardown();
   }
 }
 
-export class VideoScene extends entity.CompositeEntity {
+export class VideoScene extends entity.ParallelEntity {
   constructor(options = {}) {
     super();
 
@@ -353,8 +366,6 @@ export class VideoScene extends entity.CompositeEntity {
 
     this.skipButton = new entity.SkipButton(); 
     this.addEntity(this.skipButton);
-
-    return this.container;
   }
 
   requestedTransition(options) { 

@@ -10,6 +10,21 @@ export function clamp(x, min, max) {
   return Math.min(max, Math.max(min, x));
 }
 
+export function magnitude(a) {
+  return Math.sqrt(a.x*a.x + a.y*a.y);;
+}
+
+export function clampMagnitude(a, min, max) {
+  const mag = magnitude(a);
+  if(mag < min) {
+    return multiply(a, min / mag);
+  } else if(mag > max) {
+    return multiply(a, max / mag);
+  } else {
+    return a;
+  }
+}
+
 export function distance(a, b) {
   let x = a.x - b.x;
   let y = a.y - b.y;
@@ -63,6 +78,10 @@ export function radiansToDegrees(a) {
 
 export function degreesToRadians(a) {
   return a * Math.PI / 180;
+}
+
+export function vectorFromAngle(angle, magnitude) {
+  return new PIXI.Point(Math.cos(angle) * magnitude, Math.sin(angle) * magnitude);
 }
 
 
