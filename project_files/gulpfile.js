@@ -11,11 +11,12 @@ const csvparse = require('csv-parse/lib/sync');
 const rename = require('gulp-rename');
 const useref = require('gulp-useref');
 const exec = require('child_process').exec;
+const fs = require('fs');
 
-
-const NAME = "fishandships";
-const SITE_DIR =  process.env.SITE_DIR || `${process.env.HOME}/projects/play-curious/play-curious-site/`
-const DEPLOY_DIR = `${SITE_DIR}/games/${NAME}/`;
+// Read the name of the game from the package.json file
+const PACKAGE = JSON.parse(fs.readFileSync('./package.json'));
+const SITE_DIR =  process.env.SITE_DIR || `${process.env.HOME}/projects/play-curious/play-curious-site/`;
+const DEPLOY_DIR = `${SITE_DIR}/games/${package.name}/`;
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
 

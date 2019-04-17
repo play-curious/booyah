@@ -20,10 +20,13 @@ A Gulp script automates the building process.
 4. Install the dependencies with `npm install`. 
 5. At this point, you can already test by running a local webserver and visiting `index.html`.
 
+
 ## Production
 
 1. Use `gulp build` to compile to a version for older browsers in the `build` directory. Use `gulp watch` to automatically re-compile when you change a file. 
 2. To generate minified version in the `dist` directory, use `gulp dist`.
+3. Update `package.json` to set the `name` of the game. Update the `index.html` file to include sharing links and metadata description.
+4. Use `gulp deploy` to include the game in the Play Curious website (see gulpfile for more details)
 
 
 ### File structure
