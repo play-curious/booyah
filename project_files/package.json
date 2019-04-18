@@ -1,7 +1,7 @@
 {
-  "name": "vehicles",
-  "version": "1.0.0",
-  "description": "",
+  "name": "TODO",
+  "version": "0.0.1",
+  "description": "Just another Booyah game",
   "main": "",
   "dependencies": {
     "babel-core": "^6.26.3",
@@ -36,6 +36,5 @@
     "dist": "gulp dist",
     "watch": "gulp watch"
   },
-  "author": "Jesse Himmelstein",
   "license": "MIT"
 }
