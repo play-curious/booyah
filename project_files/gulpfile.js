@@ -16,7 +16,7 @@ const fs = require('fs');
 // Read the name of the game from the package.json file
 const PACKAGE = JSON.parse(fs.readFileSync('./package.json'));
 const SITE_DIR =  process.env.SITE_DIR || `${process.env.HOME}/projects/play-curious/play-curious-site/`;
-const DEPLOY_DIR = `${SITE_DIR}/games/${package.name}/`;
+const DEPLOY_DIR = `${SITE_DIR}/games/${PACKAGE.name}/`;
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
 
