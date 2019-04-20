@@ -109,7 +109,7 @@ function copyToSite() {
 exports.copyToSite = copyToSite;
 
 function deploySite(cb) {
-  const command = `git add games/${NAME} && git commit -m "Updated game ${NAME}" && git push && ./build-and-deploy.sh`;
+  const command = `git add games/${PACKAGE.name} && git commit -m "Updated game ${PACKAGE.name}" && git push && ./build-and-deploy.sh`;
   exec(command, { cwd: SITE_DIR }, (err, stdout, stderr) => { 
     console.log(stdout);
     console.error(stderr);
