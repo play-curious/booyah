@@ -1,5 +1,3 @@
-import "../../node_modules/url-search-params-polyfill/index.js";
-
 import * as util from "./util.js";
 import * as entity from "./entity.js";
 import * as narration from "./narration.js";
