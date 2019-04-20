@@ -505,10 +505,11 @@ export class EntitySequence extends Entity {
   }
 
   restart() {
+    this._deactivateEntity();
+
     this.currentEntityIndex = 0;
     this.lastRequestedTransition = false;
 
-    this._deactivateEntity();
     this._activateEntity(0);
   }
 
