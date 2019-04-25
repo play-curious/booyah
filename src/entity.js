@@ -379,7 +379,6 @@ export class ParallelEntity extends Entity {
     }
   } 
 
-  // Returns the answer of the first entity
   requestedTransition(options) { 
     super.requestedTransition(options);
 
@@ -425,6 +424,17 @@ export class ParallelEntity extends Entity {
 
     this.entities.splice(index, 1);
     this.entityIsActive.splice(index, 1);
+  }
+
+  removeAllEntities() {
+    for(const entity of this.entities) {
+      if(entity.isSetup) {
+        entity.teardown();
+      }
+
+      this.entities = [];
+      this.entityIsActive = [];
+    }
   }
 }
 
@@ -619,6 +629,21 @@ export class ContainerEntity extends ParallelEntity {
   }
 }
 
+export class DisplayObjectEntity extends Entity {
+  constructor(displayObject) {
+    super();
+
+    this.displayObject = displayObject;
+  }
+
+  _setup(config) {
+    this.config.container.addChild(this.displayObject);
+  } 
+
+  _teardown() {
+    this.config.container.removeChild(this.displayObject);
+  }
+}
 
 export class VideoEntity extends Entity {
   constructor(videoName, options = {}) {
