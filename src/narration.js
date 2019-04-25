@@ -361,7 +361,7 @@ export class VideoScene extends entity.ParallelEntity {
     }
 
     if(this.options.music) {
-      this.addEntity(new audio.MusicEntity(this.options.music, true));
+      this.config.jukebox.changeMusic(this.options.music);
     }
 
     this.skipButton = new entity.SkipButton(); 
@@ -378,6 +378,8 @@ export class VideoScene extends entity.ParallelEntity {
 
   teardown() {
     this.config.narrator.cancelAll();
+    this.config.jukebox.changeMusic();
+
 
     super.teardown();
   }

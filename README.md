@@ -16,7 +16,7 @@ A Gulp script automates the building process.
   * npm and gulp-cli if you don't have them.
   * Install ffmpeg for audio and video work. On Mac: `brew install ffmpeg --with-libvorbis --with-theora --with-libvpx`
 2. Copy or clone this directory into your project directoy as `booyah`.
-3. Copy a bunch of files from `booyah` into your project directory: `cp -r booyah/project_files/* .`
+3. Bootstrap your project by copying starter files from `booyah` into your project directory: `cp -r booyah/project_files/. .`
 4. Install the dependencies with `npm install`. 
 5. At this point, you can already test by running a local webserver and visiting `index.html`.
 

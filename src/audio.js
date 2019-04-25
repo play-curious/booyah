@@ -20,7 +20,10 @@ export class Jukebox extends entity.Entity {
     this.muted = options.muted;
     this.volume = options.volume;
 
-    _.each(this.namesToHowl, howl => howl.volume(this.volume))
+    _.each(this.namesToHowl, howl => {
+      howl.volume(this.volume);
+      howl.loop(true);
+    });
     this._updateMuted();
   }
 
@@ -76,19 +79,60 @@ export class MusicEntity extends entity.Entity {
     this.stopOnTeardown = stopOnTeardown;
   }
 
-  setup(config) {
-    super.setup(config);
-
+  _setup(config) {
     this.config.jukebox.changeMusic(this.trackName);
   }
 
-  teardown() {
+  _requestedTransition(options) { return true; }
+
+  _teardown() {
     if(this.stopOnTeardown) {
       this.config.jukebox.changeMusic();
     }
   }
 }
 
+export class FxMachine extends entity.Entity {
+  // Options include { muted: false, volume: 0.25 }
+  constructor(namesToHowl, options) {
+    super();
+
+    this.namesToHowl = namesToHowl;
+
+    _.defaults(options, {
+      muted: false,
+      volume: 1,
+    });
+
+    this.muted = options.muted;
+    this.volume = options.volume;
+
+    _.each(this.namesToHowl, howl => howl.volume(this.volume))
+    this._updateMuted();
+  }
+
+  play(name) {
+    this.namesToHowl[name].play();
+  }
+
+  // TODO: stop playing effects when muted or paused
+
+  // onSignal(signal, data = null) {
+  //   super.onSignal(signal, data);
+
+  //   if(signal === "pause") this.musicPlaying.pause();
+  //   else if(signal === "play") this.musicPlaying.play();
+  // }
+
+  setMuted(isMuted) {
+    this.muted = isMuted;
+    this._updateMuted();
+  }
+
+  _updateMuted() {
+    _.each(this.namesToHowl, howl => howl.mute(this.muted))
+  }
+} 
 
 export function makeHowlerLoadPromise(howl) {
   return new Promise((resolve, reject) => {
@@ -97,13 +141,12 @@ export function makeHowlerLoadPromise(howl) {
   });
 }
 
-export function makeMusicHowls(fileNames) {
+export function makeHowls(directory, fileNames) {
   // Create map of file names to Howl objects
   const fileToHowl = {};
   for(let file of fileNames) {
     fileToHowl[file] = new Howl({
-      src: _.map(AUDIO_FILE_FORMATS, (audioFormat) => `audio/music/${file}.${audioFormat}`),
-      loop: true,
+      src: _.map(AUDIO_FILE_FORMATS, (audioFormat) => `audio/${directory}/${file}.${audioFormat}`),
     });
   }
   return fileToHowl;

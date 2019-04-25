@@ -1,5 +1,3 @@
-import "../../node_modules/url-search-params-polyfill/index.js";
-
 import * as util from "./util.js";
 import * as entity from "./entity.js";
 import * as narration from "./narration.js";
@@ -15,9 +13,10 @@ const DEFAULT_CONFIG = {
   endingScene: "end",
   graphicalAssets: [],
   musicAssets: [],
+  fxAssets: [],
   videoAssets: [], 
   fontsAssets: [],
-  speakers: [],
+  speakers: {},
   speakerPosition: new PIXI.Point(50, 540),
   credits: {},
   splashScreen: null,
@@ -86,6 +85,9 @@ let narrator;
 // musicAudio is a map of file names to Howl objects
 let musicAudio;
 let jukebox;
+
+let fxAudio;
+let fxMachine;
 
 // The format is key: { text: string, [file: string], [start: int], [end: int], [skipFile: bool] }
 // If start is omitted, entire file will play 
@@ -425,9 +427,9 @@ export class CreditsEntity extends entity.CompositeEntity {
   }
 
   teardown() {
-    super.teardown();
-
     this.config.container.removeChild(this.container);
+
+    super.teardown();
   }
 }
 
@@ -587,9 +589,9 @@ export class DoneScene extends entity.CompositeEntity {
   }
 
   teardown() {
-    super.teardown();
-
     this.config.container.removeChild(this.container);
+
+    super.teardown();
   }
 }
 
@@ -708,10 +710,13 @@ function loadC() {
 
   const narrationLoadPromises = Array.from(narrationAudio.values(), audio.makeHowlerLoadPromise);
   
-  musicAudio = audio.makeMusicHowls(booyahConfig.musicAssets);
+  musicAudio = audio.makeHowls("music", booyahConfig.musicAssets);
   const musicLoadPromises = _.map(musicAudio, audio.makeHowlerLoadPromise);
 
-  const audioPromises = _.flatten([narrationLoadPromises, musicLoadPromises], true);
+  fxAudio = audio.makeHowls("fx", booyahConfig.fxAssets);
+  const fxLoadPromises = _.map(fxAudio, audio.makeHowlerLoadPromise);
+
+  const audioPromises = _.flatten([narrationLoadPromises, musicLoadPromises, fxLoadPromises], true);
   _.each(audioPromises, p => p.then(() => {
     audioLoaderProgress += 1/audioPromises.length;
     updateLoadingProgress();
@@ -758,8 +763,12 @@ function doneLoading() {
     showSubtitles: !startingOptions.noSubtitles,
   });
   rootEntity.addEntity(narrator);
+
   jukebox = new audio.Jukebox(musicAudio, { muted: startingOptions.muteMusic });
   rootEntity.addEntity(jukebox);
+
+  fxMachine = new audio.FxMachine(fxAudio, { muted: startingOptions.muteFx });
+  rootEntity.addEntity(fxMachine);
 
   menuEntity = new MenuEntity(booyahConfig.credits, booyahConfig.gameLogo);
   menuEntity.on("pause", () => changeGameState("paused"));
@@ -774,7 +783,16 @@ function doneLoading() {
 
   const container = app.stage;
 
-  const config = { app, preloader, narrator, jukebox, container };
+  const config = { 
+    booyahConfig, 
+    app, 
+    preloader, 
+    narrator, 
+    narrationTable, 
+    jukebox, 
+    fxMachine, 
+    container 
+  };
 
   rootEntity.setup(config);
 }

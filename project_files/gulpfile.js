@@ -16,7 +16,7 @@ const fs = require('fs');
 // Read the name of the game from the package.json file
 const PACKAGE = JSON.parse(fs.readFileSync('./package.json'));
 const SITE_DIR =  process.env.SITE_DIR || `${process.env.HOME}/projects/play-curious/play-curious-site/`;
-const DEPLOY_DIR = `${SITE_DIR}/games/${package.name}/`;
+const DEPLOY_DIR = `${SITE_DIR}/games/${PACKAGE.name}/`;
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
 
@@ -109,7 +109,7 @@ function copyToSite() {
 exports.copyToSite = copyToSite;
 
 function deploySite(cb) {
-  const command = `git add games/${NAME} && git commit -m "Updated game ${NAME}" && git push && ./build-and-deploy.sh`;
+  const command = `git add games/${PACKAGE.name} && git commit -m "Updated game ${PACKAGE.name}" && git push && ./build-and-deploy.sh`;
   exec(command, { cwd: SITE_DIR }, (err, stdout, stderr) => { 
     console.log(stdout);
     console.error(stderr);

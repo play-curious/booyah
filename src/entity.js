@@ -78,7 +78,7 @@ export class Entity extends PIXI.utils.EventEmitter {
       console.trace();
     }
 
-    return this._requestedTransition(); 
+    return this._requestedTransition(options); 
   } 
 
   // @signal is string, @data is whatever
@@ -135,6 +135,7 @@ export class StateMachine extends Entity {
     super.setup(config);
 
     this.endingStateReached = null;
+    this.visitedStates = [];
     
     this._changeState(0, this.startingState, this.startingStateParams);
   }
@@ -216,6 +217,7 @@ export class StateMachine extends Entity {
     // If reached ending state, stop here. Teardown can happen later
     if(nextStateName == this.endingState) {
       this.endingStateReached = nextStateName;
+      this.visitedStates.push(nextStateName);
       return;
     }
 
@@ -243,6 +245,8 @@ export class StateMachine extends Entity {
     const previousStateParams = this.stateParams;
     this.stateName = nextStateName;
     this.stateParams = nextStateParams;
+
+    this.visitedStates.push(nextStateName);
 
     this.emit("stateChange", nextStateName, nextStateParams, previousStateName, previousStateParams);
   }
@@ -511,10 +515,11 @@ export class EntitySequence extends Entity {
   }
 
   restart() {
+    this._deactivateEntity();
+
     this.currentEntityIndex = 0;
     this.lastRequestedTransition = false;
 
-    this._deactivateEntity();
     this._activateEntity(0);
   }
 
@@ -582,6 +587,23 @@ export class FunctionalEntity extends CompositeEntity {
     super.onSignal(signal, data);
 
     if(this.functions.onSignal) this.functions.onSignal(signal, data);
+  }
+}
+
+// Calls the function just once, and immediately asks for transition
+export class FunctionCallEntity extends Entity {
+  constructor(f) {
+    super();
+
+    this.f = f;
+  }
+
+  _setup() {
+    this.f();
+  }
+
+  _requestedTransition() { 
+    return true;
   }
 }
 
@@ -794,7 +816,7 @@ export class SkipButton extends Entity {
     this.sprite.interactive = true;
     this._on(this.sprite, "pointertap", this._onSkip);
     
-    this.config.addChild(this.sprite);
+    this.config.container.addChild(this.sprite);
   }
 
   requestedTransition(options) {
@@ -804,7 +826,7 @@ export class SkipButton extends Entity {
   }
 
   teardown() {
-    this.config.removeChild(this.sprite);
+    this.config.container.removeChild(this.sprite);
 
     super.teardown();
   }
