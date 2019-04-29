@@ -112,9 +112,228 @@ export class Entity extends PIXI.utils.EventEmitter {
   _teardown(options) {}
 }
 
+/*
+  Allows a bunch of entities to execute in parallel.
+  Updates child entities until they ask for a transition, at which point they are torn down.
+  Requests a transition only when all child entities have completed, or if _requestedTransition() returns a truthy.
+*/
+export class ParallelEntity extends Entity {
+  constructor(entities = []) {
+    super();
+
+    this.entities = entities;
+    // By default all entities are active
+    this.entityIsActive = _.map(this.entities, () => true);
+  }
+
+  setup(config) {
+    super.setup(config);
+
+    for(const entity of this.entities) {
+      if(!entity.isSetup) {
+        entity.setup(config);
+      }
+    } 
+  }
+
+  update(options) {
+    super.update(options);
+
+    for(let i = 0; i < this.entities.length; i++) {
+      if(this.entityIsActive[i]) {
+        const entity = this.entities[i];
+
+        entity.update(options);
+
+        if(entity.requestedTransition(options)) {
+          entity.teardown();
+
+          this.entityIsActive[i] = false;
+        }
+      }
+    }
+  } 
+
+  requestedTransition(options) { 
+    const overloadedTransition = super.requestedTransition(options);
+    if(overloadedTransition) return overloadedTransition; 
+    else return _.some(this.entityIsActive) ? null : true;
+  }
+
+  teardown() {
+    for(let i = 0; i < this.entities.length; i++) {
+      if(this.entityIsActive[i]) {
+        this.entities[i].teardown();
+        this.entityIsActive[i] = false;
+      }
+    }
+
+    super.teardown();
+  }
+
+  onSignal(signal, data) { 
+    super.onSignal(signal, data);
+
+    for(let i = 0; i < this.entities.length; i++) {
+      if(this.entityIsActive[i]) this.entities[i].onSignal(signal, data);
+    }
+  }
+
+  addEntity(entity) {
+    // If we have already been setup, setup this new entity
+    if(this.isSetup && !entity.isSetup) {
+      entity.setup(this.config);
+    }
+
+    this.entities.push(entity);
+    this.entityIsActive.push(true);
+  }
+
+  removeEntity(entity) {
+    const index = this.entities.indexOf(entity);
+    if(index === -1) throw new Error("Cannot find entity to remove");
+
+    if(entity.isSetup) {
+      entity.teardown();
+    }
+
+    this.entities.splice(index, 1);
+    this.entityIsActive.splice(index, 1);
+  }
+
+  removeAllEntities() {
+    for(const entity of this.entities) {
+      if(entity.isSetup) {
+        entity.teardown();
+      }
+
+      this.entities = [];
+      this.entityIsActive = [];
+    }
+  }
+}
+
+/**
+  Runs one child entity after another. 
+  When done, requestes the last transition demanded.
+  Optionally can loop back to the first entity.
+*/
+export class EntitySequence extends Entity {
+  // @options includes loop (default: false)
+  constructor(entities, options = {}) {
+    super();
+
+    this.entities = entities;
+    this.loop = options.loop || false;
+  }
+
+  // Does not setup entity
+  addEntity(entity) {
+    if(this.lastRequestedTransition) return;
+
+    this.entities.push(entity); 
+  }
+
+  skip() {
+    if(this.lastRequestedTransition) return;
+
+    this._advance({ name: "skip" });
+  }
+
+  setup(config) {
+    super.setup(config);
+
+    this.currentEntityIndex = 0;
+    this.lastRequestedTransition = null;
+
+    this._activateEntity(0);
+  }
+
+  update(options) {
+    super.update(options);
+
+    if(this.lastRequestedTransition) return;
+
+
+    const timeSinceChildStart = options.timeSinceStart - this.childStartedAt;
+    const childOptions = _.extend({}, options, { timeSinceStart: timeSinceChildStart });
+
+    this.lastUpdateOptions = options;
+
+    if(this.currentEntityIndex >= this.entities.length) return;
+
+    this.entities[this.currentEntityIndex].update(childOptions);
+
+    const transition = this.entities[this.currentEntityIndex].requestedTransition(childOptions);
+    if(transition) this._advance(transition);
+  } 
+
+  requestedTransition(options) { 
+    super.requestedTransition(options);
+
+    return this.lastRequestedTransition;
+  }
+
+  teardown() {
+    if(this.lastRequestedTransition) return;
+
+
+    this._deactivateEntity();
+
+    super.teardown();
+  }
+
+  onSignal(signal, data) { 
+    if(this.lastRequestedTransition) return;
+
+    this.entities[this.currentEntityIndex].onSignal(signal, data);
+  }
+
+  restart() {
+    this._deactivateEntity();
+
+    this.currentEntityIndex = 0;
+    this.lastRequestedTransition = false;
+
+    this._activateEntity(0);
+  }
+
+  _activateEntity(time) {
+    this.entities[this.currentEntityIndex].setup(this.config);
+    this.childStartedAt = time;
+  }
+
+  _deactivateEntity() {
+    this.entities[this.currentEntityIndex].teardown();
+  }
+
+  _advance(transition) {
+    if(this.currentEntityIndex < this.entities.length - 1) {
+      this._deactivateEntity();
+      this.currentEntityIndex = this.currentEntityIndex + 1;
+      this._activateEntity(this.lastUpdateOptions.timeSinceStart);
+    } else if(this.loop) {
+      this._deactivateEntity();
+      this.currentEntityIndex = 0;
+      this._activateEntity(this.lastUpdateOptions.timeSinceStart);
+    } else {
+      this._deactivateEntity();
+      this.lastRequestedTransition = transition;
+    }
+  }
+}
+
+/** 
+  Represents a state machine, where each state has a name, and is represented by an entity.
+  Only one state is active at a time. 
+  By default, the state machine begins at the state called "start", and stops at "end".
+
+  The transitions are not provided directly by the states (entities) by rather by a transition table provided in the constructor.
+  A transition is defined as either a name (string) or { name, params }. 
+  To use have a transition table within a transition table, use the function makeTransitionTable()
+*/
 export class StateMachine extends Entity {
   /**
-      A transition is defined as either a name (string) or { name, params } 
       @states: an object of names to Entity, or to function(params): Entity
       @transitions: an object of names to transition, or to function(name, params, previousName, previousParams): Transition
   */
@@ -252,6 +471,17 @@ export class StateMachine extends Entity {
   }
 }
 
+/** 
+  Creates a transition table for use with StateMachine.
+  Example: 
+    const transitions = {
+      start: entity.makeTransitionTable({ 
+        win: "end",
+        lose: "start",
+      }),
+    };
+    `
+*/
 export function makeTransitionTable(table) {
   const f = function(requestedTransitionName, requestedTransitionParams, previousStateName, previousStateParams) {
     if(requestedTransitionName in table) {
@@ -341,214 +571,16 @@ export class CompositeEntity extends Entity {
   }
 }
 
-/*
-  Allows a bunch of entities to execute in parallel.
-  Updates child entities until they ask for a transition, at which point they are torn down.
-  Requests a transition only when all child entities have completed.
+/**
+  An entity that gets its behavior from functions provided inline in the constructor.
+  Useful for small entities that don't require their own class definition.
+
+  Example usage:
+    new FunctionalEntity({
+      setup: (config) => console.log("setup", config),
+      teardown: () => console.log("teardown"),
+    });
 */
-export class ParallelEntity extends Entity {
-  constructor(entities = []) {
-    super();
-
-    this.entities = entities;
-    // By default all entities are active
-    this.entityIsActive = _.map(this.entities, () => true);
-  }
-
-  setup(config) {
-    super.setup(config);
-
-    for(const entity of this.entities) {
-      if(!entity.isSetup) {
-        entity.setup(config);
-      }
-    } 
-  }
-
-  update(options) {
-    super.update(options);
-
-    for(let i = 0; i < this.entities.length; i++) {
-      if(this.entityIsActive[i]) {
-        const entity = this.entities[i];
-
-        entity.update(options);
-
-        if(entity.requestedTransition(options)) {
-          entity.teardown();
-
-          this.entityIsActive[i] = false;
-        }
-      }
-    }
-  } 
-
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return _.some(this.entityIsActive) ? null : true;
-  }
-
-  teardown() {
-    for(let i = 0; i < this.entities.length; i++) {
-      if(this.entityIsActive[i]) {
-        this.entities[i].teardown();
-        this.entityIsActive[i] = false;
-      }
-    }
-
-    super.teardown();
-  }
-
-  onSignal(signal, data) { 
-    super.onSignal(signal, data);
-
-    for(let i = 0; i < this.entities.length; i++) {
-      if(this.entityIsActive[i]) this.entities[i].onSignal(signal, data);
-    }
-  }
-
-  addEntity(entity) {
-    // If we have already been setup, setup this new entity
-    if(this.isSetup && !entity.isSetup) {
-      entity.setup(this.config);
-    }
-
-    this.entities.push(entity);
-    this.entityIsActive.push(true);
-  }
-
-  removeEntity(entity) {
-    const index = this.entities.indexOf(entity);
-    if(index === -1) throw new Error("Cannot find entity to remove");
-
-    if(entity.isSetup) {
-      entity.teardown();
-    }
-
-    this.entities.splice(index, 1);
-    this.entityIsActive.splice(index, 1);
-  }
-
-  removeAllEntities() {
-    for(const entity of this.entities) {
-      if(entity.isSetup) {
-        entity.teardown();
-      }
-
-      this.entities = [];
-      this.entityIsActive = [];
-    }
-  }
-}
-
-// An entity that executes one scene after the other
-export class EntitySequence extends Entity {
-  // @options includes loop (default: false)
-  constructor(entities, options = {}) {
-    super();
-
-    this.entities = entities;
-    this.loop = options.loop || false;
-  }
-
-  // Does not setup entity
-  addEntity(entity) {
-    if(this.lastRequestedTransition) return;
-
-    this.entities.push(entity); 
-  }
-
-  skip() {
-    if(this.lastRequestedTransition) return;
-
-    this._advance({ name: "skip" });
-  }
-
-  setup(config) {
-    super.setup(config);
-
-    this.currentEntityIndex = 0;
-    this.lastRequestedTransition = null;
-
-    this._activateEntity(0);
-  }
-
-  update(options) {
-    super.update(options);
-
-    if(this.lastRequestedTransition) return;
-
-
-    const timeSinceChildStart = options.timeSinceStart - this.childStartedAt;
-    const childOptions = _.extend({}, options, { timeSinceStart: timeSinceChildStart });
-
-    this.lastUpdateOptions = options;
-
-    if(this.currentEntityIndex >= this.entities.length) return;
-
-    this.entities[this.currentEntityIndex].update(childOptions);
-
-    const transition = this.entities[this.currentEntityIndex].requestedTransition(childOptions);
-    if(transition) this._advance(transition);
-  } 
-
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return this.lastRequestedTransition;
-  }
-
-  teardown() {
-    if(this.lastRequestedTransition) return;
-
-
-    this._deactivateEntity();
-
-    super.teardown();
-  }
-
-  onSignal(signal, data) { 
-    if(this.lastRequestedTransition) return;
-
-    this.entities[this.currentEntityIndex].onSignal(signal, data);
-  }
-
-  restart() {
-    this._deactivateEntity();
-
-    this.currentEntityIndex = 0;
-    this.lastRequestedTransition = false;
-
-    this._activateEntity(0);
-  }
-
-  _activateEntity(time) {
-    this.entities[this.currentEntityIndex].setup(this.config);
-    this.childStartedAt = time;
-  }
-
-  _deactivateEntity() {
-    this.entities[this.currentEntityIndex].teardown();
-  }
-
-  _advance(transition) {
-    if(this.currentEntityIndex < this.entities.length - 1) {
-      this._deactivateEntity();
-      this.currentEntityIndex = this.currentEntityIndex + 1;
-      this._activateEntity(this.lastUpdateOptions.timeSinceStart);
-    } else if(this.loop) {
-      this._deactivateEntity();
-      this.currentEntityIndex = 0;
-      this._activateEntity(this.lastUpdateOptions.timeSinceStart);
-    } else {
-      this._deactivateEntity();
-      this.lastRequestedTransition = transition;
-    }
-  }
-}
-
-// An entity that takes functions in the constructor
 export class FunctionalEntity extends ParallelEntity {
   // @functions is an object, with keys: setup, update, teardown, requestedTransition, onSignal
   constructor(functions, childEntities = []) {
@@ -590,7 +622,9 @@ export class FunctionalEntity extends ParallelEntity {
   }
 }
 
-// Calls the function just once, and immediately asks for transition
+/**
+  An entity that calls a provided function just once (in setup), and immediately requests a transition
+*/
 export class FunctionCallEntity extends Entity {
   constructor(f) {
     super();
@@ -609,6 +643,7 @@ export class FunctionCallEntity extends Entity {
 
 // Waits until time is up, then requests transition
 export class WaitingEntity extends Entity {
+  /* @wait is in milliseconds */
   constructor(wait) {
     super();
 
@@ -622,7 +657,29 @@ export class WaitingEntity extends Entity {
   }
 }
 
+/**
+  An entity that manages a PIXI DisplayObject, such as a Sprite or Graphics. 
+  Useful for automatically adding and removing the DisplayObject to the parent container.
+*/
+export class DisplayObjectEntity extends Entity {
+  constructor(displayObject) {
+    super();
 
+    this.displayObject = displayObject;
+  }
+
+  _setup(config) {
+    this.config.container.addChild(this.displayObject);
+  } 
+
+  _teardown() {
+    this.config.container.removeChild(this.displayObject);
+  }
+}
+
+/**
+  An entity that creates a new PIXI container in the setup config for it's children, and manages the container. 
+*/
 export class ContainerEntity extends ParallelEntity {
   constructor(entities = [], name = null) {
     super(entities);
@@ -651,22 +708,10 @@ export class ContainerEntity extends ParallelEntity {
   }
 }
 
-export class DisplayObjectEntity extends Entity {
-  constructor(displayObject) {
-    super();
-
-    this.displayObject = displayObject;
-  }
-
-  _setup(config) {
-    this.config.container.addChild(this.displayObject);
-  } 
-
-  _teardown() {
-    this.config.container.removeChild(this.displayObject);
-  }
-}
-
+/**
+  Manages a video asset. Can optionally loop the video.
+  Asks for a transition when the video has ended.
+*/
 export class VideoEntity extends Entity {
   constructor(videoName, options = {}) {
     super();
@@ -715,6 +760,9 @@ export class VideoEntity extends Entity {
   }
 }
 
+/** 
+  Creates a toggle switch that has different textures in the "off" and "on" positions.
+*/
 export class ToggleSwitch extends Entity {
   constructor(options) {
     super();
@@ -779,6 +827,9 @@ export class ToggleSwitch extends Entity {
   }
 }
 
+/** 
+  Manages an animated sprite in PIXI, pausing the sprite during pauses.
+*/
 export class AnimatedSpriteEntity extends Entity {
   constructor(animatedSprite) {
     super();
@@ -789,7 +840,7 @@ export class AnimatedSpriteEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    this.config.addChild(this.animatedSprite);
+    this.config.container.addChild(this.animatedSprite);
   }
 
   onSignal(signal, data = null) {
@@ -798,7 +849,7 @@ export class AnimatedSpriteEntity extends Entity {
   }
 
   teardown() {
-    this.config.removeChild(this.animatedSprite);
+    this.config.container.removeChild(this.animatedSprite);
 
     super.teardown();
   }
@@ -837,12 +888,16 @@ export class SkipButton extends Entity {
   }
 }
 
+/**
+  Similar in spirit to ParallelEntity, but does not hold onto entities that have completed. 
+  Instead, entities that have completed are removed after teardown 
+*/
 export class DeflatingCompositeEntity extends Entity {
   /** Options include:
         autoTransition: If true, requests transition when the entity has no children (default true)
         cleanUpChildren: If true, children that request a transition are automatically removed
   */
-  constructor(entities = [], options = {}) {
+  constructor(options = {}) {
     super();
 
     util.setupOptions(this, options, {
@@ -850,7 +905,7 @@ export class DeflatingCompositeEntity extends Entity {
       cleanUpChildren: true,
     });
 
-    this.entities = entities;
+    this.entities = [];
   }
 
   setup(config) {
