@@ -1,6 +1,6 @@
 
 
-// Test containment using isEqual
+/** Test containment using _.isEqual() */
 export function contains(list, p) {
   for(let x of list) {
     if(_.isEqual(x, p)) return true;
@@ -8,7 +8,7 @@ export function contains(list, p) {
   return false;
 } 
 
-// Test containment using isEqual
+/** Test containment using _.isEqual() */
 export function indexOf(list, p) {
   for(let i = 0; i < list.length; i++) {
     if(_.isEqual(list[i], p)) return i;
@@ -16,7 +16,7 @@ export function indexOf(list, p) {
   return -1;
 } 
 
-// Find unique elements using isEqual
+/** Find unique elements using _.isEqual() */
 export function uniq(array) {
   let results = [];
   let seen = [];
@@ -29,24 +29,25 @@ export function uniq(array) {
   return results;
 }
 
-// Like Underscore's method, but uses contains()
+/** Like _.difference(), but uses contains() */
 export function difference(array) {
   rest = Array.prototype.concat.apply(Array.prototype, Array.prototype.slice.call(arguments, 1));
   return _.filter(array, (value) => !contains(rest, value));
 }
 
-// Uses contains()
+/** Returns a new array with the given element excluded, tested using _.isEqual() */
 export function removeFromArray(array, value) {
   let ret = [];
   for(let element of array) if(!_.isEqual(element, value)) ret.push(element);
   return ret;
 }
 
+/** Deep clone of JSON-serializable objects */
 export function cloneData(o) {
   return JSON.parse(JSON.stringify(o));
 } 
 
-
+/** Picks a random element from the array */
 export function randomArrayElement(array) {
   return array[_.random(0, array.length - 1)];
 }

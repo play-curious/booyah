@@ -5,6 +5,10 @@ import * as entity from "./entity.js";
 export const AUDIO_FILE_FORMATS = ["mp3"];
 
 
+/** 
+  A music player, that only plays one track at a time.
+  By default the volume is lowered to not interere with sound effects.
+*/
 export class Jukebox extends entity.Entity {
   // Options include { muted: false, volume: 0.25 }
   constructor(namesToHowl, options) {
@@ -71,6 +75,10 @@ export class Jukebox extends entity.Entity {
   }
 } 
 
+/** 
+  Am entity that requests the music be changed upon setup.
+  Optionally can stop the music on teardown.
+*/
 export class MusicEntity extends entity.Entity {
   constructor(trackName, stopOnTeardown = false) {
     super();
@@ -92,6 +100,9 @@ export class MusicEntity extends entity.Entity {
   }
 }
 
+/** 
+  Play sounds effects.
+*/
 export class FxMachine extends entity.Entity {
   // Options include { muted: false, volume: 0.25 }
   constructor(namesToHowl, options) {
@@ -134,6 +145,7 @@ export class FxMachine extends entity.Entity {
   }
 } 
 
+/** Creates a Promise from the Howl callbacks used for loading */ 
 export function makeHowlerLoadPromise(howl) {
   return new Promise((resolve, reject) => {
     howl.on("load", () => resolve(howl))
@@ -141,8 +153,8 @@ export function makeHowlerLoadPromise(howl) {
   });
 }
 
+/** Create map of file names to Howl objects */
 export function makeHowls(directory, fileNames) {
-  // Create map of file names to Howl objects
   const fileToHowl = {};
   for(let file of fileNames) {
     fileToHowl[file] = new Howl({
