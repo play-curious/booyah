@@ -3,7 +3,7 @@ import * as entity from "./entity.js";
 
 
 export function p2VecToPoint(a) {
-  return new Pixi.Point(a[0], a[1]);
+  return new PIXI.Point(a[0], a[1]);
 }
 
 export function pointToP2Vec(a) {

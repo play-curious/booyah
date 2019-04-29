@@ -549,7 +549,7 @@ export class EntitySequence extends Entity {
 }
 
 // An entity that takes functions in the constructor
-export class FunctionalEntity extends CompositeEntity {
+export class FunctionalEntity extends ParallelEntity {
   // @functions is an object, with keys: setup, update, teardown, requestedTransition, onSignal
   constructor(functions, childEntities = []) {
     super();
