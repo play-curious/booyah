@@ -375,9 +375,9 @@ export class VideoScene extends entity.ParallelEntity {
   requestedTransition(options) { 
     super.requestedTransition(options);
 
-    return this.options.narration && this.narration.requestedTransition(options) || 
-      this.options.video && this.video.requestedTransition(options) ||
-      this.skipButton.requestedTransition(options);
+    return this.options.narration &&!this.narration.isSetup||
+      this.options.video &&!this.video.isSetup ||
+      !this.skipButton.isSetup;
   }
 
   teardown() {
