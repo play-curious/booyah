@@ -730,8 +730,9 @@ export class VideoEntity extends Entity {
     this.videoElement.currentTime = 0;
     this.videoElement.play();
 
-    const texture = PIXI.VideoBaseTexture.fromVideo(this.videoElement);
-    this.videoSprite = PIXI.Sprite.from(texture);
+    /**const texture = PIXI.VideoBaseTexture.fromVideo(this.videoElement);*/
+    /**const texture = PIXI.BaseTexture.from(this.videoElement);*/
+    this.videoSprite = PIXI.Sprite.from(this.videoElement);
 
     this.config.container.addChild(this.videoSprite);
   }

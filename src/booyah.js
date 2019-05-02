@@ -798,7 +798,8 @@ function doneLoading() {
 }
 
 export function makePreloader(additionalAssets) {
-  const loader = new PIXI.loaders.Loader();
+  const loader = new PIXI.Loader();
+
   loader.add(PRELOADER_ASSETS);
   loader.add(additionalAssets);
   return loader;
