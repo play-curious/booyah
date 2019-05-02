@@ -799,7 +799,6 @@ function doneLoading() {
 
 export function makePreloader(additionalAssets) {
   const loader = new PIXI.Loader();
-
   loader.add(PRELOADER_ASSETS);
   loader.add(additionalAssets);
   return loader;
@@ -861,5 +860,3 @@ function onGameStateMachineChange(nextStateName, nextStateParams, previousStateN
   console.log("New game state:", nextStateName, nextStateParams);
   console.log("New game state link:", url.href);
 }
-
-
