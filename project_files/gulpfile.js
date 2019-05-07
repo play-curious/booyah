@@ -2,6 +2,7 @@ const gulp = require('gulp');
 const htmlreplace = require('gulp-html-replace');
 const rollup = require('rollup');
 const resolve = require('rollup-plugin-node-resolve');
+const commonjs = require('rollup-plugin-commonjs');
 const babel = require('rollup-plugin-babel');
 const del = require('del');
 const uglify = require('gulp-uglify');
@@ -30,6 +31,7 @@ async function bundle() {
     input: 'src/game.js',
     plugins: [
       resolve(),
+      commonjs(),
       babel({
         exclude: [
           'node_modules/**',
