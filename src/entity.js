@@ -145,7 +145,7 @@ export class ParallelEntity extends Entity {
       }
     }
 
-    if(!_.some(this.entityIsActive)) this.requestedTransition = true;
+    // if(!_.some(this.entityIsActive)) this.requestedTransition = true;
   } 
 
   teardown() {
