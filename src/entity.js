@@ -12,12 +12,11 @@ import * as util from "./util.js";
       This is when the entity should add dispaly objects  to the scene, or subscribe to events.
       The typical config contains { app, preloader, narrator, jukebox, container }
     3. update() is called one or more times, with options. 
-      It could also never be called, in case the entity is torn down directly.\
+      It could also never be called, in case the entity is torn down directly.
+      If the entity wishes to be terminated, it should set this.requestedTransition to a truthy value.
       Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState } 
-    4. requestTransition() is called, with the same options as update().
-      If the entity has a control flow, it can indicate that it's action is done by returning a true value 
       For more complicated transitions, it can return an object like { name: "", params: {} }
-    5. teardown() is called just once.
+    4. teardown() is called just once.
       The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
 
   The base class will check that this lifecyle is respected, and will log errors to signal any problems.
@@ -42,6 +41,7 @@ export class Entity extends PIXI.utils.EventEmitter {
 
     this.config = config;
     this.isSetup = true;
+    this.requestedTransition = null;
 
     this._setup(config);
   }
@@ -70,21 +70,13 @@ export class Entity extends PIXI.utils.EventEmitter {
     this.isSetup = false;
   }
 
-  // Optionally returns either a truthy value, or possibly an object containing the keys { name, params}
-  // @options are the same as for update()
-  requestedTransition(options) { 
-    if(!this.isSetup) {
-      console.error("requestedTransition() called before setup()", this);
-      console.trace();
-    }
-
-    return this._requestedTransition(options); 
-  } 
-
   // @signal is string, @data is whatever
   onSignal(signal, data = null) { 
-    if(!this.config) 
+    if(!this.config) {
       console.error("onSignal() called before setup()", this);
+    }
+
+    this._onSignal(signal, data);
   }
 
 
@@ -108,14 +100,14 @@ export class Entity extends PIXI.utils.EventEmitter {
   // Noop methods than can be overriden by subclasses
   _setup(config) {}
   _update(options) {}
-  _requestedTransition(options) { return null; }
   _teardown(options) {}
+  _onSignal(signal, data) {}
 }
 
 /*
   Allows a bunch of entities to execute in parallel.
   Updates child entities until they ask for a transition, at which point they are torn down.
-  Requests a transition only when all child entities have completed, or if _requestedTransition() returns a truthy.
+  Requests a transition only when all child entities have completed
 */
 export class ParallelEntity extends Entity {
   constructor(entities = []) {
@@ -145,20 +137,16 @@ export class ParallelEntity extends Entity {
 
         entity.update(options);
 
-        if(entity.requestedTransition(options)) {
+        if(entity.requestedTransition) {
           entity.teardown();
 
           this.entityIsActive[i] = false;
         }
       }
     }
-  } 
 
-  requestedTransition(options) { 
-    const overloadedTransition = super.requestedTransition(options);
-    if(overloadedTransition) return overloadedTransition; 
-    else return _.some(this.entityIsActive) ? null : true;
-  }
+    if(!_.some(this.entityIsActive)) this.requestedTransition = true;
+  } 
 
   teardown() {
     for(let i = 0; i < this.entities.length; i++) {
@@ -229,13 +217,13 @@ export class EntitySequence extends Entity {
 
   // Does not setup entity
   addEntity(entity) {
-    if(this.lastRequestedTransition) return;
+    if(this.requestedTransition) return;
 
     this.entities.push(entity); 
   }
 
   skip() {
-    if(this.lastRequestedTransition) return;
+    if(this.requestedTransition) return;
 
     this._advance({ name: "skip" });
   }
@@ -244,7 +232,6 @@ export class EntitySequence extends Entity {
     super.setup(config);
 
     this.currentEntityIndex = 0;
-    this.lastRequestedTransition = null;
 
     this._activateEntity(0);
   }
@@ -264,18 +251,12 @@ export class EntitySequence extends Entity {
 
     this.entities[this.currentEntityIndex].update(childOptions);
 
-    const transition = this.entities[this.currentEntityIndex].requestedTransition(childOptions);
+    const transition = this.entities[this.currentEntityIndex].requestedTransition;
     if(transition) this._advance(transition);
   } 
 
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return this.lastRequestedTransition;
-  }
-
   teardown() {
-    if(this.lastRequestedTransition) return;
+    if(this.requestedTransition) return;
 
 
     this._deactivateEntity();
@@ -284,7 +265,7 @@ export class EntitySequence extends Entity {
   }
 
   onSignal(signal, data) { 
-    if(this.lastRequestedTransition) return;
+    if(this.requestedTransition) return;
 
     this.entities[this.currentEntityIndex].onSignal(signal, data);
   }
@@ -293,7 +274,7 @@ export class EntitySequence extends Entity {
     this._deactivateEntity();
 
     this.currentEntityIndex = 0;
-    this.lastRequestedTransition = false;
+    this.requestedTransition = false;
 
     this._activateEntity(0);
   }
@@ -318,7 +299,7 @@ export class EntitySequence extends Entity {
       this._activateEntity(this.lastUpdateOptions.timeSinceStart);
     } else {
       this._deactivateEntity();
-      this.lastRequestedTransition = transition;
+      this.requestedTransition = transition;
     }
   }
 }
@@ -353,7 +334,6 @@ export class StateMachine extends Entity {
   setup(config) {
     super.setup(config);
 
-    this.endingStateReached = null;
     this.visitedStates = [];
     
     this._changeState(0, this.startingState, this.startingStateParams);
@@ -368,7 +348,7 @@ export class StateMachine extends Entity {
     const stateOptions = _.extend({}, options, { timeSinceStart: timeSinceStateStart });
     this.state.update(stateOptions);
 
-    const requestedTransition = this.state.requestedTransition(stateOptions);
+    const requestedTransition = this.state.requestedTransition;
     if(requestedTransition) {
       // Unpack requested transition
       let requestedTransitionName, requestedTransitionParams;
@@ -420,12 +400,6 @@ export class StateMachine extends Entity {
     super.teardown();
   }
 
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return this.endingStateReached; 
-  }
-
   onSignal(signal, data = null) { 
     super.onSignal(signal, data);
 
@@ -434,8 +408,8 @@ export class StateMachine extends Entity {
 
   _changeState(timeSinceStart, nextStateName, nextStateParams) {
     // If reached ending state, stop here. Teardown can happen later
-    if(nextStateName == this.endingState) {
-      this.endingStateReached = nextStateName;
+    if(nextStateName === this.endingState) {
+      this.requestedTransition = nextStateName;
       this.visitedStates.push(nextStateName);
       return;
     }
@@ -523,15 +497,11 @@ export class CompositeEntity extends Entity {
     for(const entity of this.entities) {
       entity.update(options);
     }
+
+    if(this.entities.length && this.entities[0].requestedTransition) {
+      this.requestedTransition = this.entities[0].requestedTransition;
+    }
   } 
-
-  // Returns the answer of the first entity
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    if(this.entities.length) return this.entities[0].requestedTransition(options);
-    return null;
-  }
 
   teardown() {
     for(const entity of this.entities) {
@@ -582,7 +552,7 @@ export class CompositeEntity extends Entity {
     });
 */
 export class FunctionalEntity extends ParallelEntity {
-  // @functions is an object, with keys: setup, update, teardown, requestedTransition, onSignal
+  // @functions is an object, with keys: setup, update, teardown, onSignal
   constructor(functions, childEntities = []) {
     super();
 
@@ -609,12 +579,6 @@ export class FunctionalEntity extends ParallelEntity {
     super.teardown();
   }
 
-  requestedTransition(options) {
-    if(this.functions.requestedTransition) return this.functions.requestedTransition(options, this);
-
-    return null;
-  } 
-
   onSignal(signal, data = null) {
     super.onSignal(signal, data);
 
@@ -634,10 +598,8 @@ export class FunctionCallEntity extends Entity {
 
   _setup() {
     this.f();
-  }
 
-  _requestedTransition() { 
-    return true;
+    this.requestedTransition = true;
   }
 }
 
@@ -650,10 +612,10 @@ export class WaitingEntity extends Entity {
     this.wait = wait;
   }
 
-  requestedTransition(options) {
-    super.requestedTransition(options);
-
-    return options.timeSinceStart >= this.wait ? "next" : null;
+  _update(options) {
+    if(options.timeSinceStart >= this.wait) {
+      this.requestedTransition = true;
+    }
   }
 }
 
@@ -722,9 +684,7 @@ export class VideoEntity extends Entity {
     });
   }
 
-  setup(config) {
-    super.setup(config);
-
+  _setup(config) {
     this.videoElement = this.config.app.loader.resources[this.videoName].data;
     this.videoElement.loop = this.loop;
     this.videoElement.currentTime = 0;
@@ -736,7 +696,11 @@ export class VideoEntity extends Entity {
     this.config.container.addChild(this.videoSprite);
   }
 
-  onSignal(signal, data) {
+  _update(options) {
+    if(this.videoElement.ended) this.requestedTransition = true;
+  }
+  
+  _onSignal(signal, data) {
     super.onSignal(signal, data);
 
     if(signal === "pause") {
@@ -744,12 +708,6 @@ export class VideoEntity extends Entity {
     } else if(signal === "play") {
       this.videoElement.play();
     }
-  }
-
-  requestedTransition(options) {
-    super.requestedTransition(options);
-
-    return this.videoElement.ended;
   }
 
   teardown() {
@@ -859,8 +817,6 @@ export class SkipButton extends Entity {
   setup(config) {
     super.setup(config);
 
-    this.isDone = false;
-
     this.sprite = new PIXI.Sprite(this.config.app.loader.resources["booyah/images/button-skip.png"].texture);
     this.sprite.anchor.set(0.5);
     this.sprite.position.set(this.config.app.screen.width - 50, this.config.app.screen.height - 50);
@@ -870,12 +826,6 @@ export class SkipButton extends Entity {
     this.config.container.addChild(this.sprite);
   }
 
-  requestedTransition(options) {
-    super.requestedTransition(options);
-
-    return this.isDone;
-  }
-
   teardown() {
     this.config.container.removeChild(this.sprite);
 
@@ -883,7 +833,7 @@ export class SkipButton extends Entity {
   }
 
   _onSkip() {
-    this.isDone = true;
+    this.requestedTransition = true;
     this.emit("skip");
   }
 }
@@ -895,14 +845,12 @@ export class SkipButton extends Entity {
 export class DeflatingCompositeEntity extends Entity {
   /** Options include:
         autoTransition: If true, requests transition when the entity has no children (default true)
-        cleanUpChildren: If true, children that request a transition are automatically removed
   */
   constructor(options = {}) {
     super();
 
     util.setupOptions(this, options, {
       autoTransition: true,
-      cleanUpChildren: true,
     });
 
     this.entities = [];
@@ -926,7 +874,7 @@ export class DeflatingCompositeEntity extends Entity {
       const entity = this.entities[i];
       entity.update(options);
 
-      if(this.cleanUpChildren && entity.requestedTransition(options)) {
+      if(entity.requestedTransition) {
         console.debug("Cleanup up child entity", entity);
         
         if(entity.isSetup) {
@@ -938,15 +886,11 @@ export class DeflatingCompositeEntity extends Entity {
         i++;
       }
     }
+
+    if(this.autoTransition && this.entities.length == 0) {
+      this.requestedTransition = true;
+    }
   } 
-
-  // Returns the answer of the first entity
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    if(this.autoTransition && this.entities.length == 0) return true;
-    return null;
-  }
 
   teardown() {
     for(const entity of this.entities) {

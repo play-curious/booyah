@@ -89,9 +89,9 @@ export class MusicEntity extends entity.Entity {
 
   _setup(config) {
     this.config.jukebox.changeMusic(this.trackName);
-  }
 
-  _requestedTransition(options) { return true; }
+    this.requestedTransition = true;
+  }
 
   _teardown() {
     if(this.stopOnTeardown) {

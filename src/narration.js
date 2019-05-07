@@ -284,11 +284,11 @@ export class SingleNarration extends entity.Entity {
     this.config.narrator.changeKey(this.narrationKey, this.priority);
   }
 
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
+  _update(options) { 
     // TODO: This timing only works assuming that the narration was launched immediately
-    return options.timeSinceStart >= this.config.narrator.narrationDuration(this.narrationKey) ? "next" : null;
+    if(options.timeSinceStart >= this.config.narrator.narrationDuration(this.narrationKey)) {
+      this.requestedTransition = true;
+    }
   }
 
   teardown() {
@@ -322,10 +322,10 @@ export class RandomNarration extends entity.Entity {
     this.config.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return options.timeSinceStart >= this.config.narrator.narrationDuration(this.currentKey) ? "next" : null;
+  _update(options) { 
+    if(options.timeSinceStart >= this.config.narrator.narrationDuration(this.currentKey)) {
+      this.requestedTransition = true;
+    } 
   }
 
   teardown() {
@@ -372,12 +372,12 @@ export class VideoScene extends entity.ParallelEntity {
     this.addEntity(this.skipButton);
   }
 
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return this.options.narration &&!this.narration.isSetup||
-      this.options.video &&!this.video.isSetup ||
-      !this.skipButton.isSetup;
+  _update(options) { 
+    if(this.options.narration && this.narration.requestedTransition ||
+      this.options.video && this.video.requestedTransition ||
+      this.skipButton.requestedTransition) {
+      this.requestedTransition = true;
+    }
   }
 
   teardown() {

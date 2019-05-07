@@ -281,7 +281,7 @@ export class MenuEntity extends entity.ParallelEntity {
     super.update(options);
 
     if(this.creditsEntity) {
-      if(this.creditsEntity.requestedTransition(options)) {
+      if(this.creditsEntity.requestedTransition) {
         this.removeEntity(this.creditsEntity);
         this.creditsEntity = null;
       }
@@ -358,8 +358,6 @@ export class CreditsEntity extends entity.CompositeEntity {
   setup(config) {
     super.setup(config);
 
-    this.done = false;
-
     this.container = new PIXI.Container();
 
     let rolesText = [];
@@ -394,7 +392,7 @@ export class CreditsEntity extends entity.CompositeEntity {
     closeButton.anchor.set(0.5);
     closeButton.position.set(50);
     closeButton.interactive = true;
-    this._on(closeButton, "pointertap", () => this.done = true);
+    this._on(closeButton, "pointertap", () => this.requestedTransition = true);
     this.container.addChild(closeButton);
 
     const roles = new PIXI.Text(rolesText, {
@@ -420,12 +418,6 @@ export class CreditsEntity extends entity.CompositeEntity {
     this.config.container.addChild(this.container);
   }
 
-  requestedTransition(options) {
-    super.requestedTransition(options);
-
-    return this.done;
-  }
-
   teardown() {
     this.config.container.removeChild(this.container);
 
@@ -444,7 +436,6 @@ export class LoadingScene extends entity.CompositeEntity {
   setup(config) {
     super.setup(config);  
 
-    this.isDone = false;
     this.progress = 0;
     this.shouldUpdateProgress = true;
 
@@ -476,12 +467,6 @@ export class LoadingScene extends entity.CompositeEntity {
     this.loadingContainer.addChild(this.loadingCircle);
 
     this.config.container.addChild(this.container);
-  }
-
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return this.isDone;
   }
 
   update(options) {
@@ -523,8 +508,6 @@ export class ReadyScene extends entity.CompositeEntity {
   setup(config) {
     super.setup(config);  
 
-    this.isDone = false;
-
     this.container = new PIXI.Container();
 
     if(this.splashScreen) {
@@ -534,17 +517,11 @@ export class ReadyScene extends entity.CompositeEntity {
     const button = new PIXI.Sprite(this.config.app.loader.resources["booyah/images/button-play.png"].texture);
     button.anchor.set(0.5);
     button.position.set(this.config.app.screen.width / 2, this.config.app.screen.height * 3/4);
-    this._on(button, "pointertap", () => this.isDone = true);
+    this._on(button, "pointertap", () => this.requestedTransition = true);
     button.interactive = true;
     this.container.addChild(button);
 
     this.config.container.addChild(this.container);
-  }
-
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return this.isDone;
   }
 
   teardown() {
@@ -564,8 +541,6 @@ export class DoneScene extends entity.CompositeEntity {
   setup(config) {
     super.setup(config);  
 
-    this.isDone = false;
-
     this.container = new PIXI.Container();
 
     if(this.splashScreen) {
@@ -575,17 +550,11 @@ export class DoneScene extends entity.CompositeEntity {
     const button = new PIXI.Sprite(this.config.app.loader.resources["booyah/images/button-replay.png"].texture);
     button.anchor.set(0.5);
     button.position.set(this.config.app.screen.width / 2, this.config.app.screen.height * 3/4);
-    this._on(button, "pointertap", () => this.isDone = true);
+    this._on(button, "pointertap", () => this.requestedTransition = true);
     button.interactive = true;
     this.container.addChild(button);
 
     this.config.container.addChild(this.container);
-  }
-
-  requestedTransition(options) { 
-    super.requestedTransition(options);
-
-    return this.isDone;
   }
 
   teardown() {

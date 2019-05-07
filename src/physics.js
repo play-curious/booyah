@@ -57,12 +57,6 @@ export class Simulation extends entity.ParallelEntity {
     this.world.step(stepTime);
   }
 
-  requestedTransition(options) {
-    super.requestedTransition(options);
-
-    return null;
-  }
-
   teardown() {
     this.world.clear();
 
@@ -112,6 +106,4 @@ export class BodyEntity extends entity.ParallelEntity {
 
     super.teardown();   
   }
-
-  requestedTransition() { return null; }
 } 
