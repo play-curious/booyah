@@ -107,11 +107,17 @@ export class Entity extends PIXI.utils.EventEmitter {
 /*
   Allows a bunch of entities to execute in parallel.
   Updates child entities until they ask for a transition, at which point they are torn down.
-  Requests a transition only when all child entities have completed
+  Requests a transition only when all child entities have completed.
+  Options:
+    * autoTransition: Should the entity request a transition when all the child entities are done?  (defaults to false)  
 */
 export class ParallelEntity extends Entity {
-  constructor(entities = []) {
+  constructor(entities = [], options = {}) {
     super();
+
+    util.setupOptions(this, options, {
+      autoTransition: false,
+    });
 
     this.entities = entities;
     // By default all entities are active
@@ -145,7 +151,7 @@ export class ParallelEntity extends Entity {
       }
     }
 
-    // if(!_.some(this.entityIsActive)) this.requestedTransition = true;
+    if(this.autoTransition && !_.some(this.entityIsActive)) this.requestedTransition = true;
   } 
 
   teardown() {
