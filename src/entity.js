@@ -1,6 +1,5 @@
 import * as util from "./util.js";
 
-
 /** 
   In Booyah, the game is structured as a tree of entities. This is the base class for all entities. 
   
@@ -696,8 +695,7 @@ export class VideoEntity extends Entity {
     this.videoElement.currentTime = 0;
     this.videoElement.play();
 
-    const texture = PIXI.VideoBaseTexture.fromVideo(this.videoElement);
-    this.videoSprite = PIXI.Sprite.from(texture);
+    this.videoSprite = PIXI.Sprite.from(this.videoElement);
 
     this.config.container.addChild(this.videoSprite);
   }
@@ -707,8 +705,6 @@ export class VideoEntity extends Entity {
   }
   
   _onSignal(signal, data) {
-    super.onSignal(signal, data);
-
     if(signal === "pause") {
       this.videoElement.pause();
     } else if(signal === "play") {
