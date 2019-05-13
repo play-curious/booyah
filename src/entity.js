@@ -699,8 +699,6 @@ export class VideoEntity extends Entity {
   }
   
   _onSignal(signal, data) {
-    super.onSignal(signal, data);
-
     if(signal === "pause") {
       this.videoElement.pause();
     } else if(signal === "play") {
