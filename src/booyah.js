@@ -90,7 +90,7 @@ let fxMachine;
 let narrationTable;
 
 let previousGameState = null;
-let gameState = "loadingA"; // One of "loadingA", "loadingB", "ready", "playing", "paused", "done"
+let gameState = "preloading"; // One of "preloading", "loadingFixed", "ready", "playing", "paused", "done"
 let playTime = 0;
 let timeSinceStart = 0;
 
@@ -100,7 +100,8 @@ let speakerDisplay;
 
 let pixiLoaderProgress = 0;
 let fontLoaderProgress = 0;
-let audioLoaderProgress = 0;
+let fixedAudioLoaderProgress = 0;
+let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 class FilterPauseEntity extends entity.CompositeEntity {
@@ -661,11 +662,16 @@ export class DoneScene extends entity.CompositeEntity {
 
 function updateLoadingProgress() {
   const progress =
-    (pixiLoaderProgress + fontLoaderProgress + audioLoaderProgress) / 3;
+    (pixiLoaderProgress +
+      fontLoaderProgress +
+      fixedAudioLoaderProgress +
+      variableAudioLoaderProgress) /
+    4;
   console.log("loading progress", progress, {
     pixiLoaderProgress,
     fontLoaderProgress,
-    audioLoaderProgress
+    fixedAudioLoaderProgress,
+    variableAudioLoaderProgress
   });
   loadingScene.updateProgress(progress);
 }
@@ -734,11 +740,11 @@ function processStartingOptions() {
   }
 }
 
-function loadB1() {
-  changeGameState("loadingB");
+function loadFixedAssets() {
+  changeGameState("loadingFixed");
 
-  util.endTiming("loadA");
-  util.startTiming("loadB");
+  util.endTiming("preload");
+  util.startTiming("loadFixed");
 
   // Load graphical assets
   const pixiLoaderResources = [].concat(
@@ -763,29 +769,44 @@ function loadB1() {
     });
   });
 
+  const scriptLoaderPromise = narration.loadScript("fr").then(script => {
+    narrationTable = script;
+    console.log("Loaded script", script);
+  });
+
+  // Load audio
+  musicAudio = audio.makeHowls("music", booyahConfig.musicAssets);
+  const musicLoadPromises = _.map(musicAudio, audio.makeHowlerLoadPromise);
+
+  fxAudio = audio.makeHowls("fx", booyahConfig.fxAssets);
+  const fxLoadPromises = _.map(fxAudio, audio.makeHowlerLoadPromise);
+
+  const fixedAudioLoaderPromises = [...musicLoadPromises, ...fxLoadPromises];
+  _.each(fixedAudioLoaderPromises, p =>
+    p.then(() => {
+      fixedAudioLoaderProgress += 1 / fixedAudioLoaderPromises.length;
+      updateLoadingProgress();
+    })
+  );
+
   const promises = _.flatten(
-    [util.makePixiLoadPromise(app.loader), fontLoaderPromises],
+    [
+      util.makePixiLoadPromise(app.loader),
+      fontLoaderPromises,
+      scriptLoaderPromise,
+      fixedAudioLoaderPromises
+    ],
     true
   );
 
   return Promise.all(promises).catch(err =>
-    console.error("Error loading B1", err)
+    console.error("Error loading fixed assets", err)
   );
 }
 
-function loadB2() {
-  return narration
-    .loadScript("fr")
-    .then(script => {
-      narrationTable = script;
-      console.log("Loaded script", script);
-    })
-    .catch(err => console.error("Error loading B2", err));
-}
-
-function loadC() {
-  util.endTiming("loadB");
-  util.startTiming("loadC");
+function loadVariable() {
+  util.endTiming("loadFixed");
+  util.startTiming("loadVariable");
 
   // Load audio
   narrationAudio = narration.loadNarrationAudio(narrationTable, "fr");
@@ -795,30 +816,20 @@ function loadC() {
     audio.makeHowlerLoadPromise
   );
 
-  musicAudio = audio.makeHowls("music", booyahConfig.musicAssets);
-  const musicLoadPromises = _.map(musicAudio, audio.makeHowlerLoadPromise);
-
-  fxAudio = audio.makeHowls("fx", booyahConfig.fxAssets);
-  const fxLoadPromises = _.map(fxAudio, audio.makeHowlerLoadPromise);
-
-  const audioPromises = _.flatten(
-    [narrationLoadPromises, musicLoadPromises, fxLoadPromises],
-    true
-  );
-  _.each(audioPromises, p =>
+  _.each(narrationLoadPromises, p =>
     p.then(() => {
-      audioLoaderProgress += 1 / audioPromises.length;
+      variableAudioLoaderProgress += 1 / narrationLoadPromises.length;
       updateLoadingProgress();
     })
   );
 
-  return Promise.all(audioPromises).catch(err =>
+  return Promise.all(narrationLoadPromises).catch(err =>
     console.error("Error loading C", err)
   );
 }
 
 function doneLoading() {
-  util.endTiming("loadC");
+  util.endTiming("loadVariable");
   util.startTiming("playing");
 
   changeGameState("playing");
@@ -923,7 +934,7 @@ export function go(config = {}) {
   });
 
   ga("send", "event", "loading", "start");
-  util.startTiming("loadA");
+  util.startTiming("preload");
 
   // Setup preloader
   preloader = makePreloader(
@@ -946,8 +957,8 @@ export function go(config = {}) {
       });
       app.ticker.add(update);
     })
-    .then(() => Promise.all([loadB1(), loadB2()]))
-    .then(loadC)
+    .then(() => loadFixedAssets())
+    .then(loadVariable)
     .then(doneLoading)
     .catch(err => console.error("Error during load", err));
 

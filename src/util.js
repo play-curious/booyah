@@ -179,3 +179,14 @@ export function setupOptions(obj, options, defaults) {
 
   return _.extend(obj, _.defaults(_.pick(options, _.keys(defaults)), defaults));
 }
+
+export function loadJson(fileName) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("GET", fileName);
+    request.responseType = "json";
+    request.onload = () => resolve(request.response);
+    request.onerror = reject;
+    request.send();
+  });
+}
