@@ -274,7 +274,11 @@ export class EntitySequence extends Entity {
   onSignal(signal, data) {
     if (this.requestedTransition) return;
 
+    super.onSignal(signal, data);
+
     this.entities[this.currentEntityIndex].onSignal(signal, data);
+
+    if (signal === "reset") this.restart();
   }
 
   restart() {
@@ -506,7 +510,7 @@ export function makeTransitionTable(table) {
         return transitionDescriptor;
       }
     } else {
-      throw new Error(`Cannot find state ${nextStateName}`);
+      throw new Error(`Cannot find state ${requestedTransitionName}`);
     }
   };
   f.table = table; // For debugging purposes
@@ -798,7 +802,7 @@ export class ToggleSwitch extends Entity {
 
   setIsOn(isOn, silent = false) {
     this.isOn = isOn;
-    _updateVisibility();
+    this._updateVisibility();
 
     if (!silent) this.emit("change", this.isOn);
   }
