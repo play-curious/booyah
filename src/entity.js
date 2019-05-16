@@ -33,7 +33,7 @@ export class Entity extends PIXI.utils.EventEmitter {
 
   // @config includes narrator
   setup(config) {
-    if(this.isSetup) {
+    if (this.isSetup) {
       console.error("setup() called twice", this);
       console.trace();
     }
@@ -47,7 +47,7 @@ export class Entity extends PIXI.utils.EventEmitter {
 
   // options include { playTime, timeSinceStart, timeScale, gameState }
   update(options) {
-    if(!this.isSetup) {
+    if (!this.isSetup) {
       console.error("update() called before setup()", this);
       console.trace();
     }
@@ -56,7 +56,7 @@ export class Entity extends PIXI.utils.EventEmitter {
   }
 
   teardown() {
-    if(!this.isSetup) {
+    if (!this.isSetup) {
       console.error("teardown() called before setup()", this);
       console.trace();
     }
@@ -70,15 +70,13 @@ export class Entity extends PIXI.utils.EventEmitter {
   }
 
   // @signal is string, @data is whatever
-  onSignal(signal, data = null) { 
-    if(!this.config) {
+  onSignal(signal, data = null) {
+    if (!this.config) {
       console.error("onSignal() called before setup()", this);
     }
 
     this._onSignal(signal, data);
   }
-
-
 
   _on(emitter, event, cb) {
     this.eventListeners.push({ emitter, event, cb });
@@ -88,11 +86,13 @@ export class Entity extends PIXI.utils.EventEmitter {
   // if @cb is null, will remove all event listeners for the given emitter and event
   _off(emitter = null, event = null, cb = null) {
     const props = {};
-    if(emitter) props.emitter = emitter;
-    if(event) props.event = event;
-    if(cb) props.cb = cb;
+    if (emitter) props.emitter = emitter;
+    if (event) props.event = event;
+    if (cb) props.cb = cb;
 
-    _.each(_.filter(this.eventListeners, props), listener => listener.emitter.off(listener.event, listener.cb));
+    _.each(_.filter(this.eventListeners, props), listener =>
+      listener.emitter.off(listener.event, listener.cb)
+    );
     this.eventListeners = _.reject(this.eventListeners, _.matcher(props));
   }
 
@@ -115,7 +115,7 @@ export class ParallelEntity extends Entity {
     super();
 
     util.setupOptions(this, options, {
-      autoTransition: false,
+      autoTransition: false
     });
 
     this.entities = entities;
@@ -126,23 +126,23 @@ export class ParallelEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    for(const entity of this.entities) {
-      if(!entity.isSetup) {
+    for (const entity of this.entities) {
+      if (!entity.isSetup) {
         entity.setup(config);
       }
-    } 
+    }
   }
 
   update(options) {
     super.update(options);
 
-    for(let i = 0; i < this.entities.length; i++) {
-      if(this.entityIsActive[i]) {
+    for (let i = 0; i < this.entities.length; i++) {
+      if (this.entityIsActive[i]) {
         const entity = this.entities[i];
 
         entity.update(options);
 
-        if(entity.requestedTransition) {
+        if (entity.requestedTransition) {
           entity.teardown();
 
           this.entityIsActive[i] = false;
@@ -150,12 +150,13 @@ export class ParallelEntity extends Entity {
       }
     }
 
-    if(this.autoTransition && !_.some(this.entityIsActive)) this.requestedTransition = true;
-  } 
+    if (this.autoTransition && !_.some(this.entityIsActive))
+      this.requestedTransition = true;
+  }
 
   teardown() {
-    for(let i = 0; i < this.entities.length; i++) {
-      if(this.entityIsActive[i]) {
+    for (let i = 0; i < this.entities.length; i++) {
+      if (this.entityIsActive[i]) {
         this.entities[i].teardown();
         this.entityIsActive[i] = false;
       }
@@ -164,17 +165,17 @@ export class ParallelEntity extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data) { 
+  onSignal(signal, data) {
     super.onSignal(signal, data);
 
-    for(let i = 0; i < this.entities.length; i++) {
-      if(this.entityIsActive[i]) this.entities[i].onSignal(signal, data);
+    for (let i = 0; i < this.entities.length; i++) {
+      if (this.entityIsActive[i]) this.entities[i].onSignal(signal, data);
     }
   }
 
   addEntity(entity) {
     // If we have already been setup, setup this new entity
-    if(this.isSetup && !entity.isSetup) {
+    if (this.isSetup && !entity.isSetup) {
       entity.setup(this.config);
     }
 
@@ -184,9 +185,9 @@ export class ParallelEntity extends Entity {
 
   removeEntity(entity) {
     const index = this.entities.indexOf(entity);
-    if(index === -1) throw new Error("Cannot find entity to remove");
+    if (index === -1) throw new Error("Cannot find entity to remove");
 
-    if(entity.isSetup) {
+    if (entity.isSetup) {
       entity.teardown();
     }
 
@@ -195,8 +196,8 @@ export class ParallelEntity extends Entity {
   }
 
   removeAllEntities() {
-    for(const entity of this.entities) {
-      if(entity.isSetup) {
+    for (const entity of this.entities) {
+      if (entity.isSetup) {
         entity.teardown();
       }
 
@@ -222,13 +223,13 @@ export class EntitySequence extends Entity {
 
   // Does not setup entity
   addEntity(entity) {
-    if(this.requestedTransition) return;
+    if (this.requestedTransition) return;
 
-    this.entities.push(entity); 
+    this.entities.push(entity);
   }
 
   skip() {
-    if(this.requestedTransition) return;
+    if (this.requestedTransition) return;
 
     this._advance({ name: "skip" });
   }
@@ -244,33 +245,34 @@ export class EntitySequence extends Entity {
   update(options) {
     super.update(options);
 
-    if(this.lastRequestedTransition) return;
-
+    if (this.lastRequestedTransition) return;
 
     const timeSinceChildStart = options.timeSinceStart - this.childStartedAt;
-    const childOptions = _.extend({}, options, { timeSinceStart: timeSinceChildStart });
+    const childOptions = _.extend({}, options, {
+      timeSinceStart: timeSinceChildStart
+    });
 
     this.lastUpdateOptions = options;
 
-    if(this.currentEntityIndex >= this.entities.length) return;
+    if (this.currentEntityIndex >= this.entities.length) return;
 
     this.entities[this.currentEntityIndex].update(childOptions);
 
-    const transition = this.entities[this.currentEntityIndex].requestedTransition;
-    if(transition) this._advance(transition);
-  } 
+    const transition = this.entities[this.currentEntityIndex]
+      .requestedTransition;
+    if (transition) this._advance(transition);
+  }
 
   teardown() {
-    if(this.requestedTransition) return;
-
+    if (this.requestedTransition) return;
 
     this._deactivateEntity();
 
     super.teardown();
   }
 
-  onSignal(signal, data) { 
-    if(this.requestedTransition) return;
+  onSignal(signal, data) {
+    if (this.requestedTransition) return;
 
     this.entities[this.currentEntityIndex].onSignal(signal, data);
   }
@@ -294,11 +296,11 @@ export class EntitySequence extends Entity {
   }
 
   _advance(transition) {
-    if(this.currentEntityIndex < this.entities.length - 1) {
+    if (this.currentEntityIndex < this.entities.length - 1) {
       this._deactivateEntity();
       this.currentEntityIndex = this.currentEntityIndex + 1;
       this._activateEntity(this.lastUpdateOptions.timeSinceStart);
-    } else if(this.loop) {
+    } else if (this.loop) {
       this._deactivateEntity();
       this.currentEntityIndex = 0;
       this._activateEntity(this.lastUpdateOptions.timeSinceStart);
@@ -330,9 +332,9 @@ export class StateMachine extends Entity {
     this.transitions = transitions;
 
     util.setupOptions(this, options, {
-      startingState: "start", 
+      startingState: "start",
       startingStateParams: {},
-      endingState: "end",
+      endingState: "end"
     });
   }
 
@@ -340,24 +342,26 @@ export class StateMachine extends Entity {
     super.setup(config);
 
     this.visitedStates = [];
-    
+
     this._changeState(0, this.startingState, this.startingStateParams);
   }
 
   update(options) {
     super.update(options);
 
-    if(!this.state) return;
+    if (!this.state) return;
 
     const timeSinceStateStart = options.timeSinceStart - this.sceneStartedAt;
-    const stateOptions = _.extend({}, options, { timeSinceStart: timeSinceStateStart });
+    const stateOptions = _.extend({}, options, {
+      timeSinceStart: timeSinceStateStart
+    });
     this.state.update(stateOptions);
 
     const requestedTransition = this.state.requestedTransition;
-    if(requestedTransition) {
+    if (requestedTransition) {
       // Unpack requested transition
       let requestedTransitionName, requestedTransitionParams;
-      if(_.isObject(requestedTransition)) {
+      if (_.isObject(requestedTransition)) {
         requestedTransitionName = requestedTransition.name;
         requestedTransitionParams = requestedTransition.params;
       } else {
@@ -365,39 +369,55 @@ export class StateMachine extends Entity {
       }
 
       // Follow the transition
-      if(!(this.stateName in this.transitions)) {
+      if (!(this.stateName in this.transitions)) {
         throw new Error(`Cannot find transition for state '${this.stateName}'`);
       }
 
       const transitionDescriptor = this.transitions[this.stateName];
       let nextStateDescriptor;
-      if(_.isFunction(transitionDescriptor)) {
-        nextStateDescriptor = transitionDescriptor(requestedTransitionName, requestedTransitionParams, this.stateName, this.stateParams);
-      } else if(_.isString(transitionDescriptor)) {
+      if (_.isFunction(transitionDescriptor)) {
+        nextStateDescriptor = transitionDescriptor(
+          requestedTransitionName,
+          requestedTransitionParams,
+          this.stateName,
+          this.stateParams
+        );
+      } else if (_.isString(transitionDescriptor)) {
         nextStateDescriptor = transitionDescriptor;
       } else {
-        throw new Error(`Cannot decode transition descriptor '${JSON.stringify(transitionDescriptor)}'`);
+        throw new Error(
+          `Cannot decode transition descriptor '${JSON.stringify(
+            transitionDescriptor
+          )}'`
+        );
       }
 
       // Unpack the next state
       let nextStateName, nextStateParams;
-      if(_.isObject(nextStateDescriptor) && _.isString(nextStateDescriptor.name)) {
+      if (
+        _.isObject(nextStateDescriptor) &&
+        _.isString(nextStateDescriptor.name)
+      ) {
         nextStateName = nextStateDescriptor.name;
         nextStateParams = nextStateDescriptor.params;
-      } else if(_.isString(nextStateDescriptor)) {
+      } else if (_.isString(nextStateDescriptor)) {
         nextStateName = nextStateDescriptor;
         nextStateParams = requestedTransition.params; // By default, pass through the params in the requested transition
       } else {
-        throw new Error(`Cannot decode state descriptor '${JSON.stringify(nextStateDescriptor)}'`);
+        throw new Error(
+          `Cannot decode state descriptor '${JSON.stringify(
+            nextStateDescriptor
+          )}'`
+        );
       }
-      
-      this._changeState(options.timeSinceStart, nextStateName, nextStateParams)
+
+      this._changeState(options.timeSinceStart, nextStateName, nextStateParams);
     }
   }
 
-  teardown() { 
-    if(this.state) {
-      this.state.teardown(); 
+  teardown() {
+    if (this.state) {
+      this.state.teardown();
       this.state = null;
       this.stateName = null;
     }
@@ -405,28 +425,27 @@ export class StateMachine extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data = null) { 
+  onSignal(signal, data = null) {
     super.onSignal(signal, data);
 
-    if(this.state) this.state.onSignal(signal, data);
+    if (this.state) this.state.onSignal(signal, data);
   }
 
   _changeState(timeSinceStart, nextStateName, nextStateParams) {
     // If reached ending state, stop here. Teardown can happen later
-    if(nextStateName === this.endingState) {
+    if (nextStateName === this.endingState) {
       this.requestedTransition = nextStateName;
       this.visitedStates.push(nextStateName);
       return;
     }
 
-
-    if(this.state) {
+    if (this.state) {
       this.state.teardown();
     }
 
-    if(nextStateName in this.states) {
+    if (nextStateName in this.states) {
       const nextStateDescriptor = this.states[nextStateName];
-      if(_.isFunction(nextStateDescriptor)) {
+      if (_.isFunction(nextStateDescriptor)) {
         this.state = nextStateDescriptor(nextStateParams);
       } else {
         this.state = nextStateDescriptor;
@@ -446,7 +465,13 @@ export class StateMachine extends Entity {
 
     this.visitedStates.push(nextStateName);
 
-    this.emit("stateChange", nextStateName, nextStateParams, previousStateName, previousStateParams);
+    this.emit(
+      "stateChange",
+      nextStateName,
+      nextStateParams,
+      previousStateName,
+      previousStateParams
+    );
   }
 }
 
@@ -462,18 +487,28 @@ export class StateMachine extends Entity {
     `
 */
 export function makeTransitionTable(table) {
-  const f = function(requestedTransitionName, requestedTransitionParams, previousStateName, previousStateParams) {
-    if(requestedTransitionName in table) {
+  const f = function(
+    requestedTransitionName,
+    requestedTransitionParams,
+    previousStateName,
+    previousStateParams
+  ) {
+    if (requestedTransitionName in table) {
       const transitionDescriptor = table[requestedTransitionName];
-      if(_.isFunction(transitionDescriptor)) {
-        return transitionDescriptor(requestedTransitionName, requestedTransitionParams, previousStateName, previousStateParams);
+      if (_.isFunction(transitionDescriptor)) {
+        return transitionDescriptor(
+          requestedTransitionName,
+          requestedTransitionParams,
+          previousStateName,
+          previousStateParams
+        );
       } else {
         return transitionDescriptor;
       }
     } else {
       throw new Error(`Cannot find state ${nextStateName}`);
     }
-  }
+  };
   f.table = table; // For debugging purposes
 
   return f;
@@ -489,44 +524,44 @@ export class CompositeEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    for(const entity of this.entities) {
-      if(!entity.isSetup) {
+    for (const entity of this.entities) {
+      if (!entity.isSetup) {
         entity.setup(config);
       }
-    } 
+    }
   }
 
   update(options) {
     super.update(options);
 
-    for(const entity of this.entities) {
+    for (const entity of this.entities) {
       entity.update(options);
     }
 
-    if(this.entities.length && this.entities[0].requestedTransition) {
+    if (this.entities.length && this.entities[0].requestedTransition) {
       this.requestedTransition = this.entities[0].requestedTransition;
     }
-  } 
+  }
 
   teardown() {
-    for(const entity of this.entities) {
+    for (const entity of this.entities) {
       entity.teardown();
     }
 
     super.teardown();
   }
 
-  onSignal(signal, data) { 
+  onSignal(signal, data) {
     super.onSignal(signal, data);
 
-    for(const entity of this.entities) {
+    for (const entity of this.entities) {
       entity.onSignal(signal, data);
     }
   }
 
   addEntity(entity) {
     // If we have already been setup, setup this new entity
-    if(this.isSetup && !entity.isSetup) {
+    if (this.isSetup && !entity.isSetup) {
       entity.setup(this.config);
     }
 
@@ -535,11 +570,10 @@ export class CompositeEntity extends Entity {
 
   removeEntity(entity) {
     const index = this.entities.indexOf(entity);
-    if(index === -1) throw new Error("Cannot find entity to remove");
+    if (index === -1) throw new Error("Cannot find entity to remove");
 
-    if(entity.isSetup) {
+    if (entity.isSetup) {
       entity.teardown();
-
     }
 
     this.entities.splice(index, 1);
@@ -563,23 +597,23 @@ export class FunctionalEntity extends ParallelEntity {
 
     this.functions = functions;
 
-    for(let childEntity of childEntities) this.addEntity(childEntity);
+    for (let childEntity of childEntities) this.addEntity(childEntity);
   }
 
   setup(config) {
     super.setup(config);
 
-    if(this.functions.setup) this.functions.setup(config, this);
+    if (this.functions.setup) this.functions.setup(config, this);
   }
 
   update(options) {
     super.update(options);
 
-    if(this.functions.update) this.functions.update(options, this);
+    if (this.functions.update) this.functions.update(options, this);
   }
 
   teardown() {
-    if(this.functions.teardown) this.functions.teardown(this);
+    if (this.functions.teardown) this.functions.teardown(this);
 
     super.teardown();
   }
@@ -587,7 +621,7 @@ export class FunctionalEntity extends ParallelEntity {
   onSignal(signal, data = null) {
     super.onSignal(signal, data);
 
-    if(this.functions.onSignal) this.functions.onSignal(signal, data);
+    if (this.functions.onSignal) this.functions.onSignal(signal, data);
   }
 }
 
@@ -618,7 +652,7 @@ export class WaitingEntity extends Entity {
   }
 
   _update(options) {
-    if(options.timeSinceStart >= this.wait) {
+    if (options.timeSinceStart >= this.wait) {
       this.requestedTransition = true;
     }
   }
@@ -637,7 +671,7 @@ export class DisplayObjectEntity extends Entity {
 
   _setup(config) {
     this.config.container.addChild(this.displayObject);
-  } 
+  }
 
   _teardown() {
     this.config.container.removeChild(this.displayObject);
@@ -662,11 +696,11 @@ export class ContainerEntity extends ParallelEntity {
     this.oldConfig.container.addChild(this.container);
 
     this.newConfig = _.extend({}, config, {
-      container: this.container,
+      container: this.container
     });
 
     super.setup(this.newConfig);
-  } 
+  }
 
   teardown() {
     super.teardown();
@@ -683,9 +717,9 @@ export class VideoEntity extends Entity {
   constructor(videoName, options = {}) {
     super();
 
-    this.videoName = videoName;  
+    this.videoName = videoName;
     util.setupOptions(this, options, {
-      loop: false,
+      loop: false
     });
   }
 
@@ -701,13 +735,13 @@ export class VideoEntity extends Entity {
   }
 
   _update(options) {
-    if(this.videoElement.ended) this.requestedTransition = true;
+    if (this.videoElement.ended) this.requestedTransition = true;
   }
-  
+
   _onSignal(signal, data) {
-    if(signal === "pause") {
+    if (signal === "pause") {
       this.videoElement.pause();
-    } else if(signal === "play") {
+    } else if (signal === "play") {
       this.videoElement.play();
     }
   }
@@ -731,7 +765,7 @@ export class ToggleSwitch extends Entity {
       onTexture: util.REQUIRED_OPTION,
       offTexture: util.REQUIRED_OPTION,
       isOn: false,
-      position: new PIXI.Point(),
+      position: new PIXI.Point()
     });
   }
 
@@ -766,7 +800,7 @@ export class ToggleSwitch extends Entity {
     this.isOn = isOn;
     _updateVisibility();
 
-    if(!silent) this.emit("change", this.isOn);
+    if (!silent) this.emit("change", this.isOn);
   }
 
   _turnOff() {
@@ -804,8 +838,8 @@ export class AnimatedSpriteEntity extends Entity {
   }
 
   onSignal(signal, data = null) {
-    if(signal == "pause") this.animatedSprite.stop();
-    else if(signal == "play") this.animatedSprite.play();
+    if (signal == "pause") this.animatedSprite.stop();
+    else if (signal == "play") this.animatedSprite.play();
   }
 
   teardown() {
@@ -819,12 +853,17 @@ export class SkipButton extends Entity {
   setup(config) {
     super.setup(config);
 
-    this.sprite = new PIXI.Sprite(this.config.app.loader.resources["booyah/images/button-skip.png"].texture);
+    this.sprite = new PIXI.Sprite(
+      this.config.app.loader.resources["booyah/images/button-skip.png"].texture
+    );
     this.sprite.anchor.set(0.5);
-    this.sprite.position.set(this.config.app.screen.width - 50, this.config.app.screen.height - 50);
+    this.sprite.position.set(
+      this.config.app.screen.width - 50,
+      this.config.app.screen.height - 50
+    );
     this.sprite.interactive = true;
     this._on(this.sprite, "pointertap", this._onSkip);
-    
+
     this.config.container.addChild(this.sprite);
   }
 
@@ -852,7 +891,7 @@ export class DeflatingCompositeEntity extends Entity {
     super();
 
     util.setupOptions(this, options, {
-      autoTransition: true,
+      autoTransition: true
     });
 
     this.entities = [];
@@ -861,25 +900,25 @@ export class DeflatingCompositeEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    for(const entity of this.entities) {
-      if(!entity.isSetup) {
+    for (const entity of this.entities) {
+      if (!entity.isSetup) {
         entity.setup(config);
       }
-    } 
+    }
   }
 
   update(options) {
     super.update(options);
 
     // Slightly complicated for-loop so that we can remove entities that are complete
-    for(let i = 0; i < this.entities.length; ) {
+    for (let i = 0; i < this.entities.length; ) {
       const entity = this.entities[i];
       entity.update(options);
 
-      if(entity.requestedTransition) {
+      if (entity.requestedTransition) {
         console.debug("Cleanup up child entity", entity);
-        
-        if(entity.isSetup) {
+
+        if (entity.isSetup) {
           entity.teardown();
         }
 
@@ -889,30 +928,30 @@ export class DeflatingCompositeEntity extends Entity {
       }
     }
 
-    if(this.autoTransition && this.entities.length == 0) {
+    if (this.autoTransition && this.entities.length == 0) {
       this.requestedTransition = true;
     }
-  } 
+  }
 
   teardown() {
-    for(const entity of this.entities) {
+    for (const entity of this.entities) {
       entity.teardown();
     }
 
     super.teardown();
   }
 
-  onSignal(signal, data) { 
+  onSignal(signal, data) {
     super.onSignal(signal, data);
 
-    for(const entity of this.entities) {
+    for (const entity of this.entities) {
       entity.onSignal(signal, data);
     }
   }
 
   addEntity(entity) {
     // If we have already been setup, setup this new entity
-    if(this.isSetup && !entity.isSetup) {
+    if (this.isSetup && !entity.isSetup) {
       entity.setup(this.config);
     }
 
@@ -921,13 +960,12 @@ export class DeflatingCompositeEntity extends Entity {
 
   removeEntity(entity) {
     const index = this.entities.indexOf(entity);
-    if(index === -1) throw new Error("Cannot find entity to remove");
+    if (index === -1) throw new Error("Cannot find entity to remove");
 
-    if(entity.isSetup) {
+    if (entity.isSetup) {
       entity.teardown();
     }
 
     this.entities.splice(index, 1);
   }
 }
-

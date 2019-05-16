@@ -1,11 +1,11 @@
 const presets = [
   [
-    "@babel/preset-env", 
-    { 
+    "@babel/preset-env",
+    {
       useBuiltIns: "usage", // or "entry"
-      corejs: 3,
-    },
-  ],
+      corejs: 3
+    }
+  ]
 ];
 
 module.exports = { presets };

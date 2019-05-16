@@ -1,7 +1,6 @@
 import * as util from "./util.js";
 import * as entity from "./entity.js";
 
-
 export class Keyboard extends entity.Entity {
   setup(config) {
     super.setup(config);
@@ -28,10 +27,12 @@ export class Keyboard extends entity.Entity {
     const lastKeyDownSet = _.keys(this._lastKeysDown);
 
     this.keysJustDown = {};
-    for(const key of _.difference(keyDownSet, lastKeyDownSet)) this.keysJustDown[key] = true;
+    for (const key of _.difference(keyDownSet, lastKeyDownSet))
+      this.keysJustDown[key] = true;
 
     this.keysJustUp = {};
-    for(const key of _.difference(lastKeyDownSet, keyDownSet)) this.keysJustUp[key] = true;
+    for (const key of _.difference(lastKeyDownSet, keyDownSet))
+      this.keysJustUp[key] = true;
 
     this._lastKeysDown = _.clone(this.keysDown);
   }
@@ -39,7 +40,10 @@ export class Keyboard extends entity.Entity {
   teardown() {
     this.config.app.view.removeEventListener("keydown", this._onKeyDownWrapper);
     this.config.app.view.removeEventListener("keyup", this._onKeyUpWrapper);
-    this.config.app.view.removeEventListener("focusout", this._onFocusOutWrapper);
+    this.config.app.view.removeEventListener(
+      "focusout",
+      this._onFocusOutWrapper
+    );
   }
 
   _onKeyDown(event) {
@@ -57,16 +61,15 @@ export class Keyboard extends entity.Entity {
   }
 
   _onFocusOut() {
-    this.keysDown = {}; 
+    this.keysDown = {};
   }
 }
-
 
 export const GAMEPAD_DEAD_ZONE = 0.15;
 
 export function countGamepads() {
   return _.filter(navigator.getGamepads(), _.identity).length;
-} 
+}
 
 export class Gamepad extends entity.Entity {
   constructor(gamepadIndex) {
@@ -99,18 +102,24 @@ export class Gamepad extends entity.Entity {
   }
 
   _updateState() {
-    this.state = _.filter(navigator.getGamepads(), _.identity)[this.gamepadIndex];
-    if(!this.state) return; // Gamepad must have been disconnected
+    this.state = _.filter(navigator.getGamepads(), _.identity)[
+      this.gamepadIndex
+    ];
+    if (!this.state) return; // Gamepad must have been disconnected
 
     this.axes = [];
-    for(let i = 0; i < this.state.axes.length; i++) {
-      this.axes.push(Math.abs(this.state.axes[i]) >= GAMEPAD_DEAD_ZONE ? this.state.axes[i] : 0);
+    for (let i = 0; i < this.state.axes.length; i++) {
+      this.axes.push(
+        Math.abs(this.state.axes[i]) >= GAMEPAD_DEAD_ZONE
+          ? this.state.axes[i]
+          : 0
+      );
     }
 
     this.buttonsDown = {};
-    for(let i = 0; i < this.state.buttons.length; i++) {
-      if(this.state.buttons[i].pressed) {
-        if(!this.buttonsDown[i]) this.buttonsDown[i] = this.timeSinceStart;
+    for (let i = 0; i < this.state.buttons.length; i++) {
+      if (this.state.buttons[i].pressed) {
+        if (!this.buttonsDown[i]) this.buttonsDown[i] = this.timeSinceStart;
       } else {
         delete this.buttonsDown[i];
       }
@@ -120,10 +129,12 @@ export class Gamepad extends entity.Entity {
     const lastButtonDownSet = _.keys(this._lastButtonsDown);
 
     this.buttonsJustDown = {};
-    for(const button of _.difference(buttonDownSet, lastButtonDownSet)) this.buttonsJustDown[button] = true;
+    for (const button of _.difference(buttonDownSet, lastButtonDownSet))
+      this.buttonsJustDown[button] = true;
 
     this.buttonsJustUp = {};
-    for(const button of _.difference(lastButtonDownSet, buttonDownSet)) this.buttonsJustUp[button] = true;
+    for (const button of _.difference(lastButtonDownSet, buttonDownSet))
+      this.buttonsJustUp[button] = true;
 
     this._lastButtonsDown = _.clone(this.buttonsDown);
   }

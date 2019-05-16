@@ -1,9 +1,7 @@
 import * as util from "./util.js";
 import * as entity from "./entity.js";
 
-
 export const AUDIO_FILE_FORMATS = ["mp3"];
-
 
 /** 
   A music player, that only plays one track at a time.
@@ -18,7 +16,7 @@ export class Jukebox extends entity.Entity {
 
     _.defaults(options, {
       muted: false,
-      volume: 0.25,
+      volume: 0.25
     });
 
     this.muted = options.muted;
@@ -38,13 +36,13 @@ export class Jukebox extends entity.Entity {
   }
 
   changeMusic(name = null) {
-    if(this.musicPlaying) {
+    if (this.musicPlaying) {
       // TODO: fade
       this.musicPlaying.stop();
       this.musicPlaying = null;
     }
 
-    if(name) {
+    if (name) {
       this.musicPlaying = this.namesToHowl[name];
       this.musicPlaying.play();
     }
@@ -53,16 +51,16 @@ export class Jukebox extends entity.Entity {
   teardown() {
     super.teardown();
 
-    if(this.musicPlaying) this.musicPlaying.stop();
+    if (this.musicPlaying) this.musicPlaying.stop();
   }
 
   onSignal(signal, data = null) {
     super.onSignal(signal, data);
 
-    if(!this.musicPlaying) return;
+    if (!this.musicPlaying) return;
 
-    if(signal === "pause") this.musicPlaying.pause();
-    else if(signal === "play") this.musicPlaying.play();
+    if (signal === "pause") this.musicPlaying.pause();
+    else if (signal === "play") this.musicPlaying.play();
   }
 
   setMuted(isMuted) {
@@ -71,9 +69,9 @@ export class Jukebox extends entity.Entity {
   }
 
   _updateMuted() {
-    _.each(this.namesToHowl, howl => howl.mute(this.muted))
+    _.each(this.namesToHowl, howl => howl.mute(this.muted));
   }
-} 
+}
 
 /** 
   Am entity that requests the music be changed upon setup.
@@ -94,7 +92,7 @@ export class MusicEntity extends entity.Entity {
   }
 
   _teardown() {
-    if(this.stopOnTeardown) {
+    if (this.stopOnTeardown) {
       this.config.jukebox.changeMusic();
     }
   }
@@ -112,13 +110,13 @@ export class FxMachine extends entity.Entity {
 
     _.defaults(options, {
       muted: false,
-      volume: 1,
+      volume: 1
     });
 
     this.muted = options.muted;
     this.volume = options.volume;
 
-    _.each(this.namesToHowl, howl => howl.volume(this.volume))
+    _.each(this.namesToHowl, howl => howl.volume(this.volume));
     this._updateMuted();
   }
 
@@ -141,14 +139,15 @@ export class FxMachine extends entity.Entity {
   }
 
   _updateMuted() {
-    _.each(this.namesToHowl, howl => howl.mute(this.muted))
+    _.each(this.namesToHowl, howl => howl.mute(this.muted));
   }
-} 
+}
 
-/** Creates a Promise from the Howl callbacks used for loading */ 
+/** Creates a Promise from the Howl callbacks used for loading */
+
 export function makeHowlerLoadPromise(howl) {
   return new Promise((resolve, reject) => {
-    howl.on("load", () => resolve(howl))
+    howl.on("load", () => resolve(howl));
     howl.on("loaderror", (id, err) => reject(howl, id, err));
   });
 }
@@ -156,11 +155,13 @@ export function makeHowlerLoadPromise(howl) {
 /** Create map of file names to Howl objects */
 export function makeHowls(directory, fileNames) {
   const fileToHowl = {};
-  for(let file of fileNames) {
+  for (let file of fileNames) {
     fileToHowl[file] = new Howl({
-      src: _.map(AUDIO_FILE_FORMATS, (audioFormat) => `audio/${directory}/${file}.${audioFormat}`),
+      src: _.map(
+        AUDIO_FILE_FORMATS,
+        audioFormat => `audio/${directory}/${file}.${audioFormat}`
+      )
     });
   }
   return fileToHowl;
 }
-

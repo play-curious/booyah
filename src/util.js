@@ -1,29 +1,27 @@
-
-
 /** Test containment using _.isEqual() */
 export function contains(list, p) {
-  for(let x of list) {
-    if(_.isEqual(x, p)) return true;
+  for (let x of list) {
+    if (_.isEqual(x, p)) return true;
   }
   return false;
-} 
+}
 
 /** Test containment using _.isEqual() */
 export function indexOf(list, p) {
-  for(let i = 0; i < list.length; i++) {
-    if(_.isEqual(list[i], p)) return i;
+  for (let i = 0; i < list.length; i++) {
+    if (_.isEqual(list[i], p)) return i;
   }
   return -1;
-} 
+}
 
 /** Find unique elements using _.isEqual() */
 export function uniq(array) {
   let results = [];
   let seen = [];
   array.forEach((value, index) => {
-    if(!contains(seen, value)) {
-      seen.push(value)
-      results.push(array[index])
+    if (!contains(seen, value)) {
+      seen.push(value);
+      results.push(array[index]);
     }
   });
   return results;
@@ -31,27 +29,29 @@ export function uniq(array) {
 
 /** Like _.difference(), but uses contains() */
 export function difference(array) {
-  rest = Array.prototype.concat.apply(Array.prototype, Array.prototype.slice.call(arguments, 1));
-  return _.filter(array, (value) => !contains(rest, value));
+  rest = Array.prototype.concat.apply(
+    Array.prototype,
+    Array.prototype.slice.call(arguments, 1)
+  );
+  return _.filter(array, value => !contains(rest, value));
 }
 
 /** Returns a new array with the given element excluded, tested using _.isEqual() */
 export function removeFromArray(array, value) {
   let ret = [];
-  for(let element of array) if(!_.isEqual(element, value)) ret.push(element);
+  for (let element of array) if (!_.isEqual(element, value)) ret.push(element);
   return ret;
 }
 
 /** Deep clone of JSON-serializable objects */
 export function cloneData(o) {
   return JSON.parse(JSON.stringify(o));
-} 
+}
 
 /** Picks a random element from the array */
 export function randomArrayElement(array) {
   return array[_.random(0, array.length - 1)];
 }
-
 
 export function lerpColor(start, end, fraction) {
   const r = ((end & 0xff0000) >> 16) - ((start & 0xff0000) >> 16);
@@ -61,7 +61,9 @@ export function lerpColor(start, end, fraction) {
 }
 
 export function cyclicLerpColor(start, end, fraction) {
-  return fraction < 0.5 ? lerpColor(start, end, fraction / 0.5) : lerpColor(end, start, (fraction - 0.5) / 0.5);
+  return fraction < 0.5
+    ? lerpColor(start, end, fraction / 0.5)
+    : lerpColor(end, start, (fraction - 0.5) / 0.5);
 }
 
 export function toFixedFloor(x, decimalPlaces) {
@@ -71,7 +73,10 @@ export function toFixedFloor(x, decimalPlaces) {
 
 export function resizeGame(appSize) {
   const parentSize = new PIXI.Point(window.innerWidth, window.innerHeight);
-  const scale = toFixedFloor(Math.min(parentSize.x / appSize.x, parentSize.y / appSize.y), 2);
+  const scale = toFixedFloor(
+    Math.min(parentSize.x / appSize.x, parentSize.y / appSize.y),
+    2
+  );
 
   const newSize = multiply(appSize, scale);
   const remainingSpace = subtract(parentSize, newSize);
@@ -82,50 +87,56 @@ export function resizeGame(appSize) {
   parent.style.height = `${newSize.y}px`;
 
   const container = document.getElementById("game-container");
-  const transformCss = `translate(${(remainingSpace.x / 2).toFixed(2)}px, 0px) scale(${scale})`;
-  for(const prop of ["transform", "webkitTransform", "msTransform"]) {
+  const transformCss = `translate(${(remainingSpace.x / 2).toFixed(
+    2
+  )}px, 0px) scale(${scale})`;
+  for (const prop of ["transform", "webkitTransform", "msTransform"]) {
     container.style[prop] = transformCss;
   }
 }
 
 export function supportsFullscreen(element) {
-  return !!(element.requestFullscreen 
-    || element.mozRequestFullScreen 
-    || element.webkitRequestFullscreen 
-    || element.msRequestFullscreen);
+  return !!(
+    element.requestFullscreen ||
+    element.mozRequestFullScreen ||
+    element.webkitRequestFullscreen ||
+    element.msRequestFullscreen
+  );
 }
 
 export function requestFullscreen(element) {
-  if(element.requestFullscreen) {
+  if (element.requestFullscreen) {
     element.requestFullscreen();
-  } else if(element.mozRequestFullScreen) {
+  } else if (element.mozRequestFullScreen) {
     element.mozRequestFullScreen();
-  } else if(element.webkitRequestFullscreen) {
+  } else if (element.webkitRequestFullscreen) {
     element.webkitRequestFullscreen();
-  } else if(element.msRequestFullscreen) {
+  } else if (element.msRequestFullscreen) {
     element.msRequestFullscreen();
   }
 }
 
 export function exitFullscreen() {
-  if(document.exitFullscreen) document.exitFullscreen();
-  else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
-  else if(document.mozCancelFullScreen) document.mozCancelFullScreen();
-  else if(document.msExitFullscreen) document.msExitFullscreen();
-} 
+  if (document.exitFullscreen) document.exitFullscreen();
+  else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+  else if (document.msExitFullscreen) document.msExitFullscreen();
+}
 
 export function inFullscreen() {
-  return document.fullscreenElement 
-    || document.webkitFullscreenElement
-    || document.mozFullScreenElement
-    || document.msFullScreenElement;
+  return (
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullScreenElement
+  );
 }
 
 export function makePixiLoadPromise(loader) {
   return new Promise((resolve, reject) => {
     loader.onError.add(reject);
     loader.load(resolve);
-  });  
+  });
 }
 
 export function makeDomContentLoadPromise(document) {
@@ -138,7 +149,7 @@ const eventTimings = {};
 export function startTiming(eventName) {
   eventTimings[eventName] = Date.now();
 }
-export function endTiming(eventName, category="loading") {
+export function endTiming(eventName, category = "loading") {
   const diff = Date.now() - eventTimings[eventName];
   console.debug("Timing for ", eventName, diff);
   ga("send", "timing", category, eventName, diff);
@@ -152,17 +163,19 @@ export function makeVideoElement() {
   return videoElement;
 }
 
-
-export const REQUIRED_OPTION = new class REQUIRED_OPTION{}();
+export const REQUIRED_OPTION = new (class REQUIRED_OPTION {})();
 
 // Copies over the defaulted options into obj. Takes care to only copy those options specified in the provided _defaults_
 // Options that are required must be present
 export function setupOptions(obj, options, defaults) {
-  const requiredOptions = _.chain(defaults).filter((key, value) => value === REQUIRED_OPTION).map(([key, value]) => value).value();
+  const requiredOptions = _.chain(defaults)
+    .filter((key, value) => value === REQUIRED_OPTION)
+    .map(([key, value]) => value)
+    .value();
   const missingOptions = _.difference(requiredOptions, _.keys(options));
-  if(missingOptions.length > 0) {
+  if (missingOptions.length > 0) {
     throw new Error("Missing options for", obj, missingOptions);
   }
-  
+
   return _.extend(obj, _.defaults(_.pick(options, _.keys(defaults)), defaults));
 }
