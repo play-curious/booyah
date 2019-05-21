@@ -67,6 +67,11 @@ export class Jukebox extends entity.Entity {
   }
 }
 
+export function installJukebox(rootConfig, rootEntity) {
+  rootConfig.jukebox = new Jukebox();
+  rootEntity.addEntity(rootConfig.jukebox);
+}
+
 /** 
   Am entity that requests the music be changed upon setup.
   Optionally can stop the music on teardown.
@@ -129,6 +134,11 @@ export class FxMachine extends entity.Entity {
     const muted = !this.config.playOptions.options.fxOn;
     _.each(this.config.fxAudio, howl => howl.mute(muted));
   }
+}
+
+export function installFxMachine(rootConfig, rootEntity) {
+  rootConfig.fxMachine = new FxMachine();
+  rootEntity.addEntity(rootConfig.fxMachine);
 }
 
 /** Creates a Promise from the Howl callbacks used for loading */

@@ -1,6 +1,5 @@
 import * as util from "./util.js";
 import * as entity from "./entity.js";
-import * as narration from "./narration.js";
 import * as audio from "./audio.js";
 
 const DEFAULT_DIRECTIVES = {
@@ -14,14 +13,15 @@ const DEFAULT_DIRECTIVES = {
   musicAssets: [],
   fxAssets: [],
   videoAssets: [],
-  fontsAssets: [],
+  fontAssets: [],
   jsonAssets: [],
   speakers: {},
   speakerPosition: new PIXI.Point(50, 540),
   credits: {}, // @credits like { "Game Design": ["JC", "Jesse"], }
   splashScreen: null,
   gameLogo: null,
-  extraLoaders: []
+  extraLoaders: [],
+  entityInstallers: []
 };
 
 const GRAPHICAL_ASSETS = [
@@ -53,48 +53,18 @@ const FONT_OBSERVER_CHARS = "asdf";
 const PRELOADER_ASSETS = ["booyah/images/loader-circle.png"];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
-// let playOptions;
-
-// let directives;
 const rootConfig = {};
 
-// let app;
-// let preloader;
 let loadingScene;
 let rootEntity;
-let gameSequence;
 let gameStateMachine;
 
 let lastFrameTime = 0;
-
-// narrationAudio is a map of file names to Howl objects, configured with sprite defs
-// let narrationAudio;
-// let narrator;
-
-// musicAudio is a map of file names to Howl objects
-// let musicAudio;
-// let jukebox;
-
-// let fxAudio;
-// let fxMachine;
-
-// Map of file names to JSON objects
-// let jsonAssets = {};
-
-// The format is key: { text: string, [file: string], [start: int], [end: int], [skipFile: bool] }
-// If start is omitted, entire file will play
-// If file is omitted, the file name will be the key name followed by a underscore and the language code, like "intro_fr.mp3"
-// If skipFile is true, the filename is not used
-// let narrationTable;
 
 let previousGameState = null;
 let gameState = "preloading"; // One of "preloading", "loadingFixed", "ready", "playing", "paused", "done"
 let playTime = 0;
 let timeSinceStart = 0;
-
-// TODO: these multiple entities could be put in some kind of composite "overlay entity" to ease updating
-// let menuEntity;
-// let speakerDisplay;
 
 let pixiLoaderProgress = 0;
 let fontLoaderProgress = 0;
@@ -163,7 +133,7 @@ export class MenuEntity extends entity.ParallelEntity {
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
-    this.pauseButton.position.set(50);
+    this.pauseButton.position.set(this.config.app.renderer.width - 50, 50);
     this.pauseButton.interactive = true;
     this._on(this.pauseButton, "pointertap", this._onPause);
     this.container.addChild(this.pauseButton);
@@ -423,6 +393,11 @@ export class MenuEntity extends entity.ParallelEntity {
   }
 }
 
+export function installMenu(rootConfig, rootEntity) {
+  rootConfig.menu = new MenuEntity();
+  rootEntity.addEntity(rootConfig.menu);
+}
+
 export class CreditsEntity extends entity.CompositeEntity {
   _setup(config) {
     this.container = new PIXI.Container();
@@ -440,7 +415,7 @@ export class CreditsEntity extends entity.CompositeEntity {
 
       rolesText += role;
 
-      for (let person of this.credits[role]) {
+      for (let person of this.config.directives.credits[role]) {
         rolesText += "\n";
         peopleText += person + "\n";
       }
@@ -752,7 +727,7 @@ function loadFixedAssets() {
     .add(pixiLoaderResources)
     .on("progress", pixiLoadProgressHandler);
 
-  const fonts = ["Roboto Condensed", ...rootConfig.directives.fontsAssets];
+  const fonts = ["Roboto Condensed", ...rootConfig.directives.fontAssets];
   const fontLoaderPromises = _.map(fonts, name => {
     return new FontFaceObserver(name).load(FONT_OBSERVER_CHARS).then(() => {
       fontLoaderProgress += 1 / fonts.length;
@@ -861,7 +836,7 @@ function doneLoading() {
   rootEntity = new entity.ParallelEntity();
 
   // gameSequence will have the ready and done scenes
-  gameSequence = new entity.EntitySequence(
+  const gameSequence = new entity.EntitySequence(
     [new ReadyScene(), gameStateMachine, new DoneScene()],
     { loop: true }
   );
@@ -873,32 +848,18 @@ function doneLoading() {
     ])
   );
 
-  // rootConfig.speakerDisplay = new narration.SpeakerDisplay(
-  //   rootConfig.directives.speakers,
-  //   rootConfig.directives.speakerPosition
-  // );
-  // rootEntity.addEntity(rootConfig.speakerDisplay);
+  for (const installer of rootConfig.directives.entityInstallers) {
+    installer(rootConfig, rootEntity);
+  }
 
-  // rootConfig.narrator = new narration.Narrator(
-  //   rootConfig.narrationAudio,
-  //   rootConfig.narrationTable
-  // );
-  // rootEntity.addEntity(rootConfig.narrator);
-
-  rootConfig.jukebox = new audio.Jukebox();
-  rootEntity.addEntity(rootConfig.jukebox);
-
-  rootConfig.fxMachine = new audio.FxMachine();
-  rootEntity.addEntity(rootConfig.fxMachine);
-
-  rootConfig.menuEntity = new MenuEntity();
-  rootConfig.menuEntity.on("pause", () => changeGameState("paused"));
-  rootConfig.menuEntity.on("play", () => changeGameState("playing"));
-  rootConfig.menuEntity.on("reset", () => {
-    rootEntity.onSignal("reset");
-    changeGameState("playing");
-  });
-  rootEntity.addEntity(rootConfig.menuEntity);
+  if (rootConfig.menu) {
+    rootConfig.menu.on("pause", () => changeGameState("paused"));
+    rootConfig.menu.on("play", () => changeGameState("playing"));
+    rootConfig.menu.on("reset", () => {
+      rootEntity.onSignal("reset");
+      changeGameState("playing");
+    });
+  }
 
   rootEntity.setup(rootConfig);
 }
