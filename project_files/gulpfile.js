@@ -20,7 +20,6 @@ const SITE_DIR =
   process.env.SITE_DIR ||
   `${process.env.HOME}/projects/play-curious/play-curious-site/`;
 const DEPLOY_DIR = `${SITE_DIR}/games/${PACKAGE.name}/`;
-const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
 function clean() {
   return del(["build", "dist"]);
@@ -70,7 +69,7 @@ function copyBuildAssets() {
         "./audio/**",
         "./fonts/**/*.{css,woff,woff2}",
         "./images/**",
-        "./scripts/**",
+        "./text/**",
         "./video/**",
         "./booyah/fonts/**/*.{css,woff,woff2}",
         "./booyah/images/**"
@@ -95,7 +94,7 @@ function copyDistAssets() {
         "./build/audio/**",
         "./build/fonts/**",
         "./build/images/**",
-        "./build/scripts/**",
+        "./build/text/**",
         "./build/video/**",
         "./build/booyah/**"
       ],
@@ -136,72 +135,30 @@ function watchFiles() {
 }
 exports.watchFiles = watchFiles;
 
-function convertScriptToJson(csvText) {
-  const csv = csvparse(csvText, { delimiter: "\t" });
+function convertTsvToJson(csvText) {
+  const lines = csvparse(csvText, {
+    columns: true,
+    delimiter: "\t"
+  });
 
-  // Regular expression to match dialog lines like "[Malo:481] Ahoy there, matey!"
-  const r = /^(?:\[([^:]+)?(?:\:(\d+))?\])?(.*)/;
-
-  const json = {};
-
-  // Skip first line
-  for (var lineNumber = 1; lineNumber < csv.length; lineNumber++) {
-    const [clip, skipFile, duration, text] = csv[lineNumber];
-    // Skip empty lines
-    if (!clip) continue;
-
-    // TODO: handle case of compacting small files into bigger one
-
-    // Split text into lines, associate with speaker
-    // Use double-dash to replace the newline character, which doesn't download in TSV format
-    const dialogLines = [];
-    for (const textLine of text.split("--")) {
-      // speaker and start can both be undefined, and will be stripped from the JSON output
-      let [, speaker, start, dialog] = r.exec(textLine);
-      dialog = dialog.trim();
-      if (dialog.length > 0) {
-        dialogLines.push({
-          speaker,
-          text: dialog,
-          start
-        });
-      }
+  const output = {};
+  for (const line of lines) {
+    const obj = {};
+    for (const key in line) {
+      obj[key.toLowerCase()] = line[key];
     }
-
-    if (skipFile) {
-      // Handle "skip file" mode
-
-      // If the duration is not provided, estimate it
-      let calculatedDuration;
-      if (duration) calculatedDuration = parseInt(duration);
-      else {
-        const wordCount = text.trim().split(/[\s\.\!\?]+/).length;
-        calculatedDuration = wordCount * TIME_PER_WORD;
-      }
-
-      json[clip] = {
-        skipFile: true,
-        start: 0,
-        end: calculatedDuration,
-        dialog: dialogLines
-      };
-    } else {
-      // Use normal files
-      json[clip] = {
-        dialog: dialogLines
-      };
-    }
+    output[line.ID] = obj;
   }
 
-  return JSON.stringify(json, null, 2);
+  return JSON.stringify(output, null, 2);
 }
 
-gulp.task("convertScripts", () => {
+gulp.task("convertTextToJson", () => {
   return gulp
-    .src(["script_src/*.tsv"])
-    .pipe(transform("utf8", convertScriptToJson))
+    .src(["text_src/*.tsv"])
+    .pipe(transform("utf8", convertTsvToJson))
     .pipe(rename({ extname: ".json" }))
-    .pipe(gulp.dest("scripts/"));
+    .pipe(gulp.dest("text/"));
 });
 
 exports.convertVoices = function convertVoices(cb) {

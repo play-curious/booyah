@@ -2,6 +2,8 @@ import * as util from "./util.js";
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
 
+const TIME_PER_WORD = 60000 / 200; // 200 words per minute
+
 export class Narrator extends entity.Entity {
   // filesToHowl is a Map
   constructor(filesToHowl, narrationTable) {
@@ -466,4 +468,30 @@ export function makeNarrationLoader(narrationTable, languageCode) {
   return Promise.all(narrationLoadPromises).catch(err => {
     console.error("Error loading narration", err);
   });
+}
+
+export function breakDialogIntoLines(text) {
+  // Regular expression to match dialog lines like "[Malo:481] Ahoy there, matey!"
+  const r = /^(?:\[([^:]+)?(?:\:(\d+))?\])?(.*)/;
+
+  const dialogLines = [];
+  for (const textLine of text.split("--")) {
+    // speaker and start can both be undefined, and will be stripped from the output
+    let [, speaker, start, dialog] = r.exec(textLine);
+    dialog = dialog.trim();
+    if (dialog.length > 0) {
+      dialogLines.push({
+        speaker,
+        text: dialog,
+        start
+      });
+    }
+  }
+
+  return dialogLines;
+}
+
+export function estimateDuration(text) {
+  const wordCount = text.trim().split(/[\s\.\!\?]+/).length;
+  return wordCount * TIME_PER_WORD;
 }
