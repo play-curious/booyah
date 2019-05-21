@@ -145,7 +145,7 @@ export function round(p) {
 /** Returns a PIXI point that has the minimum of each component */
 export function min(...points) {
   const r = new PIXI.Point(Infinity, Infinity);
-  for (p of points) {
+  for (const p of points) {
     r.x = Math.min(p.x, r.x);
     r.y = Math.min(p.y, r.y);
   }
@@ -155,7 +155,7 @@ export function min(...points) {
 /** Returns a PIXI point that has the maximum of each component */
 export function max(...points) {
   const r = new PIXI.Point(-Infinity, -Infinity);
-  for (p of points) {
+  for (const p of points) {
     r.x = Math.max(p.x, r.x);
     r.y = Math.max(p.y, r.y);
   }

@@ -81,7 +81,7 @@ export function resizeGame(appSize) {
   );
 
   const newSize = geom.multiply(appSize, scale);
-  const remainingSpace = subtract(parentSize, newSize);
+  const remainingSpace = geom.subtract(parentSize, newSize);
 
   console.log("setting scale to", scale);
 
