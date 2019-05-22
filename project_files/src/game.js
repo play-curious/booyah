@@ -5,17 +5,20 @@ import * as entity from "../booyah/src/entity.js";
 import * as narration from "../booyah/src/narration.js";
 import * as audio from "../booyah/src/audio.js";
 
-
 const gameStates = {
-
+  // TODO: Fill in states here
 };
 
+let gameTransitions = {};
 
-let gameTransitions = {
-
-};
+const entityInstallers = [
+  audio.installJukebox,
+  audio.installFxMachine,
+  booyah.installMenu
+];
 
 const { app } = booyah.go({
   states: gameStates,
-  transitions: gameTransitions
+  transitions: gameTransitions,
+  entityInstallers
 });
