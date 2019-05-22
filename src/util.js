@@ -1,3 +1,5 @@
+import * as geom from "./geom.js";
+
 /** Test containment using _.isEqual() */
 export function contains(list, p) {
   for (let x of list) {
@@ -29,7 +31,7 @@ export function uniq(array) {
 
 /** Like _.difference(), but uses contains() */
 export function difference(array) {
-  rest = Array.prototype.concat.apply(
+  const rest = Array.prototype.concat.apply(
     Array.prototype,
     Array.prototype.slice.call(arguments, 1)
   );
@@ -78,8 +80,8 @@ export function resizeGame(appSize) {
     2
   );
 
-  const newSize = multiply(appSize, scale);
-  const remainingSpace = subtract(parentSize, newSize);
+  const newSize = geom.multiply(appSize, scale);
+  const remainingSpace = geom.subtract(parentSize, newSize);
 
   console.log("setting scale to", scale);
 
@@ -178,4 +180,20 @@ export function setupOptions(obj, options, defaults) {
   }
 
   return _.extend(obj, _.defaults(_.pick(options, _.keys(defaults)), defaults));
+}
+
+export function loadJson(fileName) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("GET", fileName);
+    request.responseType = "json";
+    request.onload = () => resolve(request.response);
+    request.onerror = reject;
+    request.send();
+  });
+}
+
+export function stringToBool(s) {
+  if (s === "false" || s === "off" || s === "0") return false;
+  return true;
 }

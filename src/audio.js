@@ -8,31 +8,39 @@ export const AUDIO_FILE_FORMATS = ["mp3"];
   By default the volume is lowered to not interere with sound effects.
 */
 export class Jukebox extends entity.Entity {
-  // Options include { muted: false, volume: 0.25 }
-  constructor(namesToHowl, options) {
+  // Options include { volume: 0.25 }
+  constructor(options) {
     super();
 
-    this.namesToHowl = namesToHowl;
-
-    _.defaults(options, {
-      muted: false,
+    util.setupOptions(this, options, {
       volume: 0.25
     });
+  }
 
-    this.muted = options.muted;
-    this.volume = options.volume;
+  _setup(config) {
+    this.musicPlaying = null;
 
-    _.each(this.namesToHowl, howl => {
+    _.each(this.config.musicAudio, howl => {
       howl.volume(this.volume);
       howl.loop(true);
     });
+
+    this.muted = this.config;
     this._updateMuted();
+
+    this._on(this.config.playOptions, "musicOn", this._updateMuted);
   }
 
-  setup(config) {
-    super.setup(config);
+  _teardown() {
+    if (this.musicPlaying) this.musicPlaying.stop();
+  }
 
-    this.musicPlaying = null;
+  _onSignal(signal, data = null) {
+    if (!this.musicPlaying) return;
+
+    if (signal === "pause") this.musicPlaying.pause();
+    else if (signal === "play") this.musicPlaying.play();
+    else if (signal === "reset") this.changeMusic();
   }
 
   changeMusic(name = null) {
@@ -43,24 +51,9 @@ export class Jukebox extends entity.Entity {
     }
 
     if (name) {
-      this.musicPlaying = this.namesToHowl[name];
+      this.musicPlaying = this.config.musicAudio[name];
       this.musicPlaying.play();
     }
-  }
-
-  teardown() {
-    super.teardown();
-
-    if (this.musicPlaying) this.musicPlaying.stop();
-  }
-
-  onSignal(signal, data = null) {
-    super.onSignal(signal, data);
-
-    if (!this.musicPlaying) return;
-
-    if (signal === "pause") this.musicPlaying.pause();
-    else if (signal === "play") this.musicPlaying.play();
   }
 
   setMuted(isMuted) {
@@ -69,8 +62,14 @@ export class Jukebox extends entity.Entity {
   }
 
   _updateMuted() {
-    _.each(this.namesToHowl, howl => howl.mute(this.muted));
+    const muted = !this.config.playOptions.options.musicOn;
+    _.each(this.config.musicAudio, howl => howl.mute(muted));
   }
+}
+
+export function installJukebox(rootConfig, rootEntity) {
+  rootConfig.jukebox = new Jukebox();
+  rootEntity.addEntity(rootConfig.jukebox);
 }
 
 /** 
@@ -102,29 +101,27 @@ export class MusicEntity extends entity.Entity {
   Play sounds effects.
 */
 export class FxMachine extends entity.Entity {
-  // Options include { muted: false, volume: 0.25 }
-  constructor(namesToHowl, options) {
+  // Options include { volume: 1 }
+  constructor(options) {
     super();
 
-    this.namesToHowl = namesToHowl;
-
-    _.defaults(options, {
-      muted: false,
+    util.setupOptions(this, options, {
       volume: 1
     });
+  }
 
-    this.muted = options.muted;
-    this.volume = options.volume;
-
-    _.each(this.namesToHowl, howl => howl.volume(this.volume));
+  _setup() {
+    _.each(this.config.fxAudio, howl => howl.volume(this.volume));
     this._updateMuted();
+
+    this._on(this.config.playOptions, "fxOn", this._updateMuted);
   }
 
   play(name) {
-    this.namesToHowl[name].play();
+    this.config.fxAudio[name].play();
   }
 
-  // TODO: stop playing effects when muted or paused
+  // TODO: stop playing effects when paused or on teardown
 
   // onSignal(signal, data = null) {
   //   super.onSignal(signal, data);
@@ -133,14 +130,15 @@ export class FxMachine extends entity.Entity {
   //   else if(signal === "play") this.musicPlaying.play();
   // }
 
-  setMuted(isMuted) {
-    this.muted = isMuted;
-    this._updateMuted();
-  }
-
   _updateMuted() {
-    _.each(this.namesToHowl, howl => howl.mute(this.muted));
+    const muted = !this.config.playOptions.options.fxOn;
+    _.each(this.config.fxAudio, howl => howl.mute(muted));
   }
+}
+
+export function installFxMachine(rootConfig, rootEntity) {
+  rootConfig.fxMachine = new FxMachine();
+  rootEntity.addEntity(rootConfig.fxMachine);
 }
 
 /** Creates a Promise from the Howl callbacks used for loading */

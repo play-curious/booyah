@@ -1,9 +1,8 @@
 import * as util from "./util.js";
 import * as entity from "./entity.js";
-import * as narration from "./narration.js";
 import * as audio from "./audio.js";
 
-const DEFAULT_CONFIG = {
+const DEFAULT_DIRECTIVES = {
   screenSize: new PIXI.Point(960, 540),
   canvasId: "pixi-canvas",
   states: [],
@@ -14,12 +13,15 @@ const DEFAULT_CONFIG = {
   musicAssets: [],
   fxAssets: [],
   videoAssets: [],
-  fontsAssets: [],
+  fontAssets: [],
+  jsonAssets: [],
   speakers: {},
   speakerPosition: new PIXI.Point(50, 540),
-  credits: {},
+  credits: {}, // @credits like { "Game Design": ["JC", "Jesse"], }
   splashScreen: null,
-  gameLogo: null
+  gameLogo: null,
+  extraLoaders: [],
+  entityInstallers: []
 };
 
 const GRAPHICAL_ASSETS = [
@@ -51,56 +53,23 @@ const FONT_OBSERVER_CHARS = "asdf";
 const PRELOADER_ASSETS = ["booyah/images/loader-circle.png"];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
-const startingOptions = {
-  mute: false,
-  muteMusic: false,
-  muteFx: false,
-  noSubtitles: false,
-  sceneParams: {}
-};
+const rootConfig = {};
 
-let booyahConfig;
-let app;
-let preloader;
 let loadingScene;
 let rootEntity;
-let gameSequence;
 let gameStateMachine;
 
-let currentSceneEntity;
-let currentScene;
-let currentSceneDisplay;
 let lastFrameTime = 0;
 
-// narrationAudio is a map of file names to Howl objects, configured with sprite defs
-let narrationAudio;
-let narrator;
-
-// musicAudio is a map of file names to Howl objects
-let musicAudio;
-let jukebox;
-
-let fxAudio;
-let fxMachine;
-
-// The format is key: { text: string, [file: string], [start: int], [end: int], [skipFile: bool] }
-// If start is omitted, entire file will play
-// If file is omitted, the file name will be the key name followed by a underscore and the language code, like "intro_fr.mp3"
-// If skipFile is true, the filename is not used
-let narrationTable;
-
 let previousGameState = null;
-let gameState = "loadingA"; // One of "loadingA", "loadingB", "ready", "playing", "paused", "done"
+let gameState = "preloading"; // One of "preloading", "loadingFixed", "ready", "playing", "paused", "done"
 let playTime = 0;
 let timeSinceStart = 0;
 
-// TODO: these multiple entities could be put in some kind of composite "overlay entity" to ease updating
-let menuEntity;
-let speakerDisplay;
-
 let pixiLoaderProgress = 0;
 let fontLoaderProgress = 0;
-let audioLoaderProgress = 0;
+let fixedAudioLoaderProgress = 0;
+let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 class FilterPauseEntity extends entity.CompositeEntity {
@@ -109,17 +78,50 @@ class FilterPauseEntity extends entity.CompositeEntity {
   }
 }
 
-export class MenuEntity extends entity.ParallelEntity {
-  constructor(credits, gameLogo) {
+class PlayOptions extends PIXI.utils.EventEmitter {
+  constructor(directives, searchUrl) {
     super();
 
-    this.credits = credits;
-    this.gameLogo = gameLogo;
+    this.options = {
+      mute: false,
+      musicOn: true,
+      fxOn: true,
+      showSubtitles: true,
+      sceneParams: {}
+    };
+
+    this.options.scene = directives.startingScene;
+
+    const searchParams = new URLSearchParams(searchUrl);
+    if (searchParams.has("mute"))
+      this.options.mute = util.stringToBool(searchParams.get("music"));
+    if (searchParams.has("music"))
+      this.options.musicOn = util.stringToBool(searchParams.get("music"));
+    if (searchParams.has("fx"))
+      this.options.fxOn = util.stringToBool(searchParams.get("fx"));
+    if (searchParams.has("subtitles"))
+      this.options.showSubtitles = util.stringToBool(
+        searchParams.get("subtitles")
+      );
+    if (searchParams.has("scene"))
+      this.options.scene = searchParams.get("scene");
+    if (searchParams.has("params"))
+      this.options.sceneParams = JSON.parse(searchParams.get("params"));
   }
 
-  setup(config) {
-    super.setup(config);
+  setOption(name, value) {
+    this.options[name] = value;
+    this.emit(name, value);
+    this.emit("change", name, value);
+  }
 
+  getOption(name) {
+    return this.options[name];
+  }
+}
+
+export class MenuEntity extends entity.ParallelEntity {
+  _setup(config) {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
@@ -131,7 +133,7 @@ export class MenuEntity extends entity.ParallelEntity {
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
-    this.pauseButton.position.set(50);
+    this.pauseButton.position.set(this.config.app.renderer.width - 50, 50);
     this.pauseButton.interactive = true;
     this._on(this.pauseButton, "pointertap", this._onPause);
     this.container.addChild(this.pauseButton);
@@ -166,9 +168,11 @@ export class MenuEntity extends entity.ParallelEntity {
       container: this.menuLayer
     });
 
-    if (this.gameLogo) {
+    if (this.config.directives.gameLogo) {
       const gameLogo = new PIXI.Sprite(
-        this.config.app.loader.resources[this.gameLogo].texture
+        this.config.app.loader.resources[
+          this.config.directives.gameLogo
+        ].texture
       );
       gameLogo.position.set(65, 130);
       this.menuLayer.addChild(gameLogo);
@@ -215,7 +219,7 @@ export class MenuEntity extends entity.ParallelEntity {
       offTexture: this.config.app.loader.resources[
         "booyah/images/music-off.png"
       ].texture,
-      isOn: !this.config.jukebox.muted,
+      isOn: this.config.playOptions.options.musicOn,
       position: new PIXI.Point(405, 230)
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn);
@@ -230,7 +234,7 @@ export class MenuEntity extends entity.ParallelEntity {
       offTexture: this.config.app.loader.resources[
         "booyah/images/voices-off.png"
       ].texture,
-      isOn: !this.config.narrator.muted,
+      isOn: this.config.playOptions.options.fxOn,
       position: new PIXI.Point(630, 230)
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn);
@@ -244,7 +248,7 @@ export class MenuEntity extends entity.ParallelEntity {
       offTexture: this.config.app.loader.resources[
         "booyah/images/subtitles-off.png"
       ].texture,
-      isOn: this.config.narrator.showSubtitles,
+      isOn: this.config.playOptions.options.showSubtitles,
       position: new PIXI.Point(630, 130)
     });
     this._on(this.subtitlesButton, "change", this._onChangeShowSubtitles);
@@ -323,9 +327,7 @@ export class MenuEntity extends entity.ParallelEntity {
     this.config.container.addChild(this.container);
   }
 
-  update(options) {
-    super.update(options);
-
+  _update(options) {
     if (this.creditsEntity) {
       if (this.creditsEntity.requestedTransition) {
         this.removeEntity(this.creditsEntity);
@@ -334,9 +336,7 @@ export class MenuEntity extends entity.ParallelEntity {
     }
   }
 
-  teardown() {
-    super.teardown();
-
+  _teardown() {
     this.config.container.removeChild(this.container);
   }
 
@@ -360,15 +360,15 @@ export class MenuEntity extends entity.ParallelEntity {
   }
 
   _onChangeMusicIsOn(isOn) {
-    this.config.jukebox.setMuted(!isOn);
+    this.config.playOptions.setOption("musicOn", isOn);
   }
 
   _onChangeFxIsOn(isOn) {
-    this.config.narrator.setMuted(!isOn);
+    this.config.playOptions.setOption("fxOn", isOn);
   }
 
   _onChangeShowSubtitles(showSubtitles) {
-    this.config.narrator.setShowSubtitles(showSubtitles);
+    this.config.playOptions.setOption("showSubtitles", showSubtitles);
   }
 
   _onReset() {
@@ -388,28 +388,24 @@ export class MenuEntity extends entity.ParallelEntity {
   }
 
   _showCredits() {
-    this.creditsEntity = new CreditsEntity(this.credits);
+    this.creditsEntity = new CreditsEntity();
     this.addEntity(this.creditsEntity);
   }
 }
 
+export function installMenu(rootConfig, rootEntity) {
+  rootConfig.menu = new MenuEntity();
+  rootEntity.addEntity(rootConfig.menu);
+}
+
 export class CreditsEntity extends entity.CompositeEntity {
-  // @credits like { "Game Design": ["JC", "Jesse"], }
-  constructor(credits) {
-    super();
-
-    this.credits = credits;
-  }
-
-  setup(config) {
-    super.setup(config);
-
+  _setup(config) {
     this.container = new PIXI.Container();
 
     let rolesText = [];
     let peopleText = [];
     let didFirstLine = false;
-    for (let role in this.credits) {
+    for (let role in this.config.directives.credits) {
       if (didFirstLine) {
         rolesText += "\n";
         peopleText += "\n";
@@ -419,7 +415,7 @@ export class CreditsEntity extends entity.CompositeEntity {
 
       rolesText += role;
 
-      for (let person of this.credits[role]) {
+      for (let person of this.config.directives.credits[role]) {
         rolesText += "\n";
         peopleText += person + "\n";
       }
@@ -480,21 +476,12 @@ export class CreditsEntity extends entity.CompositeEntity {
     this.config.container.addChild(this.container);
   }
 
-  teardown() {
+  _teardown() {
     this.config.container.removeChild(this.container);
-
-    super.teardown();
   }
 }
 
 export class LoadingScene extends entity.CompositeEntity {
-  constructor(preloader, splashScreen) {
-    super();
-
-    this.preloader = preloader;
-    this.splashScreen = splashScreen;
-  }
-
   setup(config) {
     super.setup(config);
 
@@ -503,9 +490,13 @@ export class LoadingScene extends entity.CompositeEntity {
 
     this.container = new PIXI.Container();
 
-    if (this.splashScreen) {
+    if (this.config.directives.splashScreen) {
       this.container.addChild(
-        new PIXI.Sprite(this.preloader.resources[this.splashScreen].texture)
+        new PIXI.Sprite(
+          this.config.preloader.resources[
+            this.config.directives.splashScreen
+          ].texture
+        )
       );
     }
 
@@ -532,7 +523,7 @@ export class LoadingScene extends entity.CompositeEntity {
     this.loadingFill.mask = loadingFillMask;
 
     this.loadingCircle = new PIXI.Sprite(
-      this.preloader.resources["booyah/images/loader-circle.png"].texture
+      this.config.preloader.resources["booyah/images/loader-circle.png"].texture
     );
     this.loadingCircle.anchor.set(0.5);
     this.loadingCircle.position.set(
@@ -574,21 +565,17 @@ export class LoadingScene extends entity.CompositeEntity {
 }
 
 export class ReadyScene extends entity.CompositeEntity {
-  constructor(splashScreen) {
-    super();
-
-    this.splashScreen = splashScreen;
-  }
-
   setup(config) {
     super.setup(config);
 
     this.container = new PIXI.Container();
 
-    if (this.splashScreen) {
+    if (this.config.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this.config.preloader.resources[this.splashScreen].texture
+          this.config.preloader.resources[
+            this.config.directives.splashScreen
+          ].texture
         )
       );
     }
@@ -616,21 +603,17 @@ export class ReadyScene extends entity.CompositeEntity {
 }
 
 export class DoneScene extends entity.CompositeEntity {
-  constructor(splashScreen) {
-    super();
-
-    this.splashScreen = splashScreen;
-  }
-
   setup(config) {
     super.setup(config);
 
     this.container = new PIXI.Container();
 
-    if (this.splashScreen) {
+    if (this.config.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this.config.preloader.resources[this.splashScreen].texture
+          this.config.preloader.resources[
+            this.config.directives.splashScreen
+          ].texture
         )
       );
     }
@@ -661,11 +644,16 @@ export class DoneScene extends entity.CompositeEntity {
 
 function updateLoadingProgress() {
   const progress =
-    (pixiLoaderProgress + fontLoaderProgress + audioLoaderProgress) / 3;
+    (pixiLoaderProgress +
+      fontLoaderProgress +
+      fixedAudioLoaderProgress +
+      variableAudioLoaderProgress) /
+    4;
   console.log("loading progress", progress, {
     pixiLoaderProgress,
     fontLoaderProgress,
-    audioLoaderProgress
+    fixedAudioLoaderProgress,
+    variableAudioLoaderProgress
   });
   loadingScene.updateProgress(progress);
 }
@@ -706,7 +694,7 @@ function update(timeScale) {
 
   rootEntity.update(options);
 
-  app.renderer.render(app.stage);
+  rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
 function changeGameState(newGameState) {
@@ -716,35 +704,17 @@ function changeGameState(newGameState) {
   ga("send", "event", "changeGameState", newGameState);
 }
 
-function processStartingOptions() {
-  startingOptions.scene = booyahConfig.startingScene;
+function loadFixedAssets() {
+  changeGameState("loadingFixed");
 
-  const searchParams = new URLSearchParams(window.location.search);
-  if (searchParams.has("mute")) startingOptions.mute = true;
-  if (searchParams.has("mute-music")) startingOptions.muteMusic = true;
-  if (searchParams.has("mute-fx")) startingOptions.muteFx = true;
-  if (searchParams.has("no-subtitles")) startingOptions.noSubtitles = true;
-  if (searchParams.has("scene"))
-    startingOptions.scene = searchParams.get("scene");
-  if (searchParams.has("params"))
-    startingOptions.sceneParams = JSON.parse(searchParams.get("params"));
-
-  if (startingOptions.mute) {
-    Howler.volume(0);
-  }
-}
-
-function loadB1() {
-  changeGameState("loadingB");
-
-  util.endTiming("loadA");
-  util.startTiming("loadB");
+  util.endTiming("preload");
+  util.startTiming("loadFixed");
 
   // Load graphical assets
   const pixiLoaderResources = [].concat(
     GRAPHICAL_ASSETS,
-    booyahConfig.graphicalAssets,
-    _.map(booyahConfig.videoAssets, name => {
+    rootConfig.directives.graphicalAssets,
+    _.map(rootConfig.directives.videoAssets, name => {
       return {
         url: `video/${name}`,
         metadata: {
@@ -753,9 +723,11 @@ function loadB1() {
       };
     })
   );
-  app.loader.add(pixiLoaderResources).on("progress", pixiLoadProgressHandler);
+  rootConfig.app.loader
+    .add(pixiLoaderResources)
+    .on("progress", pixiLoadProgressHandler);
 
-  const fonts = ["Roboto Condensed", ...booyahConfig.fontsAssets];
+  const fonts = ["Roboto Condensed", ...rootConfig.directives.fontAssets];
   const fontLoaderPromises = _.map(fonts, name => {
     return new FontFaceObserver(name).load(FONT_OBSERVER_CHARS).then(() => {
       fontLoaderProgress += 1 / fonts.length;
@@ -763,62 +735,94 @@ function loadB1() {
     });
   });
 
-  const promises = _.flatten(
-    [util.makePixiLoadPromise(app.loader), fontLoaderPromises],
-    true
+  rootConfig.jsonAssets = {};
+  const jsonLoaderPromises = _.map(
+    rootConfig.directives.jsonAssets,
+    filename => {
+      return util.loadJson(filename).then(data => {
+        rootConfig.jsonAssets[filename] = data;
+      });
+    }
   );
 
-  return Promise.all(promises).catch(err =>
-    console.error("Error loading B1", err)
-  );
-}
-
-function loadB2() {
-  return narration
-    .loadScript("fr")
-    .then(script => {
-      narrationTable = script;
-      console.log("Loaded script", script);
-    })
-    .catch(err => console.error("Error loading B2", err));
-}
-
-function loadC() {
-  util.endTiming("loadB");
-  util.startTiming("loadC");
+  // const scriptLoaderPromise = narration.loadScript("fr").then(script => {
+  //   narrationTable = script;
+  //   console.log("Loaded script", script);
+  // });
 
   // Load audio
-  narrationAudio = narration.loadNarrationAudio(narrationTable, "fr");
-
-  const narrationLoadPromises = Array.from(
-    narrationAudio.values(),
+  rootConfig.musicAudio = audio.makeHowls(
+    "music",
+    rootConfig.directives.musicAssets
+  );
+  const musicLoadPromises = _.map(
+    rootConfig.musicAudio,
     audio.makeHowlerLoadPromise
   );
 
-  musicAudio = audio.makeHowls("music", booyahConfig.musicAssets);
-  const musicLoadPromises = _.map(musicAudio, audio.makeHowlerLoadPromise);
+  rootConfig.fxAudio = audio.makeHowls("fx", rootConfig.directives.fxAssets);
+  const fxLoadPromises = _.map(rootConfig.fxAudio, audio.makeHowlerLoadPromise);
 
-  fxAudio = audio.makeHowls("fx", booyahConfig.fxAssets);
-  const fxLoadPromises = _.map(fxAudio, audio.makeHowlerLoadPromise);
-
-  const audioPromises = _.flatten(
-    [narrationLoadPromises, musicLoadPromises, fxLoadPromises],
-    true
-  );
-  _.each(audioPromises, p =>
+  const fixedAudioLoaderPromises = [...musicLoadPromises, ...fxLoadPromises];
+  _.each(fixedAudioLoaderPromises, p =>
     p.then(() => {
-      audioLoaderProgress += 1 / audioPromises.length;
+      fixedAudioLoaderProgress += 1 / fixedAudioLoaderPromises.length;
       updateLoadingProgress();
     })
   );
 
-  return Promise.all(audioPromises).catch(err =>
-    console.error("Error loading C", err)
+  const promises = _.flatten(
+    [
+      util.makePixiLoadPromise(rootConfig.app.loader),
+      fontLoaderPromises,
+      fixedAudioLoaderPromises,
+      jsonLoaderPromises
+    ],
+    true
+  );
+
+  return Promise.all(promises).catch(err =>
+    console.error("Error loading fixed assets", err)
   );
 }
 
+function loadVariable() {
+  util.endTiming("loadFixed");
+  util.startTiming("loadVariable");
+
+  const loadingPromises = [];
+  for (const loader of rootConfig.directives.extraLoaders) {
+    // TODO: handle progress
+    const newPromise = loader(rootConfig);
+    loadingPromises.push(newPromise);
+  }
+
+  return Promise.all(loadingPromises).catch(err =>
+    console.error("Error in variable loading stage", err)
+  );
+
+  // // Load audio
+  // narrationAudio = narration.loadNarrationAudio(narrationTable, "fr");
+
+  // const narrationLoadPromises = Array.from(
+  //   narrationAudio.values(),
+  //   audio.makeHowlerLoadPromise
+  // );
+
+  // _.each(narrationLoadPromises, p =>
+  //   p.then(() => {
+  //     variableAudioLoaderProgress += 1 / narrationLoadPromises.length;
+  //     updateLoadingProgress();
+  //   })
+  // );
+
+  // return Promise.all(narrationLoadPromises).catch(err =>
+  //   console.error("Error loading C", err)
+  // );
+}
+
 function doneLoading() {
-  util.endTiming("loadC");
+  util.endTiming("loadVariable");
   util.startTiming("playing");
 
   changeGameState("playing");
@@ -832,12 +836,8 @@ function doneLoading() {
   rootEntity = new entity.ParallelEntity();
 
   // gameSequence will have the ready and done scenes
-  gameSequence = new entity.EntitySequence(
-    [
-      new ReadyScene(booyahConfig.splashScreen),
-      gameStateMachine,
-      new DoneScene(booyahConfig.splashScreen)
-    ],
+  const gameSequence = new entity.EntitySequence(
+    [new ReadyScene(), gameStateMachine, new DoneScene()],
     { loop: true }
   );
 
@@ -848,49 +848,20 @@ function doneLoading() {
     ])
   );
 
-  speakerDisplay = new narration.SpeakerDisplay(
-    booyahConfig.speakers,
-    booyahConfig.speakerPosition
-  );
-  rootEntity.addEntity(speakerDisplay);
+  for (const installer of rootConfig.directives.entityInstallers) {
+    installer(rootConfig, rootEntity);
+  }
 
-  narrator = new narration.Narrator(narrationAudio, narrationTable, {
-    muted: startingOptions.muteFx,
-    showSubtitles: !startingOptions.noSubtitles
-  });
-  rootEntity.addEntity(narrator);
+  if (rootConfig.menu) {
+    rootConfig.menu.on("pause", () => changeGameState("paused"));
+    rootConfig.menu.on("play", () => changeGameState("playing"));
+    rootConfig.menu.on("reset", () => {
+      rootEntity.onSignal("reset");
+      changeGameState("playing");
+    });
+  }
 
-  jukebox = new audio.Jukebox(musicAudio, { muted: startingOptions.muteMusic });
-  rootEntity.addEntity(jukebox);
-
-  fxMachine = new audio.FxMachine(fxAudio, { muted: startingOptions.muteFx });
-  rootEntity.addEntity(fxMachine);
-
-  menuEntity = new MenuEntity(booyahConfig.credits, booyahConfig.gameLogo);
-  menuEntity.on("pause", () => changeGameState("paused"));
-  menuEntity.on("play", () => changeGameState("playing"));
-  menuEntity.on("reset", () => {
-    narrator.cancelAll();
-    jukebox.changeMusic();
-    changeGameState("playing");
-    gameSequence.restart();
-  });
-  rootEntity.addEntity(menuEntity);
-
-  const container = app.stage;
-
-  const config = {
-    booyahConfig,
-    app,
-    preloader,
-    narrator,
-    narrationTable,
-    jukebox,
-    fxMachine,
-    container
-  };
-
-  rootEntity.setup(config);
+  rootEntity.setup(rootConfig);
 }
 
 export function makePreloader(additionalAssets) {
@@ -900,58 +871,71 @@ export function makePreloader(additionalAssets) {
   return loader;
 }
 
-export function go(config = {}) {
-  booyahConfig = _.defaults(config, DEFAULT_CONFIG);
+export function go(directives = {}) {
+  rootConfig.directives = _.defaults(directives, DEFAULT_DIRECTIVES);
 
-  processStartingOptions();
+  // Process starting options
+  rootConfig.playOptions = new PlayOptions(
+    rootConfig.directives,
+    window.location.search
+  );
+  if (rootConfig.playOptions.options.mute) {
+    Howler.volume(0);
+  }
 
   gameStateMachine = new entity.StateMachine(
-    booyahConfig.states,
-    booyahConfig.transitions,
+    rootConfig.directives.states,
+    rootConfig.directives.transitions,
     {
-      startingState: startingOptions.scene,
-      startingStateParams: startingOptions.sceneParams,
-      endingState: booyahConfig.endingScene
+      startingState: rootConfig.playOptions.options.scene,
+      startingStateParams: rootConfig.playOptions.options.sceneParams,
+      endingState: rootConfig.directives.endingScene
     }
   );
   gameStateMachine.on("stateChange", onGameStateMachineChange);
 
-  app = new PIXI.Application({
-    width: config.screenSize.x,
-    height: config.screenSize.y,
-    view: document.getElementById(config.canvasId)
+  rootConfig.app = new PIXI.Application({
+    width: rootConfig.directives.screenSize.x,
+    height: rootConfig.directives.screenSize.y,
+    view: document.getElementById(rootConfig.directives.canvasId)
   });
+  rootConfig.container = rootConfig.app.stage;
 
   ga("send", "event", "loading", "start");
-  util.startTiming("loadA");
+  util.startTiming("preload");
 
   // Setup preloader
-  preloader = makePreloader(
-    _.compact([booyahConfig.splashScreen, booyahConfig.gameLogo])
+  rootConfig.preloader = makePreloader(
+    _.compact([
+      rootConfig.directives.splashScreen,
+      rootConfig.directives.gameLogo
+    ])
   );
 
   const loadingPromise = Promise.all([
     util.makeDomContentLoadPromise(document),
-    util.makePixiLoadPromise(preloader)
+    util.makePixiLoadPromise(rootConfig.preloader)
   ])
     .then(() => {
       // Show loading screen as soon as preloader is done
-      loadingScene = new LoadingScene(preloader, booyahConfig.splashScreen);
+      loadingScene = new LoadingScene();
       rootEntity = loadingScene;
 
       // The loading scene doesn't get the full config
-      loadingScene.setup({
-        app,
-        container: app.stage
-      });
-      app.ticker.add(update);
+      loadingScene.setup(rootConfig);
+      rootConfig.app.ticker.add(update);
     })
-    .then(() => Promise.all([loadB1(), loadB2()]))
-    .then(loadC)
+    .then(() => loadFixedAssets())
+    .then(loadVariable)
     .then(doneLoading)
     .catch(err => console.error("Error during load", err));
 
-  return { app, startingOptions, gameStateMachine, loadingPromise };
+  return {
+    app: rootConfig.app,
+    playOptions: rootConfig.playOptions,
+    gameStateMachine,
+    loadingPromise
+  };
 }
 
 function onGameStateMachineChange(

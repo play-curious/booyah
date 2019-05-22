@@ -2,24 +2,15 @@ import * as util from "./util.js";
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
 
+const TIME_PER_WORD = 60000 / 200; // 200 words per minute
+
 export class Narrator extends entity.Entity {
   // filesToHowl is a Map
-  // @options is { muted = false, showSubtitles = true }
-  constructor(filesToHowl, narrationTable, options = {}) {
+  constructor(filesToHowl, narrationTable) {
     super();
 
     this.filesToHowl = filesToHowl;
     this.narrationTable = narrationTable;
-
-    _.defaults(options, {
-      muted: false,
-      showSubtitles: false
-    });
-
-    this.muted = options.muted;
-    this.showSubtitles = options.showSubtitles;
-
-    this._updateMuted();
   }
 
   setup(config) {
@@ -59,7 +50,7 @@ export class Narrator extends entity.Entity {
     );
     this.container.addChild(this.characterSubtitle);
 
-    this._updateShowSubtitles();
+    this.config.container.addChild(this.container);
 
     this.key = null;
     this.isPlaying = false;
@@ -69,7 +60,15 @@ export class Narrator extends entity.Entity {
     this.currentHowl = null;
     this.currentSoundId = null;
 
-    this.config.container.addChild(this.container);
+    this._on(this.config.playOptions, "fxOn", () => this._updateMuted);
+    this._on(
+      this.config.playOptions,
+      "showSubtitles",
+      () => this._updateShowSubtitles
+    );
+
+    this._updateMuted();
+    this._updateShowSubtitles();
   }
 
   update({ playTime, timeScale, gameState }) {
@@ -157,16 +156,8 @@ export class Narrator extends entity.Entity {
 
   onSignal(signal, data = null) {
     super.onSignal(signal, data);
-  }
 
-  setMuted(isMuted) {
-    this.muted = isMuted;
-    this._updateMuted();
-  }
-
-  setShowSubtitles(showSubtitles) {
-    this.showSubtitles = showSubtitles;
-    this._updateShowSubtitles();
+    if (signal === "reset") this.cancelAll();
   }
 
   _initNarration(playTime) {
@@ -224,11 +215,13 @@ export class Narrator extends entity.Entity {
   }
 
   _updateMuted() {
-    for (let howl of this.filesToHowl.values()) howl.mute(this.muted);
+    const muted = !this.config.playOptions.options.fxOn;
+    for (let howl of this.filesToHowl.values()) howl.mute(muted);
   }
 
   _updateShowSubtitles() {
-    this.container.visible = this.showSubtitles;
+    const showSubtitles = this.config.playOptions.options.showSubtitles;
+    this.container.visible = showSubtitles;
   }
 }
 
@@ -399,8 +392,8 @@ export class VideoScene extends entity.ParallelEntity {
   }
 
   teardown() {
-    this.config.narrator.cancelAll();
-    this.config.jukebox.changeMusic();
+    if (this.options.narration) this.config.narrator.cancelAll();
+    if (this.options.music) this.config.jukebox.changeMusic();
 
     super.teardown();
   }
@@ -453,4 +446,52 @@ export function loadScript(languageCode) {
     request.onerror = reject;
     request.send();
   });
+}
+
+export function makeNarrationLoader(narrationTable, languageCode) {
+  // Load audio
+  const narrationAudio = loadNarrationAudio(narrationTable, languageCode);
+
+  const narrationLoadPromises = Array.from(
+    narrationAudio.values(),
+    audio.makeHowlerLoadPromise
+  );
+
+  // TODO: report progress
+  // _.each(narrationLoadPromises, p =>
+  //   p.then(() => {
+  //     variableAudioLoaderProgress += 1 / narrationLoadPromises.length;
+  //     updateLoadingProgress();
+  //   })
+  // );
+
+  return Promise.all(narrationLoadPromises).catch(err => {
+    console.error("Error loading narration", err);
+  });
+}
+
+export function breakDialogIntoLines(text) {
+  // Regular expression to match dialog lines like "[Malo:481] Ahoy there, matey!"
+  const r = /^(?:\[([^:]+)?(?:\:(\d+))?\])?(.*)/;
+
+  const dialogLines = [];
+  for (const textLine of text.split("--")) {
+    // speaker and start can both be undefined, and will be stripped from the output
+    let [, speaker, start, dialog] = r.exec(textLine);
+    dialog = dialog.trim();
+    if (dialog.length > 0) {
+      dialogLines.push({
+        speaker,
+        text: dialog,
+        start
+      });
+    }
+  }
+
+  return dialogLines;
+}
+
+export function estimateDuration(text) {
+  const wordCount = text.trim().split(/[\s\.\!\?]+/).length;
+  return wordCount * TIME_PER_WORD;
 }
