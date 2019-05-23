@@ -732,6 +732,9 @@ function loadFixedAssets() {
     return new FontFaceObserver(name).load(FONT_OBSERVER_CHARS).then(() => {
       fontLoaderProgress += 1 / fonts.length;
       updateLoadingProgress();
+    }).catch(e => {
+      console.error("Cannot load font", name);
+      throw e;
     });
   });
 
