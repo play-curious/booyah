@@ -168,15 +168,17 @@ export function makeVideoElement() {
 export const REQUIRED_OPTION = new (class REQUIRED_OPTION {})();
 
 // Copies over the defaulted options into obj. Takes care to only copy those options specified in the provided _defaults_
-// Options that are required must be present
+// Options that are required should have a value of REQUIRED_OPTION
 export function setupOptions(obj, options, defaults) {
-  const requiredOptions = _.chain(defaults)
-    .filter((key, value) => value === REQUIRED_OPTION)
-    .map(([key, value]) => value)
+  const requiredKeys = _.chain(defaults)
+    .pairs()
+    .filter(([key, value]) => value === REQUIRED_OPTION)
+    .map(([key, value]) => key)
     .value();
-  const missingOptions = _.difference(requiredOptions, _.keys(options));
+  const missingOptions = _.difference(requiredKeys, _.keys(options));
   if (missingOptions.length > 0) {
-    throw new Error("Missing options for", obj, missingOptions);
+    console.error("Missing options", missingOptions, "for", obj);
+    throw new Error("Missing options");
   }
 
   return _.extend(obj, _.defaults(_.pick(options, _.keys(defaults)), defaults));
