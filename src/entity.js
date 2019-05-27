@@ -973,3 +973,13 @@ export class DeflatingCompositeEntity extends Entity {
     this.entities.splice(index, 1);
   }
 }
+
+export class AwaitEvent extends Entity {
+  _setup(config) {
+    this.transition = null;
+  }
+
+  done(transition) {
+    this.requestedTransition = transition;
+  }
+}

@@ -93,8 +93,6 @@ class PlayOptions extends PIXI.utils.EventEmitter {
     this.options.scene = directives.startingScene;
 
     const searchParams = new URLSearchParams(searchUrl);
-    if (searchParams.has("mute"))
-      this.options.mute = util.stringToBool(searchParams.get("music"));
     if (searchParams.has("music"))
       this.options.musicOn = util.stringToBool(searchParams.get("music"));
     if (searchParams.has("fx"))
@@ -107,6 +105,14 @@ class PlayOptions extends PIXI.utils.EventEmitter {
       this.options.scene = searchParams.get("scene");
     if (searchParams.has("params"))
       this.options.sceneParams = JSON.parse(searchParams.get("params"));
+
+    if (
+      searchParams.has("mute") &&
+      util.stringToBool(searchParams.get("mute"))
+    ) {
+      this.options.musicOn = false;
+      this.options.fxOn = false;
+    }
   }
 
   setOption(name, value) {
@@ -729,13 +735,16 @@ function loadFixedAssets() {
 
   const fonts = ["Roboto Condensed", ...rootConfig.directives.fontAssets];
   const fontLoaderPromises = _.map(fonts, name => {
-    return new FontFaceObserver(name).load(FONT_OBSERVER_CHARS).then(() => {
-      fontLoaderProgress += 1 / fonts.length;
-      updateLoadingProgress();
-    }).catch(e => {
-      console.error("Cannot load font", name);
-      throw e;
-    });
+    return new FontFaceObserver(name)
+      .load(FONT_OBSERVER_CHARS)
+      .then(() => {
+        fontLoaderProgress += 1 / fonts.length;
+        updateLoadingProgress();
+      })
+      .catch(e => {
+        console.error("Cannot load font", name);
+        throw e;
+      });
   });
 
   rootConfig.jsonAssets = {};
@@ -882,9 +891,6 @@ export function go(directives = {}) {
     rootConfig.directives,
     window.location.search
   );
-  if (rootConfig.playOptions.options.mute) {
-    Howler.volume(0);
-  }
 
   gameStateMachine = new entity.StateMachine(
     rootConfig.directives.states,
