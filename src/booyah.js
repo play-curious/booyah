@@ -83,7 +83,6 @@ class PlayOptions extends PIXI.utils.EventEmitter {
     super();
 
     this.options = {
-      mute: false,
       musicOn: true,
       fxOn: true,
       showSubtitles: true,
