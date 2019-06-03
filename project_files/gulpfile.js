@@ -143,6 +143,8 @@ function convertTsvToJson(csvText) {
 
   const output = {};
   for (const line of lines) {
+    if (line.ID === "") continue;
+
     const obj = {};
     for (const key in line) {
       obj[key.toLowerCase()] = line[key];
