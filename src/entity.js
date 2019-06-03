@@ -983,3 +983,51 @@ export class AwaitEvent extends Entity {
     this.requestedTransition = transition;
   }
 }
+
+/**
+ * A composite entity that requests a transition as soon as one of it's children requests one
+ */
+export class Alternative extends Entity {
+  // Takes an array of type: { entity, transition } or just entity
+  // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
+  constructor(entityPairs = []) {
+    super();
+
+    this.entityPairs = _.map(entityPairs, (entityPair, key) => {
+      if (entityPair instanceof Entity)
+        return {
+          entity: entityPair,
+          transition: key.toString()
+        };
+
+      if (!entityPair.entity) throw new Error("Missing entity");
+
+      // Assume an object of type { entity, transition }
+      return _.defaults({}, entityPair, {
+        transition: key.toString()
+      });
+    });
+  }
+
+  _setup() {
+    for (const entityPair of this.entityPairs) {
+      entityPair.entity.setup(this.config);
+      if (entityPair.entity.requestedTransition)
+        this.requestedTransition = entityPair.transition;
+    }
+  }
+
+  _update(options) {
+    for (const entityPair of this.entityPairs) {
+      entityPair.entity.update(options);
+      if (entityPair.entity.requestedTransition)
+        this.requestedTransition = entityPair.transition;
+    }
+  }
+
+  _teardown() {
+    for (const entityPair of this.entityPairs) {
+      entityPair.entity.teardown();
+    }
+  }
+}
