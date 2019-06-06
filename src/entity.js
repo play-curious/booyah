@@ -103,6 +103,9 @@ export class Entity extends PIXI.utils.EventEmitter {
   _onSignal(signal, data) {}
 }
 
+/** Empty class just to indicate an entity that does nothing and never requests a transition  */
+export class NullEntity extends Entity {}
+
 /*
   Allows a bunch of entities to execute in parallel.
   Updates child entities until they ask for a transition, at which point they are torn down.
@@ -633,17 +636,19 @@ export class FunctionalEntity extends ParallelEntity {
 }
 
 /**
-  An entity that calls a provided function just once (in setup), and immediately requests a transition
+  An entity that calls a provided function just once (in setup), and immediately requests a transition.
+  Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class FunctionCallEntity extends Entity {
-  constructor(f) {
+  constructor(f, that = null) {
     super();
 
     this.f = f;
+    this.that = that || this;
   }
 
   _setup() {
-    this.f();
+    this.f.call(this.that);
 
     this.requestedTransition = true;
   }

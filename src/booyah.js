@@ -60,7 +60,6 @@ const rootConfig = {};
 
 let loadingScene;
 let rootEntity;
-let gameStateMachine;
 
 let lastFrameTime = 0;
 
@@ -763,11 +762,6 @@ function loadFixedAssets() {
     }
   );
 
-  // const scriptLoaderPromise = narration.loadScript("fr").then(script => {
-  //   narrationTable = script;
-  //   console.log("Loaded script", script);
-  // });
-
   // Load audio
   rootConfig.musicAudio = audio.makeHowls(
     "music",
@@ -855,7 +849,7 @@ function doneLoading() {
 
   // gameSequence will have the ready and done scenes
   const gameSequence = new entity.EntitySequence(
-    [new ReadyScene(), gameStateMachine, new DoneScene()],
+    [new ReadyScene(), rootConfig.gameStateMachine, new DoneScene()],
     { loop: true }
   );
 
@@ -898,7 +892,7 @@ export function go(directives = {}) {
     window.location.search
   );
 
-  gameStateMachine = new entity.StateMachine(
+  rootConfig.gameStateMachine = new entity.StateMachine(
     rootConfig.directives.states,
     rootConfig.directives.transitions,
     {
@@ -908,7 +902,7 @@ export function go(directives = {}) {
       endingStates: rootConfig.directives.endingScenes
     }
   );
-  gameStateMachine.on("stateChange", onGameStateMachineChange);
+  rootConfig.gameStateMachine.on("stateChange", onGameStateMachineChange);
 
   rootConfig.app = new PIXI.Application({
     width: rootConfig.directives.screenSize.x,
@@ -947,9 +941,7 @@ export function go(directives = {}) {
     .catch(err => console.error("Error during load", err));
 
   return {
-    app: rootConfig.app,
-    playOptions: rootConfig.playOptions,
-    gameStateMachine,
+    rootConfig,
     loadingPromise
   };
 }
@@ -963,7 +955,10 @@ function onGameStateMachineChange(
   const url = new URL(window.location.href);
   url.searchParams.set("scene", nextStateName);
   url.searchParams.set("params", JSON.stringify(nextStateParams || {}));
-  url.searchParams.set("progress", JSON.stringify(gameStateMachine.progress));
+  url.searchParams.set(
+    "progress",
+    JSON.stringify(rootConfig.gameStateMachine.progress)
+  );
 
   console.log("New game state:", nextStateName, nextStateParams);
   console.log("New game state link:", url.href);
