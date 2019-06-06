@@ -8,7 +8,9 @@ const DEFAULT_DIRECTIVES = {
   states: [],
   transitions: {},
   startingScene: "start",
-  endingScene: "end",
+  startingSceneParams: {},
+  startingProgress: {},
+  endingScenes: ["end"],
   graphicalAssets: [],
   musicAssets: [],
   fxAssets: [],
@@ -18,6 +20,7 @@ const DEFAULT_DIRECTIVES = {
   speakers: {},
   speakerPosition: new PIXI.Point(50, 540),
   credits: {}, // @credits like { "Game Design": ["JC", "Jesse"], }
+  creditsTextSize: 32,
   splashScreen: null,
   gameLogo: null,
   extraLoaders: [],
@@ -90,6 +93,8 @@ class PlayOptions extends PIXI.utils.EventEmitter {
     };
 
     this.options.scene = directives.startingScene;
+    this.options.sceneParams = directives.startingSceneParams;
+    this.options.startingProgress = directives.startingProgress;
 
     const searchParams = new URLSearchParams(searchUrl);
     if (searchParams.has("music"))
@@ -104,6 +109,8 @@ class PlayOptions extends PIXI.utils.EventEmitter {
       this.options.scene = searchParams.get("scene");
     if (searchParams.has("params"))
       this.options.sceneParams = JSON.parse(searchParams.get("params"));
+    if (searchParams.has("progress"))
+      this.options.startingProgress = JSON.parse(searchParams.get("progress"));
 
     if (
       searchParams.has("mute") &&
@@ -454,7 +461,7 @@ export class CreditsEntity extends entity.CompositeEntity {
 
     const roles = new PIXI.Text(rolesText, {
       fontFamily: "Roboto Condensed",
-      fontSize: 32,
+      fontSize: this.config.directives.creditsTextSize,
       fill: "white",
       align: "right"
     });
@@ -467,7 +474,7 @@ export class CreditsEntity extends entity.CompositeEntity {
 
     const people = new PIXI.Text(peopleText, {
       fontFamily: "Roboto Condensed",
-      fontSize: 32,
+      fontSize: this.config.directives.creditsTextSize,
       fill: "white",
       align: "left"
     });
@@ -897,7 +904,8 @@ export function go(directives = {}) {
     {
       startingState: rootConfig.playOptions.options.scene,
       startingStateParams: rootConfig.playOptions.options.sceneParams,
-      endingState: rootConfig.directives.endingScene
+      startingProgress: rootConfig.playOptions.options.startingProgress,
+      endingStates: rootConfig.directives.endingScenes
     }
   );
   gameStateMachine.on("stateChange", onGameStateMachineChange);
@@ -955,6 +963,7 @@ function onGameStateMachineChange(
   const url = new URL(window.location.href);
   url.searchParams.set("scene", nextStateName);
   url.searchParams.set("params", JSON.stringify(nextStateParams || {}));
+  url.searchParams.set("progress", JSON.stringify(gameStateMachine.progress));
 
   console.log("New game state:", nextStateName, nextStateParams);
   console.log("New game state link:", url.href);

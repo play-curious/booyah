@@ -199,3 +199,14 @@ export function stringToBool(s) {
   if (s === "false" || s === "off" || s === "0") return false;
   return true;
 }
+
+/**
+ * Returns true if @list all of the values in @values.
+ * Uses _.contains() internally
+ */
+export function containsAll(list, values) {
+  for (const value of values) {
+    if (!_.contains(list, value)) return false;
+  }
+  return true;
+}

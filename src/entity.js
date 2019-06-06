@@ -318,6 +318,8 @@ export class EntitySequence extends Entity {
 /** 
   Represents a state machine, where each state has a name, and is represented by an entity.
   Only one state is active at a time. 
+  The state machine has one starting state, but can have multiple ending states.
+  When the machine reaches an ending state, it requests a transition with a name equal to the name of the ending state.
   By default, the state machine begins at the state called "start", and stops at "end".
 
   The transitions are not provided directly by the states (entities) by rather by a transition table provided in the constructor.
@@ -326,8 +328,8 @@ export class EntitySequence extends Entity {
 */
 export class StateMachine extends Entity {
   /**
-      @states: an object of names to Entity, or to function(params): Entity
-      @transitions: an object of names to transition, or to function(name, params, previousName, previousParams): Transition
+      @states: an object of names to Entity, or to function(params, stateMachine): Entity
+      @transitions: an object of names to transition, or to function(name, params, stateMachine): Transition
   */
   constructor(states, transitions, options) {
     super();
@@ -338,7 +340,8 @@ export class StateMachine extends Entity {
     util.setupOptions(this, options, {
       startingState: "start",
       startingStateParams: {},
-      endingState: "end"
+      endingStates: ["end"],
+      startingProgress: {}
     });
   }
 
@@ -346,6 +349,7 @@ export class StateMachine extends Entity {
     super.setup(config);
 
     this.visitedStates = [];
+    this.progress = _.clone(this.startingProgress);
 
     this._changeState(0, this.startingState, this.startingStateParams);
   }
@@ -383,8 +387,7 @@ export class StateMachine extends Entity {
         nextStateDescriptor = transitionDescriptor(
           requestedTransitionName,
           requestedTransitionParams,
-          this.stateName,
-          this.stateParams
+          this
         );
       } else if (_.isString(transitionDescriptor)) {
         nextStateDescriptor = transitionDescriptor;
@@ -436,8 +439,8 @@ export class StateMachine extends Entity {
   }
 
   _changeState(timeSinceStart, nextStateName, nextStateParams) {
-    // If reached ending state, stop here. Teardown can happen later
-    if (nextStateName === this.endingState) {
+    // If reached an ending state, stop here. Teardown can happen later
+    if (_.contains(this.endingStates, nextStateName)) {
       this.requestedTransition = nextStateName;
       this.visitedStates.push(nextStateName);
       return;
@@ -450,7 +453,7 @@ export class StateMachine extends Entity {
     if (nextStateName in this.states) {
       const nextStateDescriptor = this.states[nextStateName];
       if (_.isFunction(nextStateDescriptor)) {
-        this.state = nextStateDescriptor(nextStateParams);
+        this.state = nextStateDescriptor(nextStateParams, this);
       } else {
         this.state = nextStateDescriptor;
       }
@@ -975,10 +978,6 @@ export class DeflatingCompositeEntity extends Entity {
 }
 
 export class AwaitEvent extends Entity {
-  _setup(config) {
-    this.transition = null;
-  }
-
   done(transition) {
     this.requestedTransition = transition;
   }
