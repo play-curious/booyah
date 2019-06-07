@@ -23,6 +23,7 @@ const DEFAULT_DIRECTIVES = {
   creditsTextSize: 32,
   splashScreen: null,
   gameLogo: null,
+  extraLogos: [],
   extraLoaders: [],
   entityInstallers: []
 };
@@ -194,9 +195,29 @@ export class MenuEntity extends entity.ParallelEntity {
         "booyah/images/a-playcurious-game.png"
       ].texture
     );
-    pcLogo.anchor.set(0.5);
+    pcLogo.anchor.set(0.5, 1);
     pcLogo.position.set(160, 450);
     this.menuLayer.addChild(pcLogo);
+
+    if (this.config.directives.extraLogos) {
+      // Divide space, align to the right
+      const spacePerLogo =
+        (this.config.app.renderer.width - 160 * 2) /
+        this.config.directives.extraLogos.length;
+      for (let i = 0; i < this.config.directives.extraLogos.length; i++) {
+        const logoSprite = new PIXI.Sprite(
+          this.config.app.loader.resources[
+            this.config.directives.extraLogos[i]
+          ].texture
+        );
+        logoSprite.anchor.set(0.5, 1);
+        logoSprite.position.set(
+          this.config.app.renderer.width - 160 - spacePerLogo * i,
+          450
+        );
+        this.menuLayer.addChild(logoSprite);
+      }
+    }
 
     if (util.supportsFullscreen(document.getElementById("game-parent"))) {
       this.fullScreenButton = new entity.ToggleSwitch({
