@@ -473,6 +473,7 @@ export function makeNarrationLoader(narrationTable, languageCode) {
 export function breakDialogIntoLines(text) {
   // Regular expression to match dialog lines like "[Malo:481] Ahoy there, matey!"
   const r = /^(?:\[([^:]+)?(?:\:(\d+))?\])?(.*)/;
+  const rNewLines = /__/g;
 
   const dialogLines = [];
   for (const textLine of text.split("--")) {
@@ -480,9 +481,10 @@ export function breakDialogIntoLines(text) {
     let [, speaker, start, dialog] = r.exec(textLine);
     dialog = dialog.trim();
     if (dialog.length > 0) {
+      const textWithNewLines = dialog.replace(rNewLines, "\n");
       dialogLines.push({
         speaker,
-        text: dialog,
+        text: textWithNewLines,
         start
       });
     }
