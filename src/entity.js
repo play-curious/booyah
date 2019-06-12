@@ -267,8 +267,6 @@ export class EntitySequence extends Entity {
   }
 
   teardown() {
-    if (this.requestedTransition) return;
-
     this._deactivateEntity();
 
     super.teardown();
@@ -299,7 +297,8 @@ export class EntitySequence extends Entity {
   }
 
   _deactivateEntity() {
-    this.entities[this.currentEntityIndex].teardown();
+    if (this.entities[this.currentEntityIndex].isSetup)
+      this.entities[this.currentEntityIndex].teardown();
   }
 
   _advance(transition) {
