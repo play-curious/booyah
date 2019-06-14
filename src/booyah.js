@@ -213,7 +213,7 @@ export class MenuEntity extends entity.ParallelEntity {
         logoSprite.anchor.set(0.5, 1);
         logoSprite.position.set(
           this.config.app.renderer.width - 160 - spacePerLogo * i,
-          450
+          420
         );
         this.menuLayer.addChild(logoSprite);
       }

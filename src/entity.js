@@ -129,10 +129,13 @@ export class ParallelEntity extends Entity {
   setup(config) {
     super.setup(config);
 
-    for (const entity of this.entities) {
+    for (let i = 0; i < this.entities.length; i++) {
+      const entity = this.entities[i];
       if (!entity.isSetup) {
         entity.setup(config);
       }
+
+      this.entityIsActive[i] = true;
     }
   }
 

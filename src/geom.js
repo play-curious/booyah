@@ -45,6 +45,15 @@ export function lerpPoint(a, b, p) {
   return new PIXI.Point(a.x + p * x, a.y + p * y);
 }
 
+/** Linear interpolation between arrays a and b, using the fraction p */
+export function lerpArray(a, b, p) {
+  const result = [];
+  for (let i = 0; i < a.length; i++) {
+    result.push(lerp(a[i], b[i], p));
+  }
+  return result;
+}
+
 /** Linear interpolation between RGB colors a and b, using the fraction p */
 export function lerpColor(a, b, p) {
   // Separate into 3 components
