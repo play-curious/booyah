@@ -72,6 +72,13 @@ export function installJukebox(rootConfig, rootEntity) {
   rootEntity.addEntity(rootConfig.jukebox);
 }
 
+export function makeInstallJukebox(options = {}) {
+  return (rootConfig, rootEntity) => {
+    rootConfig.jukebox = new Jukebox(options);
+    rootEntity.addEntity(rootConfig.jukebox);
+  };
+}
+
 /** 
   Am entity that requests the music be changed upon setup.
   Optionally can stop the music on teardown.
