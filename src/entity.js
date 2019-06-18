@@ -354,7 +354,7 @@ export class StateMachine extends Entity {
     super.setup(config);
 
     this.visitedStates = [];
-    this.progress = _.clone(this.startingProgress);
+    this.progress = util.cloneData(this.startingProgress);
 
     this._changeState(0, this.startingState, this.startingStateParams);
   }
