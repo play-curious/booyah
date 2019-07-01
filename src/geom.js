@@ -192,6 +192,8 @@ export function moveTowards(a, b, speed) {
   return lerpPoint(a, b, clamp(speed / d, 0, 1));
 }
 
+export const moveTowardsPoint = moveTowards;
+
 /** 
   Returs an angle between a and b, turning at a given speed. 
   Will not "overshoot" b.
@@ -205,6 +207,15 @@ export function moveTowardsAngle(a, b, speed) {
     const targetDiff = Math.min(-diff, speed);
     return a - targetDiff;
   }
+}
+
+/** 
+  Returns a number along the line between a and b, moving at a given speed. 
+  Will not "overshoot" b.
+*/
+export function moveTowardsScalar(a, b, speed) {
+  const d = Math.abs(b - a);
+  return lerp(a, b, clamp(speed / d, 0, 1));
 }
 
 /** Returns a random number between a amd b */

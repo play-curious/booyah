@@ -110,10 +110,13 @@ export class NullEntity extends Entity {}
   Allows a bunch of entities to execute in parallel.
   Updates child entities until they ask for a transition, at which point they are torn down.
   Requests a transition only when all child entities have completed.
-  Options:
-    * autoTransition: Should the entity request a transition when all the child entities are done?  (defaults to false)  
 */
 export class ParallelEntity extends Entity {
+  /* 
+    @entities can be subclasses of entity.Entity or an object like { entity:, config: } 
+    @options:
+      * autoTransition: Should the entity request a transition when all the child entities are done?  (defaults to false)  
+  */
   constructor(entities = [], options = {}) {
     super();
 
@@ -121,9 +124,17 @@ export class ParallelEntity extends Entity {
       autoTransition: false
     });
 
-    this.entities = entities;
-    // By default all entities are active
-    this.entityIsActive = _.map(this.entities, () => true);
+    this.entities = [];
+    this.entityConfigs = [];
+    this.entityIsActive = [];
+
+    for (const currentEntity of entities) {
+      if (currentEntity instanceof Entity) {
+        this.addEntity(currentEntity);
+      } else {
+        this.addEntity(currentEntity.entity, currentEntity.config);
+      }
+    }
   }
 
   setup(config) {
@@ -132,7 +143,11 @@ export class ParallelEntity extends Entity {
     for (let i = 0; i < this.entities.length; i++) {
       const entity = this.entities[i];
       if (!entity.isSetup) {
-        entity.setup(config);
+        const entityConfig = processEntityConfig(
+          this.config,
+          this.entityConfigs[i]
+        );
+        entity.setup(entityConfig);
       }
 
       this.entityIsActive[i] = true;
@@ -179,14 +194,17 @@ export class ParallelEntity extends Entity {
     }
   }
 
-  addEntity(entity) {
+  // If config is provided, it will overload the config provided to this entity by setup()
+  addEntity(entity, config = null) {
+    this.entities.push(entity);
+    this.entityConfigs.push(config);
+    this.entityIsActive.push(true);
+
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
-      entity.setup(this.config);
+      const entityConfig = processEntityConfig(this.config, config);
+      entity.setup(entityConfig);
     }
-
-    this.entities.push(entity);
-    this.entityIsActive.push(true);
   }
 
   removeEntity(entity) {
@@ -198,6 +216,7 @@ export class ParallelEntity extends Entity {
     }
 
     this.entities.splice(index, 1);
+    this.entityConfigs.splice(index, 1);
     this.entityIsActive.splice(index, 1);
   }
 
@@ -208,6 +227,7 @@ export class ParallelEntity extends Entity {
       }
 
       this.entities = [];
+      this.entityConfigs = [];
       this.entityIsActive = [];
     }
   }
@@ -465,7 +485,7 @@ export class StateMachine extends Entity {
 
       this.state.setup(this.config);
     } else {
-      throw new Error(`Cannot find state '${nextStateName}`);
+      throw new Error(`Cannot find state '${nextStateName}'`);
     }
 
     this.sceneStartedAt = timeSinceStart;
@@ -595,6 +615,7 @@ export class CompositeEntity extends Entity {
 /**
   An entity that gets its behavior from functions provided inline in the constructor.
   Useful for small entities that don't require their own class definition.
+  Additionally, a function called requestTransition(options, entity), called after update(), can set the requested transition 
 
   Example usage:
     new FunctionalEntity({
@@ -622,6 +643,12 @@ export class FunctionalEntity extends ParallelEntity {
     super.update(options);
 
     if (this.functions.update) this.functions.update(options, this);
+    if (this.functions.requestTransition) {
+      this.requestedTransition = this.functions.requestTransition(
+        options,
+        this
+      );
+    }
   }
 
   teardown() {
@@ -1036,4 +1063,117 @@ export class Alternative extends Entity {
       entityPair.entity.teardown();
     }
   }
+}
+
+/**
+ * A composite entity in which only entity is active at a time.
+ * By default, the first entity is active
+ */
+export class SwitchingEntity extends Entity {
+  constructor() {
+    super();
+
+    this.entities = [];
+    this.entityConfigs = [];
+    this.activeEntityIndex = -1;
+  }
+
+  setup(config) {
+    super.setup(config);
+
+    if (this.entities && this.activeEntityIndex > 0) {
+      this.switchToIndex(this.activeEntityIndex);
+    }
+  }
+
+  update(options) {
+    super.update(options);
+
+    if (this.activeEntityIndex >= 0) {
+      this.entities[this.activeEntityIndex].update(options);
+    }
+  }
+
+  teardown() {
+    this.switchToIndex(-1);
+
+    super.teardown();
+  }
+
+  onSignal(signal, data) {
+    super.onSignal(signal, data);
+
+    if (this.activeEntityIndex >= 0) {
+      this.entities[this.activeEntityIndex].onSignal(signal, data);
+    }
+  }
+
+  // If config is provided, it will overload the config provided to this entity by setup()
+  addEntity(entity, config = null) {
+    this.entities.push(entity);
+    this.entityConfigs.push(config);
+  }
+
+  switchToIndex(index) {
+    if (this.activeEntityIndex >= 0) {
+      this.entities[this.activeEntityIndex].teardown();
+    }
+
+    this.activeEntityIndex = index;
+
+    if (this.activeEntityIndex >= 0) {
+      const entityConfig = processEntityConfig(
+        this.config,
+        this.entityConfigs[this.activeEntityIndex]
+      );
+
+      this.entities[this.activeEntityIndex].setup(entityConfig);
+    }
+  }
+
+  switchToEntity(entity) {
+    if (entity === null) {
+      this.switchToIndex(-1);
+    } else {
+      const index = this.entities.indexOf(entity);
+      if (index === -1) throw new Error("Cannot find entity");
+
+      this.switchToIndex(index);
+    }
+  }
+
+  activeEntity() {
+    if (this.activeEntityIndex >= 0)
+      return this.entities[this.activeEntityIndex];
+
+    return null;
+  }
+
+  removeEntity(entity) {
+    const index = this.entities.indexOf(entity);
+    if (index === -1) throw new Error("Cannot find entity");
+
+    if (index === this.activeEntityIndex) {
+      this.switchToIndex(-1);
+    }
+
+    this.entities.splice(index, 1);
+    this.entityConfigs.splice(index, 1);
+  }
+
+  removeAllEntities() {
+    if (index === this.activeEntityIndex) {
+      this.switchToIndex(-1);
+    }
+
+    this.entities = [];
+    this.entityConfigs = [];
+    this.activeEntityIndex = -1;
+  }
+}
+
+export function processEntityConfig(config, alteredConfig) {
+  if (!alteredConfig) return config;
+  if (_.isFunction(alteredConfig)) return alteredConfig(config);
+  return alteredConfig;
 }
