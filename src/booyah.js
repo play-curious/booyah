@@ -25,14 +25,16 @@ const DEFAULT_DIRECTIVES = {
   gameLogo: null,
   extraLogos: [],
   extraLoaders: [],
-  entityInstallers: []
+  entityInstallers: [],
+  graphics: {
+    menu: "booyah/images/button-mainmenu.png"
+  }
 };
 
 const GRAPHICAL_ASSETS = [
   "booyah/images/a-playcurious-game.png",
   "booyah/images/button-back.png",
   "booyah/images/button-close.png",
-  "booyah/images/button-mainmenu.png",
   "booyah/images/button-skip.png",
   "booyah/images/button-play.png",
   "booyah/images/button-replay.png",
@@ -141,7 +143,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
     this.pauseButton = new PIXI.Sprite(
       this.config.app.loader.resources[
-        "booyah/images/button-mainmenu.png"
+        this.config.directives.graphics.menu
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
@@ -745,6 +747,7 @@ function loadFixedAssets() {
   // Load graphical assets
   const pixiLoaderResources = [].concat(
     GRAPHICAL_ASSETS,
+    _.values(rootConfig.directives.graphics),
     rootConfig.directives.graphicalAssets,
     _.map(rootConfig.directives.videoAssets, name => {
       return {
