@@ -175,7 +175,12 @@ export function setupOptions(obj, options, defaults) {
     .filter(([key, value]) => value === REQUIRED_OPTION)
     .map(([key, value]) => key)
     .value();
-  const missingOptions = _.difference(requiredKeys, _.keys(options));
+  const providedKeys = _.chain(options)
+    .pairs()
+    .filter(([key, value]) => !_.isUndefined(value))
+    .map(([key, value]) => key)
+    .value();
+  const missingOptions = _.difference(requiredKeys, providedKeys);
   if (missingOptions.length > 0) {
     console.error("Missing options", missingOptions, "for", obj);
     throw new Error("Missing options");
