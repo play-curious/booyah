@@ -26,7 +26,7 @@ export function make(obj, props, options) {
 export class Tween extends entity.Entity {
   /**
    * Takes the following options:
-   * @obj
+   * @obj - an actual object, or a function that returns an object
    * @property
    * @from - defaults to current value
    * @to - required
@@ -50,6 +50,8 @@ export class Tween extends entity.Entity {
   }
 
   _setup() {
+    this.currentObj = _.isFunction(this.obj) ? this.obj() : this.obj;
+
     if (this.from) {
       this.startValue = this.from;
       this.value = this.startValue;
@@ -81,11 +83,11 @@ export class Tween extends entity.Entity {
   }
 
   _getValue() {
-    return this.obj[this.property];
+    return this.currentObj[this.property];
   }
 
   _updateValue() {
-    this.obj[this.property] = this.value;
+    this.currentObj[this.property] = this.value;
   }
 }
 
