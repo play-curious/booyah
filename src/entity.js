@@ -1011,9 +1011,34 @@ export class DeflatingCompositeEntity extends Entity {
   }
 }
 
-export class AwaitEvent extends Entity {
+/**
+ * Does not request a transition until done() is called with a given transition
+ */
+export class Block extends Entity {
   done(transition) {
     this.requestedTransition = transition;
+  }
+}
+
+/**
+ * Waits for an event to be delivered, and decides to request a transition depending on the event value.
+ * @handler is a function of the event arguments, and should return a transition (or false if no transition)
+ */
+export class WaitForEvent extends Entity {
+  constructor(emitter, eventName, handler = _.constant(true)) {
+    super();
+
+    this.emitter = emitter;
+    this.eventName = eventName;
+    this.handler = handler;
+  }
+
+  _setup() {
+    this._on(this.emitter, this.eventName, this._handleEvent);
+  }
+
+  _handleEvent(...args) {
+    this.requestedTransition = this.handler(...args);
   }
 }
 

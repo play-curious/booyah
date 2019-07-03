@@ -104,7 +104,7 @@ export function degreesToRadians(a) {
 }
 
 /** Creates a vector pointing in the direction angle, with the length magnitude */
-export function vectorFromAngle(angle, magnitude) {
+export function vectorFromAngle(angle, magnitude = 1) {
   return new PIXI.Point(
     Math.cos(angle) * magnitude,
     Math.sin(angle) * magnitude
