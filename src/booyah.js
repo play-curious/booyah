@@ -716,7 +716,7 @@ function update(timeScale) {
     gameState
   };
 
-  if (previousGameState != gameState) {
+  if (previousGameState !== gameState) {
     if (previousGameState == "playing" && gameState == "paused") {
       rootEntity.onSignal("pause");
     } else if (previousGameState == "paused" && gameState == "playing") {
