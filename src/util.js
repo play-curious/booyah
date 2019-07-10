@@ -215,3 +215,24 @@ export function containsAll(list, values) {
   }
   return true;
 }
+
+/** Like Underscore's defaults(), excepts merges embedded objects */
+export function deepDefaults(...args) {
+  if (args.length === 0) return {};
+
+  const result = args[0];
+  for (let i = 1; i < args.length; i++) {
+    const a = args[i];
+    for (const key in a) {
+      const value = a[key];
+      if (_.isUndefined(value)) continue;
+
+      if (!_.has(result, key)) {
+        result[key] = value;
+      } else if (_.isObject(result[key])) {
+        deepDefaults(result[key], value);
+      }
+    }
+  }
+  return result;
+}

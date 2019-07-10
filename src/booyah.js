@@ -27,7 +27,9 @@ const DEFAULT_DIRECTIVES = {
   extraLoaders: [],
   entityInstallers: [],
   graphics: {
-    menu: "booyah/images/button-mainmenu.png"
+    menu: "booyah/images/button-mainmenu.png",
+    skip: "booyah/images/button-skip.png",
+    play: "booyah/images/button-play.png"
   }
 };
 
@@ -35,8 +37,6 @@ const GRAPHICAL_ASSETS = [
   "booyah/images/a-playcurious-game.png",
   "booyah/images/button-back.png",
   "booyah/images/button-close.png",
-  "booyah/images/button-skip.png",
-  "booyah/images/button-play.png",
   "booyah/images/button-replay.png",
   "booyah/images/fullscreen-off.png",
   "booyah/images/fullscreen-on.png",
@@ -615,7 +615,9 @@ export class ReadyScene extends entity.CompositeEntity {
     }
 
     const button = new PIXI.Sprite(
-      this.config.app.loader.resources["booyah/images/button-play.png"].texture
+      this.config.app.loader.resources[
+        this.config.directives.graphics.play
+      ].texture
     );
     button.anchor.set(0.5);
     button.position.set(
@@ -689,7 +691,8 @@ function updateLoadingProgress() {
     fixedAudioLoaderProgress,
     variableAudioLoaderProgress
   });
-  loadingScene.updateProgress(progress);
+
+  if (loadingScene) loadingScene.updateProgress(progress);
 }
 
 function pixiLoadProgressHandler(loader, resource) {
@@ -908,7 +911,7 @@ export function makePreloader(additionalAssets) {
 }
 
 export function go(directives = {}) {
-  rootConfig.directives = _.defaults(directives, DEFAULT_DIRECTIVES);
+  rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
 
   // Process starting options
   rootConfig.playOptions = new PlayOptions(

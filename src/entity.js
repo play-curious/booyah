@@ -895,7 +895,9 @@ export class SkipButton extends Entity {
     super.setup(config);
 
     this.sprite = new PIXI.Sprite(
-      this.config.app.loader.resources["booyah/images/button-skip.png"].texture
+      this.config.app.loader.resources[
+        this.config.directives.graphics.skip
+      ].texture
     );
     this.sprite.anchor.set(0.5);
     this.sprite.position.set(
