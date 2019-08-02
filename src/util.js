@@ -236,3 +236,13 @@ export function deepDefaults(...args) {
   }
   return result;
 }
+
+export function uppercaseFirstLetter(name) {
+  return name[0].toUpperCase() + name.substring(1);
+}
+
+export function shortenString(text, maxLength) {
+  if (text.length <= maxLength) return text;
+
+  return text.substr(0, maxLength - 3) + "...";
+}
