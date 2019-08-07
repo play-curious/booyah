@@ -685,7 +685,7 @@ function updateLoadingProgress() {
       fixedAudioLoaderProgress +
       variableAudioLoaderProgress) /
     4;
-  console.log("loading progress", progress, {
+  console.debug("loading progress", progress, {
     pixiLoaderProgress,
     fontLoaderProgress,
     fixedAudioLoaderProgress,
