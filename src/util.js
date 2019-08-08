@@ -162,6 +162,7 @@ export function makeVideoElement() {
   const videoElement = document.createElement("video");
   videoElement.muted = true;
   videoElement.setAttribute("playsinline", true);
+  videoElement.setAttribute("preload", "auto");
   return videoElement;
 }
 

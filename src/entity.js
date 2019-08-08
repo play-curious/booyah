@@ -765,6 +765,8 @@ export class VideoEntity extends Entity {
   }
 
   _setup(config) {
+    // This container is used so that the video is inserted in the right place,
+    // even if the sprite isn't added until later.
     this.container = new PIXI.Container();
     this.config.container.addChild(this.container);
 
