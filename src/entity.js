@@ -765,14 +765,21 @@ export class VideoEntity extends Entity {
   }
 
   _setup(config) {
+    this.container = new PIXI.Container();
+    this.config.container.addChild(this.container);
+
     this.videoElement = this.config.app.loader.resources[this.videoName].data;
     this.videoElement.loop = this.loop;
     this.videoElement.currentTime = 0;
-    this.videoElement.play();
 
-    this.videoSprite = PIXI.Sprite.from(this.videoElement);
+    this.videoSprite = null;
 
-    this.config.container.addChild(this.videoSprite);
+    // videoElement.play() might not return a promise on older browsers
+    Promise.resolve(this.videoElement.play()).then(() => {
+      const videoResource = new PIXI.resources.VideoResource(this.videoElement);
+      this.videoSprite = PIXI.Sprite.from(videoResource);
+      this.container.addChild(this.videoSprite);
+    });
   }
 
   _update(options) {
@@ -789,7 +796,8 @@ export class VideoEntity extends Entity {
 
   teardown() {
     this.videoElement.pause();
-    this.config.container.removeChild(this.videoSprite);
+    this.videoSprite = null;
+    this.config.container.removeChild(this.container);
 
     super.teardown();
   }
