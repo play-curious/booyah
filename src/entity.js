@@ -777,10 +777,9 @@ export class VideoEntity extends Entity {
     this.videoSprite = null;
 
     // videoElement.play() might not return a promise on older browsers
+    // Including a slight delay seems to workaround a bug affecting Firefox
     Promise.resolve(this.videoElement.play()).then(() => {
-      const videoResource = new PIXI.resources.VideoResource(this.videoElement);
-      this.videoSprite = PIXI.Sprite.from(videoResource);
-      this.container.addChild(this.videoSprite);
+      window.setTimeout(() => this._startVideo(), 100);
     });
   }
 
@@ -802,6 +801,12 @@ export class VideoEntity extends Entity {
     this.config.container.removeChild(this.container);
 
     super.teardown();
+  }
+
+  _startVideo() {
+    const videoResource = new PIXI.resources.VideoResource(this.videoElement);
+    this.videoSprite = PIXI.Sprite.from(videoResource);
+    this.container.addChild(this.videoSprite);
   }
 }
 
