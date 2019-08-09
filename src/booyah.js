@@ -980,8 +980,11 @@ function onGameStateMachineChange(
   previousStateParams
 ) {
   const url = new URL(window.location.href);
+  nextStateParams = nextStateParams
+    ? removePrivateProperties(nextStateParams)
+    : {};
   url.searchParams.set("scene", nextStateName);
-  url.searchParams.set("params", JSON.stringify(nextStateParams || {}));
+  url.searchParams.set("params", JSON.stringify(nextStateParams));
   url.searchParams.set(
     "progress",
     JSON.stringify(rootConfig.gameStateMachine.progress)
@@ -989,4 +992,12 @@ function onGameStateMachineChange(
 
   console.log("New game state:", nextStateName, nextStateParams);
   console.log("New game state link:", url.href);
+}
+
+function removePrivateProperties(obj) {
+  const result = {};
+  for (const key in obj) {
+    if (!key.startsWith("_")) result[key] = obj;
+  }
+  return result;
 }
