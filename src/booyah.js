@@ -56,7 +56,10 @@ const GRAPHICAL_ASSETS = [
 // String of characters to look for in a font
 const FONT_OBSERVER_CHARS = "asdf";
 
-const PRELOADER_ASSETS = ["booyah/images/loader-circle.png"];
+const PRELOADER_ASSETS = [
+  "booyah/images/loader-circle.png",
+  "booyah/images/loader-error.png"
+];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
 const rootConfig = {};
@@ -638,6 +641,40 @@ export class ReadyScene extends entity.CompositeEntity {
   }
 }
 
+export class LoadingErrorScene extends entity.ParallelEntity {
+  _setup() {
+    this.container = new PIXI.Container();
+
+    if (this.config.directives.splashScreen) {
+      this.container.addChild(
+        new PIXI.Sprite(
+          this.config.preloader.resources[
+            this.config.directives.splashScreen
+          ].texture
+        )
+      );
+    }
+
+    const button = new PIXI.Sprite(
+      this.config.preloader.resources[
+        "booyah/images/loader-error.png"
+      ].texture
+    );
+    button.anchor.set(0.5);
+    button.position.set(
+      this.config.app.screen.width / 2,
+      (this.config.app.screen.height * 3) / 4
+    );
+    this.container.addChild(button);
+
+    this.config.container.addChild(this.container);
+  }
+
+  _teardown() {
+    this.config.container.removeChild(this.container);
+  }
+}
+
 export class DoneScene extends entity.CompositeEntity {
   setup(config) {
     super.setup(config);
@@ -820,9 +857,10 @@ function loadFixedAssets() {
     true
   );
 
-  return Promise.all(promises).catch(err =>
-    console.error("Error loading fixed assets", err)
-  );
+  return Promise.all(promises).catch(err => {
+    console.error("Error loading fixed assets", err);
+    throw err;
+  });
 }
 
 function loadVariable() {
@@ -836,9 +874,10 @@ function loadVariable() {
     loadingPromises.push(newPromise);
   }
 
-  return Promise.all(loadingPromises).catch(err =>
-    console.error("Error in variable loading stage", err)
-  );
+  return Promise.all(loadingPromises).catch(err => {
+    console.error("Error in variable loading stage", err);
+    throw err;
+  });
 
   // // Load audio
   // narrationAudio = narration.loadNarrationAudio(narrationTable, "fr");
@@ -965,7 +1004,18 @@ export function go(directives = {}) {
     .then(() => loadFixedAssets())
     .then(loadVariable)
     .then(doneLoading)
-    .catch(err => console.error("Error during load", err));
+    .catch(err => {
+      console.error("Error during load", err);
+
+      // Replace loading scene with loading error
+      loadingScene.teardown();
+      loadingScene = null;
+
+      rootEntity = new LoadingErrorScene();
+      rootEntity.setup(rootConfig);
+
+      throw err;
+    });
 
   return {
     rootConfig,
