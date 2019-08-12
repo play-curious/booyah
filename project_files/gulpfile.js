@@ -13,12 +13,15 @@ const rename = require("gulp-rename");
 const useref = require("gulp-useref");
 const exec = require("child_process").exec;
 const fs = require("fs");
+const download = require("gulp-download-stream");
+const template = require("gulp-template");
+const git = require("git-rev-sync");
 
 // Read the name of the game from the package.json file
 const PACKAGE = JSON.parse(fs.readFileSync("./package.json"));
 const SITE_DIR =
   process.env.SITE_DIR ||
-  `${process.env.HOME}/projects/play-curious/play-curious-site/`;
+  `${process.env.HOME}/projects/play-curious/play-curious-site`;
 const DEPLOY_DIR = `${SITE_DIR}/games/${PACKAGE.name}/`;
 
 function clean() {
@@ -51,6 +54,9 @@ exports.bundle = bundle;
 function writeHtml() {
   return gulp
     .src("index.html")
+    .pipe(
+      template({ date: new Date(), commit: git.short(), branch: git.branch() })
+    )
     .pipe(
       htmlreplace({
         "js-bundle": "bundle.js"
@@ -104,6 +110,11 @@ function copyDistAssets() {
 }
 exports.copyDistAssets = copyDistAssets;
 
+async function deployInfo() {
+  console.log(`Set to deploy to ${DEPLOY_DIR}`);
+}
+exports.deployInfo = deployInfo;
+
 exports.cleanSite = function cleanSite() {
   return del(DEPLOY_DIR, { force: true });
 };
@@ -155,13 +166,14 @@ function convertTsvToJson(csvText) {
   return JSON.stringify(output, null, 2);
 }
 
-gulp.task("convertTextToJson", () => {
+function convertTextToJson() {
   return gulp
     .src(["text_src/*.tsv"])
     .pipe(transform("utf8", convertTsvToJson))
     .pipe(rename({ extname: ".json" }))
     .pipe(gulp.dest("text/"));
-});
+}
+exports.convertTextToJson = convertTextToJson;
 
 exports.convertVoices = function convertVoices(cb) {
   const command = `
@@ -189,10 +201,13 @@ exports.build = build;
 const dist = gulp.series(build, gulp.parallel([compress, copyDistAssets]));
 exports.dist = dist;
 
-const deploy = gulp.series(dist, copyToSite, deploySite);
+const deploy = gulp.series(deployInfo, dist, copyToSite, deploySite);
 exports.deploy = deploy;
 
 const watch = gulp.series(build, watchFiles);
 exports.watch = watch;
+
+const downloadAndConvertText = gulp.series(downloadText, convertTextToJson);
+exports.downloadAndConvertText = downloadAndConvertText;
 
 exports.default = build;
