@@ -3,29 +3,42 @@ import * as entity from "./entity.js";
 import * as audio from "./audio.js";
 
 const DEFAULT_DIRECTIVES = {
-  screenSize: new PIXI.Point(960, 540),
-  canvasId: "pixi-canvas",
+  screenSize: new PIXI.Point(960, 540), // Screen size as PIXI Point
+  canvasId: "pixi-canvas", // ID of element to use for PIXI
+
+  // Parameters for the game state machine
   states: [],
   transitions: {},
   startingScene: "start",
   startingSceneParams: {},
   startingProgress: {},
   endingScenes: ["end"],
-  graphicalAssets: [],
-  musicAssets: [],
-  fxAssets: [],
-  videoAssets: [],
-  fontAssets: [],
-  jsonAssets: [],
+
+  // Assets
+  graphicalAssets: [], // Graphical assets starting from the root (e.g. "images/image.png")
+  musicAssets: [], // No directory or file extension needed
+  fxAssets: [], // No directory or file extension needed
+  videoAssets: [], // No directory needed
+  fontAssets: [], // Font names. The loading should be done separately via CSS.
+  jsonAssets: [], // Starting from the root directory. JSON extension in needed
+
+  // For narration
   speakers: {},
   speakerPosition: new PIXI.Point(50, 540),
+
+  // Credits
   credits: {}, // @credits like { "Game Design": ["JC", "Jesse"], }
   creditsTextSize: 32,
-  splashScreen: null,
-  gameLogo: null,
-  extraLogos: [],
-  extraLoaders: [],
-  entityInstallers: [],
+
+  // Appearance. These assets are automatically added to "graphicalAssets"
+  splashScreen: null, // Splash screen should be the size of the game
+  gameLogo: null, // Will be displayed in the menu
+  extraLogos: [], // Logos besides Play Curious will be shown in the menu
+
+  extraLoaders: [], // Will be called after the fixed loading step. Of type function(rootConfig)
+  entityInstallers: [], // Will be called when the game is initialized. Of type function(rootConfig, rootEntity)
+
+  // Standard icons. They will be added to "graphicalAssets"
   graphics: {
     menu: "booyah/images/button-mainmenu.png",
     skip: "booyah/images/button-skip.png",
@@ -656,9 +669,7 @@ export class LoadingErrorScene extends entity.ParallelEntity {
     }
 
     const button = new PIXI.Sprite(
-      this.config.preloader.resources[
-        "booyah/images/loader-error.png"
-      ].texture
+      this.config.preloader.resources["booyah/images/loader-error.png"].texture
     );
     button.anchor.set(0.5);
     button.position.set(
@@ -1019,6 +1030,7 @@ export function go(directives = {}) {
 
   return {
     rootConfig,
+    rootEntity,
     loadingPromise
   };
 }
