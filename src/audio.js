@@ -18,6 +18,7 @@ export class Jukebox extends entity.Entity {
   }
 
   _setup(config) {
+    this.musicName = null;
     this.musicPlaying = null;
 
     _.each(this.config.musicAudio, howl => {
@@ -33,6 +34,8 @@ export class Jukebox extends entity.Entity {
 
   _teardown() {
     if (this.musicPlaying) this.musicPlaying.stop();
+    this.musicPlaying = null;
+    this.musicName = null;
   }
 
   _onSignal(signal, data = null) {
@@ -51,6 +54,7 @@ export class Jukebox extends entity.Entity {
     }
 
     if (name) {
+      this.musicName = name;
       this.musicPlaying = this.config.musicAudio[name];
       this.musicPlaying.play();
     }

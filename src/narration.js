@@ -374,6 +374,7 @@ export class VideoScene extends entity.ParallelEntity {
     }
 
     if (this.options.music) {
+      this.previousMusic = this.config.jukebox.musicName;
       this.config.jukebox.changeMusic(this.options.music);
     }
 
@@ -393,7 +394,7 @@ export class VideoScene extends entity.ParallelEntity {
 
   teardown() {
     if (this.options.narration) this.config.narrator.cancelAll();
-    if (this.options.music) this.config.jukebox.changeMusic();
+    if (this.options.music) this.config.jukebox.changeMusic(this.previousMusic);
 
     super.teardown();
   }
