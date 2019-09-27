@@ -4,6 +4,9 @@ import * as audio from "./audio.js";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
+/**
+ * DEPRECATED. May not be up to date with other changes in Booyah
+ */
 export class Narrator extends entity.Entity {
   // filesToHowl is a Map
   constructor(filesToHowl, narrationTable) {
@@ -279,26 +282,17 @@ export class SingleNarration extends entity.Entity {
     this.priority = priority;
   }
 
-  setup(config) {
-    super.setup(config);
-
+  _setup() {
     this.config.narrator.changeKey(this.narrationKey, this.priority);
+    this._on(this.config.narrator, "done", this._onNarrationDone);
   }
 
-  _update(options) {
-    // TODO: This timing only works assuming that the narration was launched immediately
-    if (
-      options.timeSinceStart >=
-      this.config.narrator.narrationDuration(this.narrationKey)
-    ) {
-      this.requestedTransition = true;
-    }
+  _onNarrationDone(key) {
+    if (key === this.narrationKey) this.requestedTransition = true;
   }
 
-  teardown() {
-    this.config.narrator.cancelAll();
-
-    super.teardown();
+  _teardown() {
+    this.config.narrator.stopNarration(this.narrationKey);
   }
 }
 
@@ -393,7 +387,6 @@ export class VideoScene extends entity.ParallelEntity {
   }
 
   teardown() {
-    if (this.options.narration) this.config.narrator.cancelAll();
     if (this.options.music) this.config.jukebox.changeMusic(this.previousMusic);
 
     super.teardown();
@@ -494,7 +487,7 @@ export function breakDialogIntoLines(text) {
   return dialogLines;
 }
 
-export function estimateDuration(text) {
+export function estimateDuration(text, timePerWord = TIME_PER_WORD) {
   const wordCount = text.trim().split(/[\s\.\!\?]+/).length;
-  return wordCount * TIME_PER_WORD;
+  return wordCount * timePerWord;
 }
