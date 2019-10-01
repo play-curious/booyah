@@ -90,10 +90,14 @@ export class Entity extends PIXI.utils.EventEmitter {
     if (event) props.event = event;
     if (cb) props.cb = cb;
 
-    _.each(_.filter(this.eventListeners, props), listener =>
-      listener.emitter.off(listener.event, listener.cb)
+    const [listenersToRemove, listenersToKeep] = _.partition(
+      this.eventListeners,
+      props
     );
-    this.eventListeners = _.reject(this.eventListeners, _.matcher(props));
+    for (const listener of listenersToRemove)
+      listener.emitter.off(listener.event, listener.cb, this);
+
+    this.eventListeners = listenersToKeep;
   }
 
   // Noop methods than can be overriden by subclasses
