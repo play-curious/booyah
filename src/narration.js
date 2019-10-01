@@ -473,7 +473,9 @@ export function breakDialogIntoLines(text) {
   for (const textLine of text.split("--")) {
     // speaker and start can both be undefined, and will be stripped from the output
     let [, speaker, start, dialog] = r.exec(textLine);
+    if (start) start = parseInt(start);
     dialog = dialog.trim();
+
     if (dialog.length > 0) {
       const textWithNewLines = dialog.replace(rNewLines, "\n");
       dialogLines.push({

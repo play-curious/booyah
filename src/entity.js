@@ -1032,7 +1032,7 @@ export class DeflatingCompositeEntity extends Entity {
  * Does not request a transition until done() is called with a given transition
  */
 export class Block extends Entity {
-  done(transition) {
+  done(transition = true) {
     this.requestedTransition = transition;
   }
 }
