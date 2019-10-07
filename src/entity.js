@@ -110,6 +110,19 @@ export class Entity extends PIXI.utils.EventEmitter {
 /** Empty class just to indicate an entity that does nothing and never requests a transition  */
 export class NullEntity extends Entity {}
 
+/** An entity that returns the requested transition immediately  */
+export class TransitoryEntity extends Entity {
+  constructor(transition = true) {
+    super();
+
+    this.transition = transition;
+  }
+
+  _setup() {
+    this.requestedTransition = this.transition;
+  }
+}
+
 /*
   Allows a bunch of entities to execute in parallel.
   Updates child entities until they ask for a transition, at which point they are torn down.
@@ -359,6 +372,8 @@ export class StateMachine extends Entity {
   /**
       @states: an object of names to Entity, or to function(params, stateMachine): Entity
       @transitions: an object of names to transition, or to function(name, params, stateMachine): Transition
+      @options.startingState: a state name OR a function that returns a state name
+      @options.startingParams: am object OR a function that returns an object
   */
   constructor(states, transitions, options) {
     super();
@@ -380,7 +395,13 @@ export class StateMachine extends Entity {
     this.visitedStates = [];
     this.progress = util.cloneData(this.startingProgress);
 
-    this._changeState(0, this.startingState, this.startingStateParams);
+    const startingState = _.isFunction(this.startingState)
+      ? this.startingState()
+      : this.startingState;
+    const startingStateParams = _.isFunction(this.startingStateParams)
+      ? this.startingStateParams()
+      : this.startingStateParams;
+    this._changeState(0, startingState, startingStateParams);
   }
 
   update(options) {
@@ -1208,9 +1229,7 @@ export class SwitchingEntity extends Entity {
   }
 
   removeAllEntities() {
-    if (index === this.activeEntityIndex) {
-      this.switchToIndex(-1);
-    }
+    this.switchToIndex(-1);
 
     this.entities = [];
     this.entityConfigs = [];
@@ -1222,4 +1241,8 @@ export function processEntityConfig(config, alteredConfig) {
   if (!alteredConfig) return config;
   if (_.isFunction(alteredConfig)) return alteredConfig(config);
   return alteredConfig;
+}
+
+export function extendConfig(values) {
+  return config => _.extend({}, config, values);
 }
