@@ -1,6 +1,8 @@
 import * as util from "./util.js";
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
+import preload from "../../node_modules/preload-it/dist/preload-it.esm.js";
+import Preload from "../../node_modules/preload-it/dist/preload-it.esm.js";
 
 const DEFAULT_DIRECTIVES = {
   screenSize: new PIXI.Point(960, 540), // Screen size as PIXI Point
@@ -90,6 +92,7 @@ let timeSinceStart = 0;
 let pixiLoaderProgress = 0;
 let fontLoaderProgress = 0;
 let fixedAudioLoaderProgress = 0;
+let videoLoaderProgress = 0;
 let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
@@ -731,13 +734,15 @@ function updateLoadingProgress() {
     (pixiLoaderProgress +
       fontLoaderProgress +
       fixedAudioLoaderProgress +
-      variableAudioLoaderProgress) /
-    4;
+      variableAudioLoaderProgress +
+      videoLoaderProgress) /
+    5;
   console.debug("loading progress", progress, {
     pixiLoaderProgress,
     fontLoaderProgress,
     fixedAudioLoaderProgress,
-    variableAudioLoaderProgress
+    variableAudioLoaderProgress,
+    videoLoaderProgress
   });
 
   if (loadingScene) loadingScene.updateProgress(progress);
@@ -799,15 +804,7 @@ function loadFixedAssets() {
   const pixiLoaderResources = [].concat(
     GRAPHICAL_ASSETS,
     _.values(rootConfig.directives.graphics),
-    rootConfig.directives.graphicalAssets,
-    _.map(rootConfig.directives.videoAssets, name => {
-      return {
-        url: `video/${name}`,
-        metadata: {
-          loadElement: util.makeVideoElement()
-        }
-      };
-    })
+    rootConfig.directives.graphicalAssets
   );
   rootConfig.app.loader
     .add(pixiLoaderResources)
@@ -858,12 +855,35 @@ function loadFixedAssets() {
     })
   );
 
+  // Load video
+  const videoLoader = preload();
+  videoLoader.onprogress = event => {
+    videoLoaderProgress = event.progress / 100;
+    updateLoadingProgress();
+  };
+  const videoLoaderPromise = videoLoader
+    .fetch(rootConfig.directives.videoAssets.map(name => `video/${name}`))
+    .then(assets => {
+      const videoAssets = {};
+      for (const asset of assets) {
+        const element = util.makeVideoElement();
+        element.src = asset.blobUrl;
+        videoAssets[asset.url] = element;
+      }
+      rootConfig.videoAssets = videoAssets;
+    })
+    .catch(e => {
+      console.error("Cannot load videos", e);
+      throw e;
+    });
+
   const promises = _.flatten(
     [
       util.makePixiLoadPromise(rootConfig.app.loader),
       fontLoaderPromises,
       fixedAudioLoaderPromises,
-      jsonLoaderPromises
+      jsonLoaderPromises,
+      videoLoaderPromise
     ],
     true
   );
