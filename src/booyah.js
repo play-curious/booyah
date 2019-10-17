@@ -189,7 +189,7 @@ export class MenuEntity extends entity.ParallelEntity {
       this.config.app.loader.resources["booyah/images/button-close.png"].texture
     );
     this.playButton.anchor.set(0.5);
-    this.playButton.position.set(50);
+    this.playButton.position.set(this.config.app.renderer.width - 50, 50);
     this.playButton.interactive = true;
     this._on(this.playButton, "pointertap", this._onPlay);
     this.menuLayer.addChild(this.playButton);
@@ -326,7 +326,7 @@ export class MenuEntity extends entity.ParallelEntity {
       );
       this.resetButton.scale.set(0.58); // From 102 to 60 px
       this.resetButton.anchor.set(0.5);
-      this.resetButton.position.set(this.config.app.renderer.width - 50, 50);
+      this.resetButton.position.set(50, 50);
       this.resetButton.interactive = true;
       this._on(this.resetButton, "pointertap", this._onReset);
       this.menuLayer.addChild(this.resetButton);
