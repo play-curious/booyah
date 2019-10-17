@@ -1059,7 +1059,7 @@ function onGameStateMachineChange(
 function removePrivateProperties(obj) {
   const result = {};
   for (const key in obj) {
-    if (!key.startsWith("_")) result[key] = obj;
+    if (!key.startsWith("_")) result[key] = obj[key];
   }
   return result;
 }
