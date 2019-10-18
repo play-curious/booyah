@@ -244,13 +244,10 @@ export class Scrollbox extends entity.ParallelEntity {
             last: local
           };
         } else {
-          // TODO
           if (local.x > this.scrollbarLeft) {
-            this.content.x += this.content.worldScreenWidth;
-            this.refresh();
+            this.scrollBy(new PIXI.Point(-this.options.boxWidth, 0));
           } else {
-            this.content.x -= this.content.worldScreenWidth;
-            this.refresh();
+            this.scrollBy(new PIXI.Point(this.options.boxWidth, 0));
           }
         }
         if (this.options.stopPropagation) {
@@ -263,7 +260,7 @@ export class Scrollbox extends entity.ParallelEntity {
       if (local.x > this.options.boxWidth - this.options.scrollbarSize) {
         if (
           local.y >= this.scrollbarTop &&
-          local.y <= this.scrollbarTop + this.scrollbarWidth
+          local.y <= this.scrollbarTop + this.scrollbarHeight
         ) {
           this.pointerDown = {
             type: "scrollbar",
@@ -271,13 +268,10 @@ export class Scrollbox extends entity.ParallelEntity {
             last: local
           };
         } else {
-          // TODO
           if (local.y > this.scrollbarTop) {
-            this.content.y += this.content.worldScreenHeight;
-            this.refresh();
+            this.scrollBy(new PIXI.Point(0, -this.options.boxHeight));
           } else {
-            this.content.y -= this.content.worldScreenHeight;
-            this.refresh();
+            this.scrollBy(new PIXI.Point(0, this.options.boxHeight));
           }
         }
         if (this.options.stopPropagation) {
@@ -296,27 +290,20 @@ export class Scrollbox extends entity.ParallelEntity {
   _scrollbarMove(e) {
     if (this.pointerDown.direction === "horizontal") {
       const local = this.container.toLocal(e.data.global);
-      // this.content.x -= local.x - this.pointerDown.last.x;
-      // this.refresh();
-      this.scrollTo(
-        new PIXI.Point(
-          this.content.x - (local.x - this.pointerDown.last.x),
-          this.content.y
-        )
-      );
+      const fraction =
+        ((local.x - this.pointerDown.last.x) / this.options.boxWidth) *
+        this.content.width;
+      this.scrollBy(new PIXI.Point(-fraction, 0));
       this.pointerDown.last = local;
     } else if (this.pointerDown.direction === "vertical") {
       const local = this.container.toLocal(e.data.global);
-      // this.content.y -= local.y - this.pointerDown.last.y;
-      // this.refresh();
-      this.scrollTo(
-        new PIXI.Point(
-          this.content.x,
-          this.content.y - (local.y - this.pointerDown.last.y)
-        )
-      );
+      const fraction =
+        ((local.y - this.pointerDown.last.y) / this.options.boxHeight) *
+        this.content.height;
+      this.scrollBy(new PIXI.Point(0, -fraction));
       this.pointerDown.last = local;
     }
+
     if (this.options.stopPropagation) {
       e.stopPropagation();
     }
@@ -367,7 +354,7 @@ export class Scrollbox extends entity.ParallelEntity {
     if (!this.isScrollbarHorizontal) scrollAmount.x = 0;
     if (!this.isScrollbarVertical) scrollAmount.y = 0;
 
-    this.scrollTo(geom.add(this.content.position, scrollAmount));
+    this.scrollBy(scrollAmount);
 
     this.pointerDown.last = local;
 
@@ -384,6 +371,10 @@ export class Scrollbox extends entity.ParallelEntity {
     this.pointerDown = null;
 
     this.content.interactiveChildren = true;
+  }
+
+  scrollBy(amount) {
+    this.scrollTo(geom.add(this.content.position, amount));
   }
 
   scrollTo(position) {
