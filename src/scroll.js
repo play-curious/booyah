@@ -29,7 +29,9 @@ export class Scrollbox extends entity.ParallelEntity {
       dragThreshold: 5,
       stopPropagation: true,
       contentMarginX: 0,
-      contentMarginY: 0
+      contentMarginY: 0,
+      wheelScroll: true,
+      wheelScrollSpeed: 5
     });
   }
 
@@ -73,15 +75,20 @@ export class Scrollbox extends entity.ParallelEntity {
     this.content.mask = mask;
     this.container.addChild(mask);
 
-    this.refresh();
-  }
+    if (this.options.wheelScroll) {
+      this.onWheelHandler = this._onWheel.bind(this);
+      this.config.app.view.addEventListener("wheel", this.onWheelHandler);
+    }
 
-  _update() {
-    // this.scrollbox.updateLoop();
+    this.refresh();
   }
 
   _teardown() {
     this.config.container.removeChild(this.container);
+
+    if (this.options.wheelScroll) {
+      this.config.app.view.removeEventListener("wheel", this.onWheelHandler);
+    }
   }
 
   /** Call when container contents have changed  */
@@ -377,6 +384,57 @@ export class Scrollbox extends entity.ParallelEntity {
     this.pointerDown = null;
 
     this.content.interactiveChildren = true;
+  }
+
+  /**
+   * handle wheel events
+   * @param {WheelEvent} event
+   */
+  _onWheel(e) {
+    // TODO: use interaction manager's hit test function instead ?
+    if (!this.container.worldVisible) return;
+
+    // Get coordinates of point and test if we touch this container
+    const globalPoint = new PIXI.Point();
+    this.config.app.renderer.plugins.interaction.mapPositionToPoint(
+      globalPoint,
+      e.clientX,
+      e.clientY
+    );
+    if (
+      !this.config.app.renderer.plugins.interaction.hitTest(
+        globalPoint,
+        this.container
+      )
+    )
+      return;
+
+    // Finally, scroll!
+    const scrollAmount = this.options.wheelScrollSpeed * -Math.sign(e.deltaY);
+
+    if (this.isScrollbarHorizontal) {
+      this.scrollBy(new PIXI.Point(scrollAmount, 0));
+    } else if (this.isScrollbarVertical) {
+      this.scrollBy(new PIXI.Point(0, scrollAmount));
+    }
+
+    e.preventDefault();
+
+    // // only handle wheel events where the mouse is over the viewport
+    // const point = this.container.toLocal(new PIXI.Point(e.clientX, e.clientY));
+    // if (
+    //   this.container.x <= point.x &&
+    //   point.x <= this.container.x + this.container.width &&
+    //   this.container.y <= point.y &&
+    //   point.y <= this.container.y + this.container.height
+    // ) {
+
+    //   this.scrollBy(
+    //     new PIXI.Point(0, this.options.wheelScrollSpeed * -Math.sign(e.deltaY))
+    //   );
+
+    //   e.preventDefault();
+    // }
   }
 
   scrollBy(amount) {
