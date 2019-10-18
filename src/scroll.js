@@ -25,28 +25,42 @@ export class Scrollbox extends entity.ParallelEntity {
       scrollbarBackgroundAlpha: 1,
       scrollbarForeground: 8947848,
       scrollbarForegroundAlpha: 1,
+      dragScroll: true,
+      dragThreshold: 5,
       stopPropagation: true
     });
   }
 
   _setup() {
-    this.container = new PIXI.Container();
-    this.container.interactive = true;
-    this._on(this.container, "pointermove", this._scrollbarMove);
-    this._on(this.container, "pointerup", this._scrollbarUp);
-    this._on(this.container, "pointercancel", this._scrollbarUp);
-    this._on(this.container, "pointerupoutside", this._scrollbarUp);
-    this.config.container.addChild(this.container);
-
     // Last pointerdown event
     this.pointerDown = null;
+
+    this.container = new PIXI.Container();
+    this.container.interactive = true;
+    this._on(this.container, "pointermove", this._onMove);
+    this._on(this.container, "pointerup", this._onUp);
+    this._on(this.container, "pointercancel", this._onUp);
+    this._on(this.container, "pointerupoutside", this._onUp);
+    this.config.container.addChild(this.container);
+
+    if (this.options.dragScroll) {
+      const dragBackground = new PIXI.Graphics();
+      dragBackground
+        .beginFill(0)
+        .drawRect(0, 0, this.options.boxWidth, this.options.boxHeight)
+        .endFill();
+      dragBackground.alpha = 0;
+
+      this._on(this.container, "pointerdown", this._dragDown);
+      this.container.addChild(dragBackground);
+    }
 
     this.content = this.options.content || new PIXI.Container();
     this.container.addChild(this.content);
 
     this.scrollbar = new PIXI.Graphics();
     this.scrollbar.interactive = true;
-    this._on(this.scrollbar, "pointerdown", this._scrollbarDown, this);
+    this._on(this.scrollbar, "pointerdown", this._scrollbarDown);
     this.container.addChild(this.scrollbar);
 
     const mask = new PIXI.Graphics();
@@ -56,9 +70,6 @@ export class Scrollbox extends entity.ParallelEntity {
       .endFill();
     this.content.mask = mask;
     this.container.addChild(mask);
-
-    // TODO: set interactive children = false while scrolling
-    this.isScrolling = false;
 
     this.refresh();
   }
@@ -194,12 +205,30 @@ export class Scrollbox extends entity.ParallelEntity {
     }
   }
 
+  _onMove(e) {
+    if (!this.pointerDown) return;
+
+    if (this.pointerDown.type === "scrollbar") this._scrollbarMove(e);
+    else if (this.pointerDown.type === "drag") this._dragMove(e);
+    else throw new Error("no such type");
+  }
+
+  _onUp(e) {
+    if (!this.pointerDown) return;
+
+    if (this.pointerDown.type === "scrollbar") this._scrollbarUp(e);
+    else if (this.pointerDown.type === "drag") this._dragUp(e);
+    else throw new Error("no such type");
+  }
+
   /**
    * handle pointer down on scrollbar
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
   _scrollbarDown(e) {
+    if (this.pointerDown) return;
+
     this.content.interactiveChildren = false;
 
     const local = this.container.toLocal(e.data.global);
@@ -209,8 +238,13 @@ export class Scrollbox extends entity.ParallelEntity {
           local.x >= this.scrollbarLeft &&
           local.x <= this.scrollbarLeft + this.scrollbarWidth
         ) {
-          this.pointerDown = { type: "horizontal", last: local };
+          this.pointerDown = {
+            type: "scrollbar",
+            direction: "horizontal",
+            last: local
+          };
         } else {
+          // TODO
           if (local.x > this.scrollbarLeft) {
             this.content.x += this.content.worldScreenWidth;
             this.refresh();
@@ -231,8 +265,13 @@ export class Scrollbox extends entity.ParallelEntity {
           local.y >= this.scrollbarTop &&
           local.y <= this.scrollbarTop + this.scrollbarWidth
         ) {
-          this.pointerDown = { type: "vertical", last: local };
+          this.pointerDown = {
+            type: "scrollbar",
+            direction: "vertical",
+            last: local
+          };
         } else {
+          // TODO
           if (local.y > this.scrollbarTop) {
             this.content.y += this.content.worldScreenHeight;
             this.refresh();
@@ -255,34 +294,96 @@ export class Scrollbox extends entity.ParallelEntity {
    * @private
    */
   _scrollbarMove(e) {
-    if (this.pointerDown) {
-      if (this.pointerDown.type === "horizontal") {
-        const local = this.container.toLocal(e.data.global);
-        // this.content.x -= local.x - this.pointerDown.last.x;
-        // this.refresh();
-        this.scrollTo(
-          new PIXI.Point(
-            this.content.x - (local.x - this.pointerDown.last.x),
-            this.content.y
-          )
-        );
-        this.pointerDown.last = local;
-      } else if (this.pointerDown.type === "vertical") {
-        const local = this.container.toLocal(e.data.global);
-        // this.content.y -= local.y - this.pointerDown.last.y;
-        // this.refresh();
-        this.scrollTo(
-          new PIXI.Point(
-            this.content.x,
-            this.content.y - (local.y - this.pointerDown.last.y)
-          )
-        );
-        this.pointerDown.last = local;
-      }
-      if (this.options.stopPropagation) {
-        e.stopPropagation();
-      }
+    if (this.pointerDown.direction === "horizontal") {
+      const local = this.container.toLocal(e.data.global);
+      // this.content.x -= local.x - this.pointerDown.last.x;
+      // this.refresh();
+      this.scrollTo(
+        new PIXI.Point(
+          this.content.x - (local.x - this.pointerDown.last.x),
+          this.content.y
+        )
+      );
+      this.pointerDown.last = local;
+    } else if (this.pointerDown.direction === "vertical") {
+      const local = this.container.toLocal(e.data.global);
+      // this.content.y -= local.y - this.pointerDown.last.y;
+      // this.refresh();
+      this.scrollTo(
+        new PIXI.Point(
+          this.content.x,
+          this.content.y - (local.y - this.pointerDown.last.y)
+        )
+      );
+      this.pointerDown.last = local;
     }
+    if (this.options.stopPropagation) {
+      e.stopPropagation();
+    }
+  }
+
+  /**
+   * handle pointer up on scrollbar
+   * @private
+   */
+  _scrollbarUp() {
+    this.pointerDown = null;
+
+    this.content.interactiveChildren = true;
+  }
+
+  /**
+   * handle pointer down on content
+   * @param {PIXI.interaction.InteractionEvent} e
+   * @private
+   */
+  _dragDown(e) {
+    if (this.pointerDown) return;
+
+    const local = this.container.toLocal(e.data.global);
+    this.pointerDown = { type: "drag", last: local };
+
+    // if (this.options.stopPropagation) {
+    //   e.stopPropagation();
+    // }
+  }
+
+  /**
+   * handle pointer move on content
+   * @param {PIXI.interaction.InteractionEvent} e
+   * @private
+   */
+
+  _dragMove(e) {
+    const local = this.container.toLocal(e.data.global);
+    if (
+      geom.distance(local, this.pointerDown.last) <= this.options.dragThreshold
+    )
+      return;
+
+    this.content.interactiveChildren = false;
+
+    const scrollAmount = geom.subtract(local, this.pointerDown.last);
+    if (!this.isScrollbarHorizontal) scrollAmount.x = 0;
+    if (!this.isScrollbarVertical) scrollAmount.y = 0;
+
+    this.scrollTo(geom.add(this.content.position, scrollAmount));
+
+    this.pointerDown.last = local;
+
+    // if (this.options.stopPropagation) {
+    //   e.stopPropagation();
+    // }
+  }
+
+  /**
+   * handle pointer up on content
+   * @private
+   */
+  _dragUp() {
+    this.pointerDown = null;
+
+    this.content.interactiveChildren = true;
   }
 
   scrollTo(position) {
@@ -299,15 +400,5 @@ export class Scrollbox extends entity.ParallelEntity {
     this.content.position = position;
 
     this.refresh();
-  }
-
-  /**
-   * handle pointer down on scrollbar
-   * @private
-   */
-  _scrollbarUp() {
-    this.pointerDown = null;
-
-    this.content.interactiveChildren = true;
   }
 }
