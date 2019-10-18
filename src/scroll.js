@@ -20,10 +20,10 @@ export class Scrollbox extends entity.ParallelEntity {
       overflowY: "auto",
       scrollbarOffsetHorizontal: 0,
       scrollbarOffsetVertical: 0,
-      scrollbarSize: 30, // width in pixels
-      scrollbarBackground: 0, // background color
-      scrollbarBackgroundAlpha: 0.25,
-      scrollbarForeground: 0x68f1ff, // foreground color
+      scrollbarSize: 10,
+      scrollbarBackground: 14540253,
+      scrollbarBackgroundAlpha: 1,
+      scrollbarForeground: 8947848,
       scrollbarForegroundAlpha: 1,
       stopPropagation: true
     });
