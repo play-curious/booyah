@@ -795,7 +795,7 @@ export class VideoEntity extends Entity {
     this.container = new PIXI.Container();
     this.config.container.addChild(this.container);
 
-    this.videoElement = this.config.app.loader.resources[this.videoName].data;
+    this.videoElement = this.config.videoAssets[this.videoName];
     this.videoElement.loop = this.loop;
     this.videoElement.currentTime = 0;
 

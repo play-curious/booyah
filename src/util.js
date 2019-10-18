@@ -187,6 +187,12 @@ export function setupOptions(obj, options, defaults) {
     throw new Error("Missing options");
   }
 
+  const allowedKeys = _.keys(defaults);
+  const unneededOptions = _.difference(providedKeys, allowedKeys);
+  if (unneededOptions.length > 0) {
+    console.warn("Unneeded options", unneededOptions, "for", obj);
+  }
+
   return _.extend(obj, _.defaults(_.pick(options, _.keys(defaults)), defaults));
 }
 
