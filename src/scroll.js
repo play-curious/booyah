@@ -27,7 +27,9 @@ export class Scrollbox extends entity.ParallelEntity {
       scrollbarForegroundAlpha: 1,
       dragScroll: true,
       dragThreshold: 5,
-      stopPropagation: true
+      stopPropagation: true,
+      contentMarginX: 0,
+      contentMarginY: 0
     });
   }
 
@@ -84,8 +86,6 @@ export class Scrollbox extends entity.ParallelEntity {
 
   /** Call when container contents have changed  */
   refresh() {
-    // TODO: update scrollbar
-
     this._drawScrollbars();
   }
 
@@ -94,7 +94,8 @@ export class Scrollbox extends entity.ParallelEntity {
       ? true
       : ["hidden", "none"].indexOf(this.options.overflowX) !== -1
       ? false
-      : this.content.width > this.options.boxWidth;
+      : this.content.width + this.options.contentMarginX >
+        this.options.boxWidth;
   }
 
   get isScrollbarVertical() {
@@ -102,7 +103,8 @@ export class Scrollbox extends entity.ParallelEntity {
       ? true
       : ["hidden", "none"].indexOf(this.options.overflowY) !== -1
       ? false
-      : this.content.height > this.options.boxHeight;
+      : this.content.height + this.options.contentMarginY >
+        this.options.boxHeight;
   }
 
   // From the same function in pixi-scrollbox
@@ -112,16 +114,20 @@ export class Scrollbox extends entity.ParallelEntity {
     options.left = 0;
     options.right =
       this.content.width +
+      this.options.contentMarginX +
       (this._isScrollbarVertical ? this.options.scrollbarSize : 0);
     options.top = 0;
     options.bottom =
       this.content.height +
+      this.options.contentMarginY +
       (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0);
     const width =
       this.content.width +
+      this.options.contentMarginX +
       (this.isScrollbarVertical ? this.options.scrollbarSize : 0);
     const height =
       this.content.height +
+      this.options.contentMarginY +
       (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0);
     this.scrollbarTop = (-this.content.y / height) * this.options.boxHeight;
     this.scrollbarTop = this.scrollbarTop < 0 ? 0 : this.scrollbarTop;
@@ -292,14 +298,14 @@ export class Scrollbox extends entity.ParallelEntity {
       const local = this.container.toLocal(e.data.global);
       const fraction =
         ((local.x - this.pointerDown.last.x) / this.options.boxWidth) *
-        this.content.width;
+        (this.content.width + this.options.contentMarginX);
       this.scrollBy(new PIXI.Point(-fraction, 0));
       this.pointerDown.last = local;
     } else if (this.pointerDown.direction === "vertical") {
       const local = this.container.toLocal(e.data.global);
       const fraction =
         ((local.y - this.pointerDown.last.y) / this.options.boxHeight) *
-        this.content.height;
+        (this.content.height + this.options.contentMarginY);
       this.scrollBy(new PIXI.Point(0, -fraction));
       this.pointerDown.last = local;
     }
@@ -380,12 +386,14 @@ export class Scrollbox extends entity.ParallelEntity {
   scrollTo(position) {
     position.x = geom.clamp(
       position.x,
-      this.options.boxWidth - this.content.width,
+      this.options.boxWidth -
+        (this.content.width + this.options.contentMarginX),
       0
     );
     position.y = geom.clamp(
       position.y,
-      this.options.boxHeight - this.content.height,
+      this.options.boxHeight -
+        (this.content.height + this.options.contentMarginY),
       0
     );
     this.content.position = position;
