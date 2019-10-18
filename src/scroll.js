@@ -391,7 +391,6 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {WheelEvent} event
    */
   _onWheel(e) {
-    // TODO: use interaction manager's hit test function instead ?
     if (!this.container.worldVisible) return;
 
     // Get coordinates of point and test if we touch this container
@@ -410,8 +409,7 @@ export class Scrollbox extends entity.ParallelEntity {
       return;
 
     // Finally, scroll!
-    const scrollAmount = this.options.wheelScrollSpeed * -Math.sign(e.deltaY);
-
+    const scrollAmount = -e.deltaY;
     if (this.isScrollbarHorizontal) {
       this.scrollBy(new PIXI.Point(scrollAmount, 0));
     } else if (this.isScrollbarVertical) {
@@ -419,22 +417,6 @@ export class Scrollbox extends entity.ParallelEntity {
     }
 
     e.preventDefault();
-
-    // // only handle wheel events where the mouse is over the viewport
-    // const point = this.container.toLocal(new PIXI.Point(e.clientX, e.clientY));
-    // if (
-    //   this.container.x <= point.x &&
-    //   point.x <= this.container.x + this.container.width &&
-    //   this.container.y <= point.y &&
-    //   point.y <= this.container.y + this.container.height
-    // ) {
-
-    //   this.scrollBy(
-    //     new PIXI.Point(0, this.options.wheelScrollSpeed * -Math.sign(e.deltaY))
-    //   );
-
-    //   e.preventDefault();
-    // }
   }
 
   scrollBy(amount) {
