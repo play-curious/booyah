@@ -1,8 +1,9 @@
 import * as util from "./util.js";
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
-import preload from "../../node_modules/preload-it/dist/preload-it.esm.js";
-import Preload from "../../node_modules/preload-it/dist/preload-it.esm.js";
+
+// TODO: Once the PR has been accepted, move back to the version from NPM
+import preload from "./preload-it.esm.js";
 
 const DEFAULT_DIRECTIVES = {
   screenSize: new PIXI.Point(960, 540), // Screen size as PIXI Point

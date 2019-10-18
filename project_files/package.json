@@ -35,9 +35,6 @@
     "underscore": "^1.8.3",
     "url-search-params-polyfill": "^5.1.0"
   },
-  "devDependencies": {
-    "preload-it": "^1.2.2"
-  },
   "scripts": {
     "build": "gulp build",
     "dist": "gulp dist",
