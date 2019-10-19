@@ -30,8 +30,7 @@ export class Scrollbox extends entity.ParallelEntity {
       stopPropagation: true,
       contentMarginX: 0,
       contentMarginY: 0,
-      wheelScroll: true,
-      wheelScrollSpeed: 5
+      wheelScroll: true
     });
   }
 

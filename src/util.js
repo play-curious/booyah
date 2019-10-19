@@ -253,3 +253,14 @@ export function shortenString(text, maxLength) {
 
   return text.substr(0, maxLength - 3) + "...";
 }
+
+/**
+ * Set properties recursively in a PIXI scene graph
+ */
+export function setPropertyInTree(root, name, value) {
+  if (name in root) root[name] = value;
+
+  for (const child of root.children) {
+    setPropertyInTree(child, name, value);
+  }
+}
