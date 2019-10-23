@@ -802,8 +802,8 @@ export class VideoEntity extends Entity {
     this.videoSprite = null;
 
     // videoElement.play() might not return a promise on older browsers
-    // Including a slight delay seems to workaround a bug affecting Firefox
     Promise.resolve(this.videoElement.play()).then(() => {
+      // Including a slight delay seems to workaround a bug affecting Firefox
       window.setTimeout(() => this._startVideo(), 100);
     });
   }

@@ -4,6 +4,9 @@ import * as util from "./util.js";
 
 /**
  * Based on David Fig's pixi-scrollbox https://github.com/davidfig/pixi-scrollbox/, but adapted to Booyah
+ *
+ * Events:
+ *  moved
  **/
 export class Scrollbox extends entity.ParallelEntity {
   /**
@@ -420,6 +423,8 @@ export class Scrollbox extends entity.ParallelEntity {
 
   scrollBy(amount) {
     this.scrollTo(geom.add(this.content.position, amount));
+
+    this.emit("moved");
   }
 
   scrollTo(position) {

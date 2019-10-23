@@ -469,7 +469,11 @@ export class CreditsEntity extends entity.CompositeEntity {
 
       rolesText += role;
 
-      for (let person of this.config.directives.credits[role]) {
+      // Their could be one person credited (string), or an array
+      const people = _.isArray(this.config.directives.credits[role])
+        ? this.config.directives.credits[role]
+        : [this.config.directives.credits[role]];
+      for (let person of people) {
         rolesText += "\n";
         peopleText += person + "\n";
       }
