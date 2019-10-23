@@ -185,7 +185,7 @@ export class MenuEntity extends entity.ParallelEntity {
       this.config.app.screen.height
     );
     this.mask.endFill();
-    this.mask.alpha = 0.6;
+    this.mask.alpha = 0.8;
     this.mask.interactive = true;
     this.menuLayer.addChild(this.mask);
 
@@ -204,11 +204,10 @@ export class MenuEntity extends entity.ParallelEntity {
 
     if (this.config.directives.gameLogo) {
       const gameLogo = new PIXI.Sprite(
-        this.config.app.loader.resources[
-          this.config.directives.gameLogo
-        ].texture
+        this.config.preloader.resources[this.config.directives.gameLogo].texture
       );
-      gameLogo.position.set(65, 130);
+      gameLogo.position.set(170, 200);
+      gameLogo.anchor.set(0.5, 0.5);
       this.menuLayer.addChild(gameLogo);
     }
 
@@ -218,7 +217,7 @@ export class MenuEntity extends entity.ParallelEntity {
       ].texture
     );
     pcLogo.anchor.set(0.5, 1);
-    pcLogo.position.set(160, 450);
+    pcLogo.position.set(170, 450);
     this.menuLayer.addChild(pcLogo);
 
     if (this.config.directives.extraLogos) {
