@@ -824,6 +824,7 @@ export class VideoEntity extends Entity {
     this.videoElement.pause();
     this.videoSprite = null;
     this.config.container.removeChild(this.container);
+    this.container = null;
 
     super.teardown();
   }

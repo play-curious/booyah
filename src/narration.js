@@ -352,9 +352,7 @@ export class VideoScene extends entity.ParallelEntity {
     });
   }
 
-  setup(config) {
-    super.setup(config);
-
+  _setup(config) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
       this.addEntity(this.narration);
@@ -386,10 +384,10 @@ export class VideoScene extends entity.ParallelEntity {
     }
   }
 
-  teardown() {
+  _teardown() {
     if (this.options.music) this.config.jukebox.changeMusic(this.previousMusic);
 
-    super.teardown();
+    this.removeAllEntities();
   }
 }
 
