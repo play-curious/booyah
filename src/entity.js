@@ -426,27 +426,33 @@ export class StateMachine extends Entity {
         requestedTransitionName = requestedTransition;
       }
 
-      // Follow the transition
-      if (!(this.stateName in this.transitions)) {
-        throw new Error(`Cannot find transition for state '${this.stateName}'`);
-      }
-
-      const transitionDescriptor = this.transitions[this.stateName];
       let nextStateDescriptor;
-      if (_.isFunction(transitionDescriptor)) {
-        nextStateDescriptor = transitionDescriptor(
-          requestedTransitionName,
-          requestedTransitionParams,
-          this
-        );
-      } else if (_.isString(transitionDescriptor)) {
-        nextStateDescriptor = transitionDescriptor;
+      // The transition could directly be the name of another state
+      if (
+        _.isString(requestedTransitionName) &&
+        requestedTransitionName in this.states &&
+        !(this.stateName in this.transitions)
+      ) {
+        nextStateDescriptor = requestedTransition;
+      } else if (!(this.stateName in this.transitions)) {
+        throw new Error(`Cannot find transition for state '${this.stateName}'`);
       } else {
-        throw new Error(
-          `Cannot decode transition descriptor '${JSON.stringify(
-            transitionDescriptor
-          )}'`
-        );
+        const transitionDescriptor = this.transitions[this.stateName];
+        if (_.isFunction(transitionDescriptor)) {
+          nextStateDescriptor = transitionDescriptor(
+            requestedTransitionName,
+            requestedTransitionParams,
+            this
+          );
+        } else if (_.isString(transitionDescriptor)) {
+          nextStateDescriptor = transitionDescriptor;
+        } else {
+          throw new Error(
+            `Cannot decode transition descriptor '${JSON.stringify(
+              transitionDescriptor
+            )}'`
+          );
+        }
       }
 
       // Unpack the next state
@@ -913,10 +919,9 @@ export class AnimatedSpriteEntity extends Entity {
     this.animatedSprite = animatedSprite;
   }
 
-  setup(config) {
-    super.setup(config);
-
+  _setup() {
     this.config.container.addChild(this.animatedSprite);
+    this.animatedSprite.play();
   }
 
   onSignal(signal, data = null) {
@@ -924,10 +929,9 @@ export class AnimatedSpriteEntity extends Entity {
     else if (signal == "play") this.animatedSprite.play();
   }
 
-  teardown() {
+  _teardown() {
+    this.animatedSprite.stop();
     this.config.container.removeChild(this.animatedSprite);
-
-    super.teardown();
   }
 }
 
@@ -1060,6 +1064,21 @@ export class DeflatingCompositeEntity extends Entity {
 export class Block extends Entity {
   done(transition = true) {
     this.requestedTransition = transition;
+  }
+}
+
+/**
+ * Executes a function once and requests a transition equal to its value.
+ */
+export class Decision extends Entity {
+  constructor(f) {
+    super();
+
+    this.f = f;
+  }
+
+  _setup() {
+    this.requestedTransition = this.f();
   }
 }
 

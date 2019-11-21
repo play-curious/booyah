@@ -264,3 +264,11 @@ export function setPropertyInTree(root, name, value) {
     setPropertyInTree(child, name, value);
   }
 }
+
+export function getFramesForSpriteSheet(resource) {
+  return _.map(resource.textures, value => value);
+}
+
+export function makeAnimatedSprite(resource) {
+  return new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource));
+}
