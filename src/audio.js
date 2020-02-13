@@ -161,16 +161,36 @@ export function makeHowlerLoadPromise(howl) {
   });
 }
 
-/** Create map of file names to Howl objects */
-export function makeHowls(directory, fileNames) {
-  const fileToHowl = {};
-  for (let file of fileNames) {
-    fileToHowl[file] = new Howl({
-      src: _.map(
-        AUDIO_FILE_FORMATS,
-        audioFormat => `audio/${directory}/${file}.${audioFormat}`
-      )
-    });
+/** Create map of file names or {key, url} to Howl objects */
+export function makeHowls(directory, assetDescriptions) {
+  const assets = {};
+  for (let assetDescription of assetDescriptions) {
+    if (_.isString(assetDescription)) {
+      assets[assetDescription] = new Howl({
+        src: _.map(
+          AUDIO_FILE_FORMATS,
+          audioFormat => `audio/${directory}/${assetDescription}.${audioFormat}`
+        )
+      });
+    } else if (
+      _.isObject(assetDescription) &&
+      assetDescription.key &&
+      assetDescription.url
+    ) {
+      assets[assetDescription.key] = new Howl({
+        src: _.map(
+          AUDIO_FILE_FORMATS,
+          audioFormat =>
+            `audio/${directory}/${assetDescription.url}.${audioFormat}`
+        )
+      });
+    } else {
+      throw new Error(
+        `Unrecognized audio asset description '${JSON.stringify(
+          assetDescription
+        )}'`
+      );
+    }
   }
-  return fileToHowl;
+  return assets;
 }

@@ -831,10 +831,26 @@ function loadFixedAssets() {
   rootConfig.jsonAssets = {};
   const jsonLoaderPromises = _.map(
     rootConfig.directives.jsonAssets,
-    filename => {
-      return util.loadJson(filename).then(data => {
-        rootConfig.jsonAssets[filename] = data;
-      });
+    jsonAssetDescription => {
+      if (_.isString(jsonAssetDescription)) {
+        return util.loadJson(jsonAssetDescription).then(data => {
+          rootConfig.jsonAssets[jsonAssetDescription] = data;
+        });
+      } else if (
+        _.isObject(jsonAssetDescription) &&
+        jsonAssetDescription.key &&
+        jsonAssetDescription.url
+      ) {
+        return util.loadJson(jsonAssetDescription.url).then(data => {
+          rootConfig.jsonAssets[jsonAssetDescription.key] = data;
+        });
+      } else {
+        throw new Error(
+          `Unrecognized JSON asset description '${JSON.stringify(
+            jsonAssetDescription
+          )}'`
+        );
+      }
     }
   );
 

@@ -142,6 +142,9 @@ export function makePixiLoadPromise(loader) {
 }
 
 export function makeDomContentLoadPromise(document) {
+  if (_.contains(["complete", "loaded", "interactive"], document.readyState))
+    return Promise.resolve(true);
+
   return new Promise((resolve, reject) => {
     document.addEventListener("DOMContentLoaded", resolve);
   });
@@ -271,4 +274,18 @@ export function getFramesForSpriteSheet(resource) {
 
 export function makeAnimatedSprite(resource) {
   return new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource));
+}
+
+/**
+ * Returns a language code based on the URL. If no language is found, will return the default language
+ */
+export function determineLanguage(
+  validLanguages = ["en"],
+  defaultLanguage = "en"
+) {
+  const params = new URLSearchParams(window.location.search);
+  const requestedLang = params.get("lang");
+  if (requestedLang && _.contains(validLanguages, requestedLang))
+    return requestedLang;
+  else return defaultLanguage;
 }

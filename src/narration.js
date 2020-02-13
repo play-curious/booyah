@@ -338,7 +338,7 @@ export class RandomNarration extends entity.Entity {
 
 /** 
   Launches a complete video scene, complete with a video, narration, music, and skip button.
-  Terminates when either the naration completes, the video completes, or the skip button is pressed. 
+  Terminates when either the video completes, or the skip button is pressed. 
  */
 export class VideoScene extends entity.ParallelEntity {
   constructor(options = {}) {
@@ -376,7 +376,6 @@ export class VideoScene extends entity.ParallelEntity {
 
   _update(options) {
     if (
-      (this.options.narration && this.narration.requestedTransition) ||
       (this.options.video && this.video.requestedTransition) ||
       this.skipButton.requestedTransition
     ) {
