@@ -41,6 +41,9 @@ const DEFAULT_DIRECTIVES = {
   extraLoaders: [], // Will be called after the fixed loading step. Of type function(rootConfig)
   entityInstallers: [], // Will be called when the game is initialized. Of type function(rootConfig, rootEntity)
 
+  language: null,
+  supportedLanguages: [], // If included, will show language switching buttons
+
   // Standard icons. They will be added to "graphicalAssets"
   graphics: {
     menu: "booyah/images/button-mainmenu.png",
@@ -189,6 +192,9 @@ export class MenuEntity extends entity.ParallelEntity {
     this.mask.interactive = true;
     this.menuLayer.addChild(this.mask);
 
+    this.menuButtonLayer = new PIXI.Container();
+    this.menuLayer.addChild(this.menuButtonLayer);
+
     this.playButton = new PIXI.Sprite(
       this.config.app.loader.resources["booyah/images/button-close.png"].texture
     );
@@ -196,10 +202,10 @@ export class MenuEntity extends entity.ParallelEntity {
     this.playButton.position.set(this.config.app.renderer.width - 50, 50);
     this.playButton.interactive = true;
     this._on(this.playButton, "pointertap", this._onPlay);
-    this.menuLayer.addChild(this.playButton);
+    this.menuButtonLayer.addChild(this.playButton);
 
-    const menuLayerConfig = _.extend({}, this.config, {
-      container: this.menuLayer
+    const menuButtonLayerConfig = _.extend({}, this.config, {
+      container: this.menuButtonLayer
     });
 
     if (this.config.directives.gameLogo) {
@@ -208,7 +214,7 @@ export class MenuEntity extends entity.ParallelEntity {
       );
       gameLogo.position.set(170, 200);
       gameLogo.anchor.set(0.5, 0.5);
-      this.menuLayer.addChild(gameLogo);
+      this.menuButtonLayer.addChild(gameLogo);
     }
 
     const pcLogo = new PIXI.Sprite(
@@ -218,7 +224,7 @@ export class MenuEntity extends entity.ParallelEntity {
     );
     pcLogo.anchor.set(0.5, 1);
     pcLogo.position.set(170, 450);
-    this.menuLayer.addChild(pcLogo);
+    this.menuButtonLayer.addChild(pcLogo);
 
     if (this.config.directives.extraLogos) {
       // Divide space, align to the right
@@ -236,7 +242,7 @@ export class MenuEntity extends entity.ParallelEntity {
           this.config.app.renderer.width - 160 - spacePerLogo * i,
           420
         );
-        this.menuLayer.addChild(logoSprite);
+        this.menuButtonLayer.addChild(logoSprite);
       }
     }
 
@@ -252,7 +258,7 @@ export class MenuEntity extends entity.ParallelEntity {
         position: new PIXI.Point(405, 130)
       });
       this._on(this.fullScreenButton, "change", this._onChangeFullScreen);
-      this.fullScreenButton.setup(menuLayerConfig);
+      this.fullScreenButton.setup(menuButtonLayerConfig);
       this.addEntity(this.fullScreenButton);
 
       // TODO: use event listener to check if full screen was exited manually with ESC key
@@ -263,7 +269,7 @@ export class MenuEntity extends entity.ParallelEntity {
         ].texture
       );
       fullScreenButton.position.set(405, 130);
-      this.menuLayer.addChild(fullScreenButton);
+      this.menuButtonLayer.addChild(fullScreenButton);
     }
 
     this.musicButton = new entity.ToggleSwitch({
@@ -276,7 +282,7 @@ export class MenuEntity extends entity.ParallelEntity {
       position: new PIXI.Point(405, 230)
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn);
-    this.musicButton.setup(menuLayerConfig);
+    this.musicButton.setup(menuButtonLayerConfig);
     this.addEntity(this.musicButton);
 
     // TODO prevent being able to turn both subtitles and sound off
@@ -291,7 +297,7 @@ export class MenuEntity extends entity.ParallelEntity {
       position: new PIXI.Point(630, 230)
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn);
-    this.fxButton.setup(menuLayerConfig);
+    this.fxButton.setup(menuButtonLayerConfig);
     this.addEntity(this.fxButton);
 
     this.subtitlesButton = new entity.ToggleSwitch({
@@ -305,7 +311,7 @@ export class MenuEntity extends entity.ParallelEntity {
       position: new PIXI.Point(630, 130)
     });
     this._on(this.subtitlesButton, "change", this._onChangeShowSubtitles);
-    this.subtitlesButton.setup(menuLayerConfig);
+    this.subtitlesButton.setup(menuButtonLayerConfig);
     this.addEntity(this.subtitlesButton);
 
     const creditLink = new PIXI.Text("Credits", {
@@ -318,9 +324,78 @@ export class MenuEntity extends entity.ParallelEntity {
     creditLink.position.set(this.config.app.renderer.width / 2 - 10, 492);
     creditLink.interactive = true;
     this._on(creditLink, "pointertap", this._showCredits);
-    this.menuLayer.addChild(creditLink);
+    this.menuButtonLayer.addChild(creditLink);
 
-    // Reset button
+    // Language switching buttons
+    if (this.config.directives.supportedLanguages) {
+      for (
+        let i = 0;
+        i < this.config.directives.supportedLanguages.length;
+        i++
+      ) {
+        const language = this.config.directives.supportedLanguages[i];
+        const isSelected = language === this.config.directives.language;
+        const sprite = new PIXI.Sprite(
+          this.config.app.loader.resources[
+            `booyah/images/lang-${language}-${isSelected ? "off" : "on"}.png`
+          ].texture
+        );
+        sprite.position.set(405 + i * 100, 330);
+
+        if (!isSelected) {
+          sprite.interactive = true;
+          this._on(sprite, "pointertap", () =>
+            this._onSwitchLanguage(language)
+          );
+        }
+
+        this.menuButtonLayer.addChild(sprite);
+      }
+
+      this.switchLanguageConfirmLayer = new PIXI.Container();
+      this.switchLanguageConfirmLayer.visible = false;
+      this.menuLayer.addChild(this.switchLanguageConfirmLayer);
+
+      const mask = new PIXI.Graphics();
+      mask.beginFill(0x000000);
+      mask.drawRect(
+        0,
+        0,
+        this.config.app.screen.width,
+        this.config.app.screen.height
+      );
+      mask.endFill();
+      mask.alpha = 0.8;
+      mask.interactive = true;
+      this.switchLanguageConfirmLayer.addChild(mask);
+
+      this.confirmLanguageButton = new PIXI.Sprite();
+      this.confirmLanguageButton.anchor.set(0.5);
+      this.confirmLanguageButton.position.set(
+        this.config.app.renderer.width / 2,
+        this.config.app.renderer.height / 2
+      );
+      this.confirmLanguageButton.interactive = true;
+      // Event handler is added later, in _onSwitchLanguage()
+      this.switchLanguageConfirmLayer.addChild(this.confirmLanguageButton);
+
+      const cancelSwitchLanguageButton = new PIXI.Sprite(
+        this.config.app.loader.resources[
+          "booyah/images/button-back.png"
+        ].texture
+      );
+      cancelSwitchLanguageButton.anchor.set(0.5);
+      cancelSwitchLanguageButton.position.set(50);
+      cancelSwitchLanguageButton.interactive = true;
+      this._on(
+        cancelSwitchLanguageButton,
+        "pointertap",
+        this._onCancelSwitchLanguage
+      );
+      this.switchLanguageConfirmLayer.addChild(cancelSwitchLanguageButton);
+    }
+
+    // Restart button
     {
       this.resetButton = new PIXI.Sprite(
         this.config.app.loader.resources[
@@ -332,7 +407,7 @@ export class MenuEntity extends entity.ParallelEntity {
       this.resetButton.position.set(50, 50);
       this.resetButton.interactive = true;
       this._on(this.resetButton, "pointertap", this._onReset);
-      this.menuLayer.addChild(this.resetButton);
+      this.menuButtonLayer.addChild(this.resetButton);
 
       this.resetConfirmLayer = new PIXI.Container();
       this.resetConfirmLayer.visible = false;
@@ -443,6 +518,29 @@ export class MenuEntity extends entity.ParallelEntity {
   _showCredits() {
     this.creditsEntity = new CreditsEntity();
     this.addEntity(this.creditsEntity);
+  }
+
+  _onSwitchLanguage(language) {
+    this.confirmLanguageButton.texture = this.config.app.loader.resources[
+      `booyah/images/lang-${language}-on.png`
+    ].texture;
+    this._on(this.confirmLanguageButton, "pointertap", () =>
+      this._onConfirmSwitchLanguage(language)
+    );
+    this.switchLanguageConfirmLayer.visible = true;
+  }
+
+  _onConfirmSwitchLanguage(language) {
+    // Make URL with a different language
+    // IDEA: use the current progress of the game, from the game state machine?
+    const url = new URL(window.location.href);
+    url.searchParams.set("lang", language);
+    window.location = url;
+  }
+
+  _onCancelSwitchLanguage() {
+    this._off(this.confirmLanguageButton, "pointertap");
+    this.switchLanguageConfirmLayer.visible = false;
   }
 }
 
