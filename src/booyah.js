@@ -371,6 +371,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
       this.confirmLanguageButton = new PIXI.Sprite();
       this.confirmLanguageButton.anchor.set(0.5);
+      this.confirmLanguageButton.scale.set(1.5);
       this.confirmLanguageButton.position.set(
         this.config.app.renderer.width / 2,
         this.config.app.renderer.height / 2

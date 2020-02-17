@@ -277,15 +277,33 @@ export function makeAnimatedSprite(resource) {
 }
 
 /**
- * Returns a language code based on the URL. If no language is found, will return the default language
+ * Determines which language to show the game in.
+ *
+ * The function looks for langauge information from the following sources, from highest-to-lowest priority:
+ * 1. The value of "lang" in the URL query string
+ * 2. The value of the "lang" attribute in the HTML element (e.g. `<html lang="fr">`)
+ *
+ * If no valid language is found, will return the default language.
  */
 export function determineLanguage(
   validLanguages = ["en"],
   defaultLanguage = "en"
 ) {
-  const params = new URLSearchParams(window.location.search);
-  const requestedLang = params.get("lang");
-  if (requestedLang && _.contains(validLanguages, requestedLang))
-    return requestedLang;
-  else return defaultLanguage;
+  // Try URL
+  {
+    const params = new URLSearchParams(window.location.search);
+    const requestedLang = params.get("lang");
+    if (requestedLang && _.contains(validLanguages, requestedLang))
+      return requestedLang;
+  }
+
+  // Try HTML element
+  {
+    const requestedLang = document.documentElement.lang;
+    if (requestedLang && _.contains(validLanguages, requestedLang))
+      return requestedLang;
+  }
+
+  // Use default
+  return defaultLanguage;
 }
