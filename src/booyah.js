@@ -38,6 +38,7 @@ const DEFAULT_DIRECTIVES = {
   gameLogo: null, // Will be displayed in the menu
   extraLogos: [], // Logos besides Play Curious will be shown in the menu
 
+  rootConfig: {}, // Initial value for the rootConfig
   extraLoaders: [], // Will be called after the fixed loading step. Of type function(rootConfig)
   entityInstallers: [], // Will be called when the game is initialized. Of type function(rootConfig, rootEntity)
 
@@ -1100,6 +1101,7 @@ export function makePreloader(additionalAssets) {
 }
 
 export function go(directives = {}) {
+  _.extend(rootConfig, directives.rootConfig);
   rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
 
   // Process starting options
