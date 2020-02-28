@@ -33,13 +33,19 @@ export class Scrollbox extends entity.ParallelEntity {
       stopPropagation: true,
       contentMarginX: 0,
       contentMarginY: 0,
-      wheelScroll: true
+      wheelScroll: true,
+      autoScroll: true,
+      autoScrollSpeed: 3
     });
   }
 
   _setup() {
     // Last pointerdown event
     this.pointerDown = null;
+
+    // Are we automatically scrolling down?
+    this.isAutoScrolling = false;
+    this.wasAtEnd = false; // Were we at the end on the previous frame?
 
     this.container = new PIXI.Container();
     this.container.interactive = true;
@@ -93,9 +99,25 @@ export class Scrollbox extends entity.ParallelEntity {
     }
   }
 
+  _update() {
+    if (this.isAutoScrolling) {
+      if (this.container.worldVisible) {
+        this._updateAutoScroll();
+      } else {
+        this.isAutoScrolling = false;
+      }
+    }
+  }
+
   /** Call when container contents have changed  */
   refresh() {
     this._drawScrollbars();
+
+    if (this.options.autoScroll) {
+      const isAtEnd = this._isAtEnd();
+      if (this.wasAtEnd && !isAtEnd) this.isAutoScrolling = true;
+      this.wasAtEnd = isAtEnd;
+    }
   }
 
   get isScrollbarHorizontal() {
@@ -421,13 +443,50 @@ export class Scrollbox extends entity.ParallelEntity {
     e.preventDefault();
   }
 
+  _isAtEnd() {
+    if (this.isScrollbarVertical) {
+      const end =
+        this.options.boxHeight -
+        (this.content.height + this.options.contentMarginY);
+      return this.content.position.y < end + geom.EPSILON;
+    } else if (this.isScrollbarHorizontal) {
+      const end =
+        this.options.boxWidth -
+        (this.content.width + this.options.contentMarginX);
+      return this.content.position.x < end + geom.EPSILON;
+    }
+
+    return true;
+  }
+
+  _updateAutoScroll() {
+    if (this._isAtEnd()) {
+      this.isAutoScrolling = false;
+      this.wasAtEnd = true;
+    } else if (this.isScrollbarVertical) {
+      this._scrollBy(new PIXI.Point(0, -this.options.autoScrollSpeed));
+    } else if (this.isScrollbarHorizontal) {
+      this._scrollBy(new PIXI.Point(-this.options.autoScrollSpeed, 0));
+    }
+  }
+
   scrollBy(amount) {
     this.scrollTo(geom.add(this.content.position, amount));
+  }
+
+  _scrollBy(amount) {
+    this._scrollTo(geom.add(this.content.position, amount));
+  }
+
+  scrollTo(position) {
+    this._scrollTo(position);
+
+    this.isAutoScrolling = false;
 
     this.emit("moved");
   }
 
-  scrollTo(position) {
+  _scrollTo(position) {
     position.x = geom.clamp(
       position.x,
       this.options.boxWidth -
@@ -442,6 +501,6 @@ export class Scrollbox extends entity.ParallelEntity {
     );
     this.content.position = position;
 
-    this.refresh();
+    this._drawScrollbars();
   }
 }

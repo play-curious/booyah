@@ -45,6 +45,8 @@ const DEFAULT_DIRECTIVES = {
   language: null,
   supportedLanguages: [], // If included, will show language switching buttons
 
+  menuButtonPosition: null, // Overrides default menu button position
+
   // Standard icons. They will be added to "graphicalAssets"
   graphics: {
     menu: "booyah/images/button-mainmenu.png",
@@ -171,7 +173,11 @@ export class MenuEntity extends entity.ParallelEntity {
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
-    this.pauseButton.position.set(this.config.app.renderer.width - 50, 50);
+    if (this.config.directives.menuButtonPosition) {
+      this.pauseButton.position = this.config.directives.menuButtonPosition;
+    } else {
+      this.pauseButton.position.set(this.config.app.renderer.width - 50, 50);
+    }
     this.pauseButton.interactive = true;
     this._on(this.pauseButton, "pointertap", this._onPause);
     this.container.addChild(this.pauseButton);
