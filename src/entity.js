@@ -281,6 +281,7 @@ export class EntitySequence extends Entity {
     super.setup(config);
 
     this.currentEntityIndex = 0;
+    this.currentEntity = null;
 
     this._activateEntity(0);
   }
@@ -299,10 +300,9 @@ export class EntitySequence extends Entity {
 
     if (this.currentEntityIndex >= this.entities.length) return;
 
-    this.entities[this.currentEntityIndex].update(childOptions);
+    this.currentEntity.update(childOptions);
 
-    const transition = this.entities[this.currentEntityIndex]
-      .requestedTransition;
+    const transition = this.currentEntity.requestedTransition;
     if (transition) this._advance(transition);
   }
 
@@ -317,7 +317,7 @@ export class EntitySequence extends Entity {
 
     super.onSignal(signal, data);
 
-    this.entities[this.currentEntityIndex].onSignal(signal, data);
+    this.currentEntity.onSignal(signal, data);
 
     if (signal === "reset") this.restart();
   }
@@ -332,13 +332,20 @@ export class EntitySequence extends Entity {
   }
 
   _activateEntity(time) {
-    this.entities[this.currentEntityIndex].setup(this.config);
+    const entityDescriptor = this.entities[this.currentEntityIndex];
+    if (_.isFunction(entityDescriptor)) {
+      this.currentEntity = entityDescriptor(this);
+    } else {
+      this.currentEntity = entityDescriptor;
+    }
+
+    this.currentEntity.setup(this.config);
     this.childStartedAt = time;
   }
 
   _deactivateEntity() {
-    if (this.entities[this.currentEntityIndex].isSetup)
-      this.entities[this.currentEntityIndex].teardown();
+    if (this.currentEntity && this.currentEntity.isSetup)
+      this.currentEntity.teardown();
   }
 
   _advance(transition) {
