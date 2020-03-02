@@ -23,24 +23,28 @@ export function make(obj, props, options) {
   return new entity.ParallelEntity(tweens, { autoTransition: true });
 }
 
+/**
+ * Events:
+ *  updatedValue(value)
+ */
 export class Tween extends entity.Entity {
   /**
    * Takes the following options:
-   * @obj - an actual object, or a function that returns an object
-   * @property
+   * @obj - an actual object, a function that returns an object, or null (in which case the value is internal only)
+   * @property - a string property name, or null if no @obj is set
    * @from - defaults to current value
    * @to - required
    * @duration - Time in ms. Defaults to 1000
    * @easing - Function of t in [0, 1]. Defaults to easing.linear
-   * @interpolation - Function to use for setting a new value.
+   * @interpolate - Function to use for setting a new value.
    *  Depends on data type, such as color, vector, angle, ...
    **/
   constructor(options) {
     super();
 
     util.setupOptions(this, options, {
-      obj: util.REQUIRED_OPTION,
-      property: util.REQUIRED_OPTION,
+      obj: null,
+      property: null,
       from: null,
       to: util.REQUIRED_OPTION,
       duration: 1000,
@@ -87,7 +91,9 @@ export class Tween extends entity.Entity {
   }
 
   _updateValue() {
-    this.currentObj[this.property] = this.value;
+    if (this.currentObj) this.currentObj[this.property] = this.value;
+
+    this.emit("updatedValue", this.value);
   }
 }
 

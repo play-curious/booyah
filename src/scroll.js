@@ -447,4 +447,8 @@ export class Scrollbox extends entity.ParallelEntity {
 
     this.emit("moved", { reason });
   }
+
+  get currentScroll() {
+    return this.content.position;
+  }
 }
