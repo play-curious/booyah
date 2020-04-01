@@ -126,7 +126,7 @@ export class TransitoryEntity extends Entity {
 /*
   Allows a bunch of entities to execute in parallel.
   Updates child entities until they ask for a transition, at which point they are torn down.
-  Requests a transition only when all child entities have completed.
+  If autoTransition=true, requests a transition when all child entities have completed.
 */
 export class ParallelEntity extends Entity {
   /* 
@@ -918,6 +918,8 @@ export class ToggleSwitch extends Entity {
 
 /** 
   Manages an animated sprite in PIXI, pausing the sprite during pauses.
+
+  When the animation completes (if the animation is not set to loop, then this will request a transition)
 */
 export class AnimatedSpriteEntity extends Entity {
   constructor(animatedSprite) {
@@ -927,8 +929,12 @@ export class AnimatedSpriteEntity extends Entity {
   }
 
   _setup() {
+    if (this.animatedSprite.onComplete)
+      console.warn("Warning: overwriting this.animatedSprite.onComplete");
+    this.animatedSprite.onComplete = this._onAnimationComplete.bind(this);
+
     this.config.container.addChild(this.animatedSprite);
-    this.animatedSprite.play();
+    this.animatedSprite.gotoAndPlay(0);
   }
 
   onSignal(signal, data = null) {
@@ -938,7 +944,12 @@ export class AnimatedSpriteEntity extends Entity {
 
   _teardown() {
     this.animatedSprite.stop();
+    this.animatedSprite.onComplete = null;
     this.config.container.removeChild(this.animatedSprite);
+  }
+
+  _onAnimationComplete() {
+    this.requestedTransition = true;
   }
 }
 
