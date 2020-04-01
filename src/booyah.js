@@ -982,26 +982,31 @@ function loadFixedAssets() {
   );
 
   // Load video
-  const videoLoader = preload();
-  videoLoader.onprogress = event => {
-    videoLoaderProgress = event.progress / 100;
-    updateLoadingProgress();
-  };
-  const videoLoaderPromise = videoLoader
-    .fetch(rootConfig.directives.videoAssets.map(name => `video/${name}`))
-    .then(assets => {
-      const videoAssets = {};
-      for (const asset of assets) {
-        const element = util.makeVideoElement();
-        element.src = asset.blobUrl;
-        videoAssets[asset.url] = element;
-      }
-      rootConfig.videoAssets = videoAssets;
-    })
-    .catch(e => {
-      console.error("Cannot load videos", e);
-      throw e;
-    });
+  const videoLoaderPromises = [];
+  if (rootConfig.directives.videoAssets.length > 0) {
+    const videoLoader = preload();
+    videoLoader.onprogress = event => {
+      videoLoaderProgress = event.progress / 100;
+      updateLoadingProgress();
+    };
+    videoLoaderPromises.push(
+      videoLoader
+        .fetch(rootConfig.directives.videoAssets.map(name => `video/${name}`))
+        .then(assets => {
+          const videoAssets = {};
+          for (const asset of assets) {
+            const element = util.makeVideoElement();
+            element.src = asset.blobUrl;
+            videoAssets[asset.url] = element;
+          }
+          rootConfig.videoAssets = videoAssets;
+        })
+        .catch(e => {
+          console.error("Cannot load videos", e);
+          throw e;
+        })
+    );
+  }
 
   const promises = _.flatten(
     [
@@ -1009,7 +1014,7 @@ function loadFixedAssets() {
       fontLoaderPromises,
       fixedAudioLoaderPromises,
       jsonLoaderPromises,
-      videoLoaderPromise
+      videoLoaderPromises
     ],
     true
   );
