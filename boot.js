@@ -19,7 +19,7 @@ async function copyDir(source,target){
         for(const file of files){
             const filePath = path.join(source,file);
             if((await fsp.lstat(filePath)).isDirectory())
-                await copyDir(filePath,target);
+                await copyDir(filePath,path.join(target,path.basename(filePath)));
             else await copy(filePath,target);
         }
     } else throw Error('given source is\'nt a directory');
@@ -28,12 +28,12 @@ async function copyDir(source,target){
 async function installDependencies(){
     let include = (await fs.existsSync('../package.json')) ?
         '' : 'npm init -y &&';
+    const event = cp.exec(`cd .. && ${include} npm install`);
     return new Promise((resolve,reject) => {
-        cp.exec(`cd .. && ${include} npm install`, e => {
-            // TODO: link the stdout with console to detail installation.
-            if(e) reject(e);
-            resolve();
-        })
+        event.stdout.on('data', console.log)
+        event.stderr.on('data', console.error)
+        event.once('error', reject)
+        event.once('exit', resolve)
     })
 }
 
