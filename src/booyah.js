@@ -51,8 +51,8 @@ const DEFAULT_DIRECTIVES = {
   graphics: {
     menu: "booyah/images/button-mainmenu.png",
     skip: "booyah/images/button-skip.png",
-    play: "booyah/images/button-play.png"
-  }
+    play: "booyah/images/button-play.png",
+  },
 };
 
 const GRAPHICAL_ASSETS = [
@@ -72,7 +72,7 @@ const GRAPHICAL_ASSETS = [
   "booyah/images/subtitles-off.png",
   "booyah/images/subtitles-on.png",
   "booyah/images/voices-off.png",
-  "booyah/images/voices-on.png"
+  "booyah/images/voices-on.png",
 ];
 
 // String of characters to look for in a font
@@ -80,7 +80,7 @@ const FONT_OBSERVER_CHARS = "asdf";
 
 const PRELOADER_ASSETS = [
   "booyah/images/loader-circle.png",
-  "booyah/images/loader-error.png"
+  "booyah/images/loader-error.png",
 ];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
@@ -117,7 +117,7 @@ class PlayOptions extends PIXI.utils.EventEmitter {
       musicOn: true,
       fxOn: true,
       showSubtitles: true,
-      sceneParams: {}
+      sceneParams: {},
     };
 
     this.options.scene = directives.startingScene;
@@ -212,7 +212,7 @@ export class MenuEntity extends entity.ParallelEntity {
     this.menuButtonLayer.addChild(this.playButton);
 
     const menuButtonLayerConfig = _.extend({}, this.config, {
-      container: this.menuButtonLayer
+      container: this.menuButtonLayer,
     });
 
     if (this.config.directives.gameLogo) {
@@ -229,26 +229,23 @@ export class MenuEntity extends entity.ParallelEntity {
         "booyah/images/a-playcurious-game.png"
       ].texture
     );
-    pcLogo.anchor.set(0.5, 1);
-    pcLogo.position.set(170, 450);
+    pcLogo.anchor.set(0.5, 0.5);
+    pcLogo.position.set(170, 340);
     this.menuButtonLayer.addChild(pcLogo);
 
     if (this.config.directives.extraLogos) {
-      // Divide space, align to the right
+      // Divide space
       const spacePerLogo =
-        (this.config.app.renderer.width - 160 * 2) /
-        this.config.directives.extraLogos.length;
+        this.config.app.renderer.width /
+        (1 + this.config.directives.extraLogos.length);
       for (let i = 0; i < this.config.directives.extraLogos.length; i++) {
         const logoSprite = new PIXI.Sprite(
           this.config.app.loader.resources[
             this.config.directives.extraLogos[i]
           ].texture
         );
-        logoSprite.anchor.set(0.5, 1);
-        logoSprite.position.set(
-          this.config.app.renderer.width - 160 - spacePerLogo * i,
-          420
-        );
+        logoSprite.anchor.set(0.5, 0.5);
+        logoSprite.position.set(spacePerLogo * (i + 1), 490);
         this.menuButtonLayer.addChild(logoSprite);
       }
     }
@@ -262,7 +259,7 @@ export class MenuEntity extends entity.ParallelEntity {
           "booyah/images/fullscreen-off.png"
         ].texture,
         isOn: false,
-        position: new PIXI.Point(405, 130)
+        position: new PIXI.Point(405, 130),
       });
       this._on(this.fullScreenButton, "change", this._onChangeFullScreen);
       this.fullScreenButton.setup(menuButtonLayerConfig);
@@ -286,7 +283,7 @@ export class MenuEntity extends entity.ParallelEntity {
         "booyah/images/music-off.png"
       ].texture,
       isOn: this.config.playOptions.options.musicOn,
-      position: new PIXI.Point(405, 230)
+      position: new PIXI.Point(405, 230),
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn);
     this.musicButton.setup(menuButtonLayerConfig);
@@ -301,7 +298,7 @@ export class MenuEntity extends entity.ParallelEntity {
         "booyah/images/voices-off.png"
       ].texture,
       isOn: this.config.playOptions.options.fxOn,
-      position: new PIXI.Point(630, 230)
+      position: new PIXI.Point(630, 230),
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn);
     this.fxButton.setup(menuButtonLayerConfig);
@@ -315,7 +312,7 @@ export class MenuEntity extends entity.ParallelEntity {
         "booyah/images/subtitles-off.png"
       ].texture,
       isOn: this.config.playOptions.options.showSubtitles,
-      position: new PIXI.Point(630, 130)
+      position: new PIXI.Point(630, 130),
     });
     this._on(this.subtitlesButton, "change", this._onChangeShowSubtitles);
     this.subtitlesButton.setup(menuButtonLayerConfig);
@@ -325,10 +322,10 @@ export class MenuEntity extends entity.ParallelEntity {
       fontFamily: "Roboto Condensed",
       fontSize: 32,
       fill: "white",
-      strokeThickness: 4
+      strokeThickness: 4,
     });
-    creditLink.anchor.set(0.5, 0.5);
-    creditLink.position.set(this.config.app.renderer.width / 2 - 10, 492);
+    creditLink.anchor.set(0.5);
+    creditLink.position.set(630 + 198 / 2, 330 + 61 / 2);
     creditLink.interactive = true;
     this._on(creditLink, "pointertap", this._showCredits);
     this.menuButtonLayer.addChild(creditLink);
@@ -614,7 +611,7 @@ export class CreditsEntity extends entity.CompositeEntity {
       fontFamily: "Roboto Condensed",
       fontSize: this.config.directives.creditsTextSize,
       fill: "white",
-      align: "right"
+      align: "right",
     });
     roles.anchor.set(1, 0.5);
     roles.position.set(
@@ -627,7 +624,7 @@ export class CreditsEntity extends entity.CompositeEntity {
       fontFamily: "Roboto Condensed",
       fontSize: this.config.directives.creditsTextSize,
       fill: "white",
-      align: "left"
+      align: "left",
     });
     people.anchor.set(0, 0.5);
     people.position.set(
@@ -852,7 +849,7 @@ function updateLoadingProgress() {
     fontLoaderProgress,
     fixedAudioLoaderProgress,
     variableAudioLoaderProgress,
-    videoLoaderProgress
+    videoLoaderProgress,
   });
 
   if (loadingScene) loadingScene.updateProgress(progress);
@@ -879,7 +876,7 @@ function update(timeScale) {
     timeSinceStart,
     timeSinceLastFrame,
     timeScale,
-    gameState
+    gameState,
   };
 
   if (previousGameState !== gameState) {
@@ -914,6 +911,7 @@ function loadFixedAssets() {
   const pixiLoaderResources = [].concat(
     GRAPHICAL_ASSETS,
     _.values(rootConfig.directives.graphics),
+    rootConfig.directives.extraLogos,
     rootConfig.directives.graphicalAssets
   );
   rootConfig.app.loader
@@ -921,14 +919,14 @@ function loadFixedAssets() {
     .on("progress", pixiLoadProgressHandler);
 
   const fonts = ["Roboto Condensed", ...rootConfig.directives.fontAssets];
-  const fontLoaderPromises = _.map(fonts, name => {
+  const fontLoaderPromises = _.map(fonts, (name) => {
     return new FontFaceObserver(name)
       .load(FONT_OBSERVER_CHARS)
       .then(() => {
         fontLoaderProgress += 1 / fonts.length;
         updateLoadingProgress();
       })
-      .catch(e => {
+      .catch((e) => {
         console.error("Cannot load font", name);
         throw e;
       });
@@ -937,9 +935,9 @@ function loadFixedAssets() {
   rootConfig.jsonAssets = {};
   const jsonLoaderPromises = _.map(
     rootConfig.directives.jsonAssets,
-    jsonAssetDescription => {
+    (jsonAssetDescription) => {
       if (_.isString(jsonAssetDescription)) {
-        return util.loadJson(jsonAssetDescription).then(data => {
+        return util.loadJson(jsonAssetDescription).then((data) => {
           rootConfig.jsonAssets[jsonAssetDescription] = data;
         });
       } else if (
@@ -947,7 +945,7 @@ function loadFixedAssets() {
         jsonAssetDescription.key &&
         jsonAssetDescription.url
       ) {
-        return util.loadJson(jsonAssetDescription.url).then(data => {
+        return util.loadJson(jsonAssetDescription.url).then((data) => {
           rootConfig.jsonAssets[jsonAssetDescription.key] = data;
         });
       } else {
@@ -974,7 +972,7 @@ function loadFixedAssets() {
   const fxLoadPromises = _.map(rootConfig.fxAudio, audio.makeHowlerLoadPromise);
 
   const fixedAudioLoaderPromises = [...musicLoadPromises, ...fxLoadPromises];
-  _.each(fixedAudioLoaderPromises, p =>
+  _.each(fixedAudioLoaderPromises, (p) =>
     p.then(() => {
       fixedAudioLoaderProgress += 1 / fixedAudioLoaderPromises.length;
       updateLoadingProgress();
@@ -985,14 +983,14 @@ function loadFixedAssets() {
   const videoLoaderPromises = [];
   if (rootConfig.directives.videoAssets.length > 0) {
     const videoLoader = preload();
-    videoLoader.onprogress = event => {
+    videoLoader.onprogress = (event) => {
       videoLoaderProgress = event.progress / 100;
       updateLoadingProgress();
     };
     videoLoaderPromises.push(
       videoLoader
-        .fetch(rootConfig.directives.videoAssets.map(name => `video/${name}`))
-        .then(assets => {
+        .fetch(rootConfig.directives.videoAssets.map((name) => `video/${name}`))
+        .then((assets) => {
           const videoAssets = {};
           for (const asset of assets) {
             const element = util.makeVideoElement();
@@ -1001,7 +999,7 @@ function loadFixedAssets() {
           }
           rootConfig.videoAssets = videoAssets;
         })
-        .catch(e => {
+        .catch((e) => {
           console.error("Cannot load videos", e);
           throw e;
         })
@@ -1014,12 +1012,12 @@ function loadFixedAssets() {
       fontLoaderPromises,
       fixedAudioLoaderPromises,
       jsonLoaderPromises,
-      videoLoaderPromises
+      videoLoaderPromises,
     ],
     true
   );
 
-  return Promise.all(promises).catch(err => {
+  return Promise.all(promises).catch((err) => {
     console.error("Error loading fixed assets", err);
     throw err;
   });
@@ -1036,7 +1034,7 @@ function loadVariable() {
     loadingPromises.push(newPromise);
   }
 
-  return Promise.all(loadingPromises).catch(err => {
+  return Promise.all(loadingPromises).catch((err) => {
     console.error("Error in variable loading stage", err);
     throw err;
   });
@@ -1084,7 +1082,7 @@ function doneLoading() {
   // Filter out the pause event for the game sequence
   rootEntity.addEntity(
     new FilterPauseEntity([
-      new entity.ContainerEntity([gameSequence], "gameSequence")
+      new entity.ContainerEntity([gameSequence], "gameSequence"),
     ])
   );
 
@@ -1128,7 +1126,7 @@ export function go(directives = {}) {
       startingState: rootConfig.playOptions.options.scene,
       startingStateParams: rootConfig.playOptions.options.sceneParams,
       startingProgress: rootConfig.playOptions.options.startingProgress,
-      endingStates: rootConfig.directives.endingScenes
+      endingStates: rootConfig.directives.endingScenes,
     }
   );
   rootConfig.gameStateMachine.on("stateChange", onGameStateMachineChange);
@@ -1136,7 +1134,7 @@ export function go(directives = {}) {
   rootConfig.app = new PIXI.Application({
     width: rootConfig.directives.screenSize.x,
     height: rootConfig.directives.screenSize.y,
-    view: document.getElementById(rootConfig.directives.canvasId)
+    view: document.getElementById(rootConfig.directives.canvasId),
   });
   rootConfig.container = rootConfig.app.stage;
 
@@ -1147,13 +1145,13 @@ export function go(directives = {}) {
   rootConfig.preloader = makePreloader(
     _.compact([
       rootConfig.directives.splashScreen,
-      rootConfig.directives.gameLogo
+      rootConfig.directives.gameLogo,
     ])
   );
 
   const loadingPromise = Promise.all([
     util.makeDomContentLoadPromise(document),
-    util.makePixiLoadPromise(rootConfig.preloader)
+    util.makePixiLoadPromise(rootConfig.preloader),
   ])
     .then(() => {
       // Show loading screen as soon as preloader is done
@@ -1167,7 +1165,7 @@ export function go(directives = {}) {
     .then(() => loadFixedAssets())
     .then(loadVariable)
     .then(doneLoading)
-    .catch(err => {
+    .catch((err) => {
       console.error("Error during load", err);
 
       // Replace loading scene with loading error
@@ -1183,7 +1181,7 @@ export function go(directives = {}) {
   return {
     rootConfig,
     rootEntity,
-    loadingPromise
+    loadingPromise,
   };
 }
 
