@@ -30,10 +30,10 @@ async function installDependencies(){
         '' : 'npm init -y &&';
     const event = cp.exec(`cd .. && ${include} npm install`);
     return new Promise((resolve,reject) => {
-        event.stdout.on('data', console.log)
-        event.stderr.on('data', console.error)
-        event.once('error', reject)
-        event.once('exit', resolve)
+        event.stdout.on('data', console.log);
+        event.stderr.on('data', console.error);
+        event.once('error', reject);
+        event.once('exit', resolve);
     })
 }
 
