@@ -1,24 +1,25 @@
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsp = fs.promises
 const path = require('path');
 const cp = require('child_process');
 
 async function copy(source,target){
-    const resolvedTarget = (await fs.lstat(target)).isDirectory() ?
+    const resolvedTarget = (await fsp.lstat(target)).isDirectory() ?
         path.join(target,path.basename(source)) : target;
-    const file = await fs.readFile(source);
-    await fs.writeFile(resolvedTarget,file);
+    const file = await fsp.readFile(source);
+    await fsp.writeFile(resolvedTarget,file);
     console.log('File copying','OK',source);
 }
 
 async function copyDir(source,target){
     const resolvedTarget = path.join(target,path.basename(source));
-    if(!(await fs.exists(resolvedTarget)))
-        await fs.mkdir(resolvedTarget);
-    if((await fs.lstat(source)).isDirectory()){
-        const files = await fs.readdir(source);
+    if(!(await fs.existsSync(resolvedTarget)))
+        await fsp.mkdir(resolvedTarget);
+    if((await fsp.lstat(source)).isDirectory()){
+        const files = await fsp.readdir(source);
         for(const file of files){
             const filePath = path.join(source,file);
-            if((await fs.lstat(filePath)).isDirectory())
+            if((await fsp.lstat(filePath)).isDirectory())
                 await copyDir(filePath,resolvedTarget);
             else await copy(filePath,resolvedTarget);
         }
@@ -26,7 +27,7 @@ async function copyDir(source,target){
 }
 
 async function installDependencies(){
-    let include = (await fs.exists('../package.json')) ?
+    let include = (await fs.existsSync('../package.json')) ?
         '' : 'npm init -y &&';
     return new Promise((resolve,reject) => {
         cp.exec(`cd .. && ${include} npm install`, e => {
