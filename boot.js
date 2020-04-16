@@ -8,7 +8,7 @@ async function copy(source,target){
         path.join(target,path.basename(source)) : target;
     const file = await fsp.readFile(source);
     await fsp.writeFile(resolvedTarget,file);
-    console.log('File copying','OK',source);
+    console.log('*',source);
 }
 
 async function copyDir(source,target){
@@ -26,37 +26,46 @@ async function copyDir(source,target){
 }
 
 async function installDependencies(){
-    let include = (await fs.existsSync('../package.json')) ?
+    const include = (await fs.existsSync(path.join(__dirname,'../package.json'))) ?
         '' : 'npm init -y &&';
-    const event = cp.exec(`cd .. && ${include} npm install`);
+    const event = cp.exec(`cd ${path.resolve(__dirname,'..')} && ${include} npm install`);
     return new Promise((resolve,reject) => {
-        event.stdout.on('data', console.log);
-        event.stderr.on('data', console.error);
+        event.stdout.on('data', data => {
+            if(data.toString().trim().length > 0)
+                console.log('*',data.toString().trim());
+        });
         event.once('error', reject);
         event.once('exit', resolve);
     })
 }
 
 (async ()=>{
-    let code = 0
-    console.log('File copying...');
+    console.group('File copying...');
     try{
-        await copyDir('./project_files/','../');
-        console.log('File copying','FINISH');
+        await copyDir(
+            path.resolve(__dirname,'./project_files/'),
+            path.resolve(__dirname,'../')
+        );
+        console.groupEnd()
+        console.log('File copying successful');
     }catch(e){
-        console.log('File copying','ERROR',e.message);
-        code = 1
+        console.groupEnd()
+        console.error('File copying failed');
+        throw e
     }
-    console.log('Dependencies installation...');
+    console.group('Dependencies installation...','(this operation can last 1 or 2 minutes)');
     try{
         await installDependencies()
-        console.log('Dependencies installation','FINISH');
+        console.groupEnd()
+        console.log('Dependencies installation successful');
     }catch(e){
-        console.error('Dependencies installation','ERROR',e.message);
-        code = 1;
+        console.groupEnd()
+        console.error('Dependencies installation failed');
+        throw e
     }
-    if(!code) console.log(
-        'Read https://github.com/play-curious/booyah/blob/master/README.md#production for the rest of the guide.'
+    console.warn(
+        '---\nGo to',
+        'https://github.com/play-curious/booyah/blob/master/README.md#production',
+        'for the rest of the guide.\n---'
     );
-    process.exit(code);
 })();
