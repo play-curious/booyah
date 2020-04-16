@@ -12,16 +12,15 @@ async function copy(source,target){
 }
 
 async function copyDir(source,target){
-    const resolvedTarget = path.join(target,path.basename(source));
-    if(!(await fs.existsSync(resolvedTarget)))
-        await fsp.mkdir(resolvedTarget);
+    if(!(await fs.existsSync(target)))
+        await fsp.mkdir(target);
     if((await fsp.lstat(source)).isDirectory()){
         const files = await fsp.readdir(source);
         for(const file of files){
             const filePath = path.join(source,file);
             if((await fsp.lstat(filePath)).isDirectory())
-                await copyDir(filePath,resolvedTarget);
-            else await copy(filePath,resolvedTarget);
+                await copyDir(filePath,target);
+            else await copy(filePath,target);
         }
     } else throw Error('given source is\'nt a directory');
 }
