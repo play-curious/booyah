@@ -31,8 +31,8 @@ async function installDependencies(){
     const event = cp.exec(`cd ${path.resolve(__dirname,'..')} && ${include} npm install`);
     return new Promise((resolve,reject) => {
         event.stdout.on('data', data => {
-            if(data.toString().trim().length > 0)
-                console.log('*',data.toString().trim());
+            const log = data.toString().trim();
+            if(log.length > 0) console.log(log);
         });
         event.once('error', reject);
         event.once('exit', resolve);
@@ -64,7 +64,7 @@ async function installDependencies(){
         throw e
     }
     console.warn(
-        '---\nGo to',
+        '\n---\nGo to',
         'https://github.com/play-curious/booyah/blob/master/README.md#production',
         'for the rest of the guide.\n---'
     );
