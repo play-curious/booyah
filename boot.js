@@ -1,5 +1,5 @@
 const fs = require('fs');
-const fsp = fs.promises
+const fsp = fs.promises;
 const path = require('path');
 const cp = require('child_process');
 
@@ -46,22 +46,22 @@ async function installDependencies(){
             path.resolve(__dirname,'./project_files/'),
             path.resolve(__dirname,'../')
         );
-        console.groupEnd()
+        console.groupEnd();
         console.log('File copying successful');
     }catch(e){
-        console.groupEnd()
+        console.groupEnd();
         console.error('File copying failed');
-        throw e
+        throw e;
     }
     console.group('Dependencies installation...','(this operation can last 1 or 2 minutes)');
     try{
-        await installDependencies()
-        console.groupEnd()
+        await installDependencies();
+        console.groupEnd();
         console.log('Dependencies installation successful');
     }catch(e){
-        console.groupEnd()
+        console.groupEnd();
         console.error('Dependencies installation failed');
-        throw e
+        throw e;
     }
     console.warn(
         '\n---\nGo to',
