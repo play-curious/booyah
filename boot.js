@@ -25,7 +25,7 @@ async function copyDir(source, target) {
         await copyDir(filePath, path.join(target, path.basename(filePath)));
       else await copy(filePath, target);
     }
-  } else throw Error("Given source is'nt a directory");
+  } else throw Error("Given source isn't a directory");
 }
 
 async function installDependencies() {
