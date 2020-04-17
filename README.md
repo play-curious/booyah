@@ -18,7 +18,7 @@ A Gulp script automates the building process.
 2. Copy or clone this directory into your project directoy as `booyah`.
 3. Bootstrapping:
 
-- Run `node booyah/boot` **or bootstrap manually with the next.**
+- Run `node booyah/boot` on your project folder **or bootstrap manually with the following instructions**
 - Copy starter files from `booyah` into your project directory: `cp -r booyah/project_files/. .`
 - Install the dependencies with `npm install`.
     

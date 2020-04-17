@@ -25,7 +25,7 @@ async function copyDir(source, target) {
         await copyDir(filePath, path.join(target, path.basename(filePath)));
       else await copy(filePath, target);
     }
-  } else throw Error("given source is'nt a directory");
+  } else throw Error("Given source is'nt a directory");
 }
 
 async function installDependencies() {
@@ -56,7 +56,7 @@ async function waitResponse(query) {
 }
 
 (async () => {
-  console.group("Check project folder...");
+  console.group("Checking project folder...");
   try {
     const files = await fsp.readdir(projectFolderPath);
     if (files.length > 1) {
@@ -66,11 +66,11 @@ async function waitResponse(query) {
           .join("\n")}`
       );
       const response = await waitResponse(
-        "are you sure you want to continue copying the files into it? [y]"
+        "Are you sure you want to continue copying the files into it? [y]"
       );
       console.groupEnd();
       if (!/y/i.test(response))
-        return console.error("Bootstrapping was aborted");
+        return console.error("Bootstrapping aborted");
       else console.log("Checking of project folder successful");
     }
   } catch (e) {
@@ -88,10 +88,7 @@ async function waitResponse(query) {
     console.error("File copying failed");
     throw e;
   }
-  console.group(
-    "Dependencies installation...",
-    "(this operation can last 1 or 2 minutes)"
-  );
+  console.group("Installing dependencies (this operation can take a few minutes)...");
   try {
     await installDependencies();
     console.groupEnd();
