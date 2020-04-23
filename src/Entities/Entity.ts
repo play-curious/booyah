@@ -1,6 +1,10 @@
 import * as PIXI from 'pixi.js-legacy';
-import {partition} from 'underscore';
+import _, {partition} from 'underscore';
 
+export type EntityResolvable = Entity | {
+    entity: Entity
+    config: EntityConfig
+}
 export interface EventListener {
     emitter?: PIXI.utils.EventEmitter
     event?: string
@@ -22,17 +26,35 @@ export interface TearDownOptions {
 
 }
 
+/**
+ In Booyah, the game is structured as a tree of entities. This is the base class for all entities.
+
+ An entity has the following lifecycle:
+     1. It is instantiated using the contructor.
+         Only parameters specific to the entity should be passed here.
+         The entity should not make any changes to the environment here, it should wait for setup().
+     2. setup() is called just once, with a configuration.
+         This is when the entity should add dispaly objects  to the scene, or subscribe to events.
+         The typical config contains { app, preloader, narrator, jukebox, container }
+     3. update() is called one or more times, with options.
+         It could also never be called, in case the entity is torn down directly.
+         If the entity wishes to be terminated, it should set this.requestedTransition to a truthy value.
+         Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
+         For more complicated transitions, it can return an object like { name: "", params: {} }
+     4. teardown() is called just once.
+        The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
+
+ The base class will check that this lifecyle is respected, and will log errors to signal any problems.
+
+ In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
+ This ensures that the base class behavior of will be called automatically.
+*/
 export default abstract class Entity extends PIXI.utils.EventEmitter {
 
     public isSetup = false;
     public eventListeners:EventListener[] = []
-    public requestedTransition:any
+    public requestedTransition:boolean
     public config:EntityConfig
-
-    abstract _setup?( config:EntityConfig ): void
-    abstract _update?(options:UpdateOptions): void
-    abstract _teardown?(options:TearDownOptions): void
-    abstract _onSignal?(signal:string, data?:any): void
 
     public setup( config:EntityConfig ): void {
 
@@ -58,7 +80,7 @@ export default abstract class Entity extends PIXI.utils.EventEmitter {
         this._update(options);
     }
 
-    public teardown( options:TearDownOptions ): void {
+    public teardown( options?:TearDownOptions ): void {
         if (!this.isSetup) {
             console.error("teardown() called before setup()", this);
             console.trace();
@@ -100,5 +122,25 @@ export default abstract class Entity extends PIXI.utils.EventEmitter {
             listener.emitter.off(listener.event, listener.cb, this);
 
         this.eventListeners = listenersToKeep;
+    }
+
+    public _setup(config:EntityConfig){}
+    public _update(options:UpdateOptions){}
+    public _teardown(options?:TearDownOptions){}
+    public _onSignal(signal:string, data?:any){}
+
+    public static processEntityConfig(
+        config:EntityConfig,
+        alteredConfig:
+            EntityConfig|
+            ((config:EntityConfig)=>EntityConfig)
+    ): EntityConfig {
+        if (!alteredConfig) return config;
+        if (typeof alteredConfig == 'function') return alteredConfig(config);
+        return alteredConfig;
+    }
+
+    public static extendConfig(values:any[]):(config:EntityConfig)=>{} {
+        return config => _.extend({}, config, values);
     }
 }
