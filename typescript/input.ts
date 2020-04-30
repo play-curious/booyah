@@ -1,26 +1,28 @@
-import * as util from "./util.js";
-import * as entity from "./entity.js";
+import * as util from "./util";
+import * as entity from "./entity";
+import _ from "underscore";
 
 export class Keyboard extends entity.Entity {
-  setup(config) {
+
+  public keysDown:{[key:string]:number} = {};
+  public keysJustDown:{[key:string]:boolean} = {};
+  public keysJustUp:{[key:string]:boolean} = {};
+  public timeSinceStart:number
+
+  private _lastKeysDown:{[key:string]:number} = {};
+  private _onKeyDownWrapper = this._onKeyDown.bind(this);
+  private _onKeyUpWrapper = this._onKeyUp.bind(this);
+  private _onFocusOutWrapper = this._onFocusOut.bind(this);
+
+  setup(config:any) {
     super.setup(config);
-
-    this.keysDown = {};
-    this.keysJustDown = {};
-    this.keysJustUp = {};
-
-    this._lastKeysDown = {};
-
-    this._onKeyDownWrapper = this._onKeyDown.bind(this);
-    this._onKeyUpWrapper = this._onKeyUp.bind(this);
-    this._onFocusOutWrapper = this._onFocusOut.bind(this);
 
     this.config.app.view.addEventListener("keydown", this._onKeyDownWrapper);
     this.config.app.view.addEventListener("keyup", this._onKeyUpWrapper);
     this.config.app.view.addEventListener("focusout", this._onFocusOutWrapper);
   }
 
-  update(options) {
+  update(options:any) {
     this.timeSinceStart = options.timeSinceStart;
 
     const keyDownSet = _.keys(this.keysDown);
@@ -46,14 +48,14 @@ export class Keyboard extends entity.Entity {
     );
   }
 
-  _onKeyDown(event) {
+  _onKeyDown(event:KeyboardEvent) {
     event.preventDefault();
 
     // console.log("key down", event.code);
     this.keysDown[event.code] = this.timeSinceStart;
   }
 
-  _onKeyUp(event) {
+  _onKeyUp(event:KeyboardEvent) {
     event.preventDefault();
 
     // console.log("key up", event.code);
@@ -67,18 +69,30 @@ export class Keyboard extends entity.Entity {
 
 export const GAMEPAD_DEAD_ZONE = 0.15;
 
-export function countGamepads() {
+export function countGamepads():number {
+  //@ts-ignore
   return _.filter(navigator.getGamepads(), _.identity).length;
 }
 
 export class Gamepad extends entity.Entity {
-  constructor(gamepadIndex) {
-    super();
 
-    this.gamepadIndex = gamepadIndex;
+  public state:any
+  public buttonsDown:{[key:string]:number}
+  public buttonsJustDown:{[key:string]:boolean}
+  public buttonsJustUp:{[key:string]:boolean}
+  public timeSinceStart:number
+
+  private _lastButtonsDown:{[key:string]:number}
+
+  public axes:number[]
+
+  constructor(
+    public gamepadIndex:number
+  ) {
+    super();
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     this.axes = [];
@@ -94,14 +108,15 @@ export class Gamepad extends entity.Entity {
     // TODO: track events of disconnecting gamepads
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     this.timeSinceStart = options.timeSinceStart;
-    this._updateState(options);
+    this._updateState();
   }
 
   _updateState() {
+    //@ts-ignore
     this.state = _.filter(navigator.getGamepads(), _.identity)[
       this.gamepadIndex
     ];

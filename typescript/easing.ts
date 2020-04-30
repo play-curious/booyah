@@ -1,92 +1,92 @@
 // Based on https://github.com/AndrewRayCode/easing-utils
 
 // No easing, no acceleration
-export function linear(t) {
+export function linear(t:number): number {
   return t;
 }
 
 // Slight acceleration from zero to full speed
-export function easeInSine(t) {
+export function easeInSine(t:number): number {
   return -1 * Math.cos(t * (Math.PI / 2)) + 1;
 }
 
 // Slight deceleration at the end
-export function easeOutSine(t) {
+export function easeOutSine(t:number): number {
   return Math.sin(t * (Math.PI / 2));
 }
 
 // Slight acceleration at beginning and slight deceleration at end
-export function easeInOutSine(t) {
+export function easeInOutSine(t:number): number {
   return -0.5 * (Math.cos(Math.PI * t) - 1);
 }
 
 // Accelerating from zero velocity
-export function easeInQuad(t) {
+export function easeInQuad(t:number): number {
   return t * t;
 }
 
 // Decelerating to zero velocity
-export function easeOutQuad(t) {
+export function easeOutQuad(t:number): number {
   return t * (2 - t);
 }
 
 // Acceleration until halfway, then deceleration
-export function easeInOutQuad(t) {
+export function easeInOutQuad(t:number): number {
   return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
 // Accelerating from zero velocity
-export function easeInCubic(t) {
+export function easeInCubic(t:number): number {
   return t * t * t;
 }
 
 // Decelerating to zero velocity
-export function easeOutCubic(t) {
+export function easeOutCubic(t:number): number {
   var t1 = t - 1;
   return t1 * t1 * t1 + 1;
 }
 
 // Acceleration until halfway, then deceleration
-export function easeInOutCubic(t) {
+export function easeInOutCubic(t:number): number {
   return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
 }
 
 // Accelerating from zero velocity
-export function easeInQuart(t) {
+export function easeInQuart(t:number): number {
   return t * t * t * t;
 }
 
 // Decelerating to zero velocity
-export function easeOutQuart(t) {
+export function easeOutQuart(t:number): number {
   var t1 = t - 1;
   return 1 - t1 * t1 * t1 * t1;
 }
 
 // Acceleration until halfway, then deceleration
-export function easeInOutQuart(t) {
+export function easeInOutQuart(t:number): number {
   var t1 = t - 1;
   return t < 0.5 ? 8 * t * t * t * t : 1 - 8 * t1 * t1 * t1 * t1;
 }
 
 // Accelerating from zero velocity
-export function easeInQuint(t) {
+export function easeInQuint(t:number): number {
   return t * t * t * t * t;
 }
 
 // Decelerating to zero velocity
-export function easeOutQuint(t) {
+export function easeOutQuint(t:number): number {
   var t1 = t - 1;
   return 1 + t1 * t1 * t1 * t1 * t1;
 }
 
 // Acceleration until halfway, then deceleration
-export function easeInOutQuint(t) {
+export function easeInOutQuint(t:number): number {
   var t1 = t - 1;
   return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * t1 * t1 * t1 * t1 * t1;
 }
 
 // Accelerate exponentially until finish
-export function easeInExpo(t) {
+export function easeInExpo(t:number): number {
   if (t === 0) {
     return 0;
   }
@@ -95,7 +95,7 @@ export function easeInExpo(t) {
 }
 
 // Initial exponential acceleration slowing to stop
-export function easeOutExpo(t) {
+export function easeOutExpo(t:number): number {
   if (t === 1) {
     return 1;
   }
@@ -104,7 +104,7 @@ export function easeOutExpo(t) {
 }
 
 // Exponential acceleration and deceleration
-export function easeInOutExpo(t) {
+export function easeInOutExpo(t:number): number {
   if (t === 0 || t === 1) {
     return t;
   }
@@ -120,19 +120,19 @@ export function easeInOutExpo(t) {
 }
 
 // Increasing velocity until stop
-export function easeInCirc(t) {
+export function easeInCirc(t:number): number {
   var scaledTime = t / 1;
   return -1 * (Math.sqrt(1 - scaledTime * t) - 1);
 }
 
 // Start fast, decreasing velocity until stop
-export function easeOutCirc(t) {
+export function easeOutCirc(t:number): number {
   var t1 = t - 1;
   return Math.sqrt(1 - t1 * t1);
 }
 
 // Fast increase in velocity, fast decrease in velocity
-export function easeInOutCirc(t) {
+export function easeInOutCirc(t:number): number {
   var scaledTime = t * 2;
   var scaledTime1 = scaledTime - 2;
 
@@ -144,7 +144,7 @@ export function easeInOutCirc(t) {
 }
 
 // Slow movement backwards then fast snap to finish
-export function easeInBack(t) {
+export function easeInBack(t:number): number {
   var magnitude =
     arguments.length <= 1 || arguments[1] === undefined
       ? 1.70158
@@ -155,7 +155,7 @@ export function easeInBack(t) {
 }
 
 // Fast snap to backwards point then slow resolve to finish
-export function easeOutBack(t) {
+export function easeOutBack(t:number): number {
   var magnitude =
     arguments.length <= 1 || arguments[1] === undefined
       ? 1.70158
@@ -169,7 +169,7 @@ export function easeOutBack(t) {
 }
 
 // Slow movement backwards, fast snap to past finish, slow resolve to finish
-export function easeInOutBack(t) {
+export function easeInOutBack(t:number): number {
   var magnitude =
     arguments.length <= 1 || arguments[1] === undefined
       ? 1.70158
@@ -187,7 +187,7 @@ export function easeInOutBack(t) {
   return 0.5 * (scaledTime2 * scaledTime2 * ((s + 1) * scaledTime2 + s) + 2);
 }
 // Bounces slowly then quickly to finish
-export function easeInElastic(t) {
+export function easeInElastic(t:number): number {
   var magnitude =
     arguments.length <= 1 || arguments[1] === undefined ? 0.7 : arguments[1];
 
@@ -208,7 +208,7 @@ export function easeInElastic(t) {
 }
 
 // Fast acceleration, bounces to zero
-export function easeOutElastic(t) {
+export function easeOutElastic(t:number): number {
   var magnitude =
     arguments.length <= 1 || arguments[1] === undefined ? 0.7 : arguments[1];
 
@@ -228,7 +228,7 @@ export function easeOutElastic(t) {
 }
 
 // Slow start and end, two bounces sandwich a fast motion
-export function easeInOutElastic(t) {
+export function easeInOutElastic(t:number): number {
   var magnitude =
     arguments.length <= 1 || arguments[1] === undefined ? 0.65 : arguments[1];
 
@@ -260,7 +260,7 @@ export function easeInOutElastic(t) {
 }
 
 // Bounce to completion
-export function easeOutBounce(t) {
+export function easeOutBounce(t:number): number {
   var scaledTime = t / 1;
 
   if (scaledTime < 1 / 2.75) {
@@ -278,12 +278,12 @@ export function easeOutBounce(t) {
 }
 
 // Bounce increasing in velocity until completion
-export function easeInBounce(t) {
+export function easeInBounce(t:number): number {
   return 1 - easeOutBounce(1 - t);
 }
 
 // Bounce in and bounce out
-export function easeInOutBounce(t) {
+export function easeInOutBounce(t:number): number {
   if (t < 0.5) {
     return easeInBounce(t * 2) * 0.5;
   }
