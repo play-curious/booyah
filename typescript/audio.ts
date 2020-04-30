@@ -1,5 +1,7 @@
-import * as util from "./util.js";
-import * as entity from "./entity.js";
+import * as util from "./util";
+import * as entity from "./entity";
+import {Howl} from "howler";
+import _ from "underscore";
 
 export const AUDIO_FILE_FORMATS = ["mp3"];
 
@@ -8,8 +10,13 @@ export const AUDIO_FILE_FORMATS = ["mp3"];
   By default the volume is lowered to not interere with sound effects.
 */
 export class Jukebox extends entity.Entity {
-  // Options include { volume: 0.25 }
-  constructor(options) {
+
+  public volume:number
+  public musicName:string
+  public musicPlaying:any
+  public muted:boolean
+
+  constructor(options:any = {}) {
     super();
 
     util.setupOptions(this, options, {
@@ -17,11 +24,11 @@ export class Jukebox extends entity.Entity {
     });
   }
 
-  _setup(config) {
+  _setup(config:boolean) {
     this.musicName = null;
     this.musicPlaying = null;
 
-    _.each(this.config.musicAudio, howl => {
+    _.each(this.config.musicAudio, (howl:Howl) => {
       howl.volume(this.volume);
       howl.loop(true);
     });
@@ -38,7 +45,7 @@ export class Jukebox extends entity.Entity {
     this.musicName = null;
   }
 
-  _onSignal(signal, data = null) {
+  _onSignal(signal:string, data?:any) {
     if (!this.musicPlaying) return;
 
     if (signal === "pause") this.musicPlaying.pause();
@@ -46,7 +53,7 @@ export class Jukebox extends entity.Entity {
     else if (signal === "reset") this.changeMusic();
   }
 
-  changeMusic(name = null) {
+  changeMusic(name?:string) {
     if (this.musicPlaying) {
       // TODO: fade
       this.musicPlaying.stop();
@@ -60,24 +67,24 @@ export class Jukebox extends entity.Entity {
     }
   }
 
-  setMuted(isMuted) {
+  setMuted(isMuted:boolean) {
     this.muted = isMuted;
     this._updateMuted();
   }
 
   _updateMuted() {
     const muted = !this.config.playOptions.options.musicOn;
-    _.each(this.config.musicAudio, howl => howl.mute(muted));
+    _.each(this.config.musicAudio, (howl:Howl) => howl.mute(muted));
   }
 }
 
-export function installJukebox(rootConfig, rootEntity) {
+export function installJukebox(rootConfig:any, rootEntity:any) {
   rootConfig.jukebox = new Jukebox();
   rootEntity.addEntity(rootConfig.jukebox);
 }
 
-export function makeInstallJukebox(options = {}) {
-  return (rootConfig, rootEntity) => {
+export function makeInstallJukebox(options:any = {}) {
+  return (rootConfig:any, rootEntity:any) => {
     rootConfig.jukebox = new Jukebox(options);
     rootEntity.addEntity(rootConfig.jukebox);
   };
@@ -88,14 +95,14 @@ export function makeInstallJukebox(options = {}) {
   Optionally can stop the music on teardown.
 */
 export class MusicEntity extends entity.Entity {
-  constructor(trackName, stopOnTeardown = false) {
+  constructor(
+    public trackName:string,
+    public stopOnTeardown = false
+  ) {
     super();
-
-    this.trackName = trackName;
-    this.stopOnTeardown = stopOnTeardown;
   }
 
-  _setup(config) {
+  _setup(config:any) {
     this.config.jukebox.changeMusic(this.trackName);
 
     this.requestedTransition = true;
@@ -112,8 +119,10 @@ export class MusicEntity extends entity.Entity {
   Play sounds effects.
 */
 export class FxMachine extends entity.Entity {
-  // Options include { volume: 1 }
-  constructor(options) {
+
+  public volume:number
+
+  constructor(options:any = {}) {
     super();
 
     util.setupOptions(this, options, {
@@ -122,19 +131,19 @@ export class FxMachine extends entity.Entity {
   }
 
   _setup() {
-    _.each(this.config.fxAudio, howl => howl.volume(this.volume));
+    _.each(this.config.fxAudio, (howl:Howl) => howl.volume(this.volume));
     this._updateMuted();
 
     this._on(this.config.playOptions, "fxOn", this._updateMuted);
   }
 
-  play(name) {
+  play(name:string) {
     this.config.fxAudio[name].play();
   }
 
   // TODO: stop playing effects when paused or on teardown
 
-  // onSignal(signal, data = null) {
+  // onSignal(signal:string, data?:any) {
   //   super.onSignal(signal, data);
 
   //   if(signal === "pause") this.musicPlaying.pause();
@@ -143,27 +152,27 @@ export class FxMachine extends entity.Entity {
 
   _updateMuted() {
     const muted = !this.config.playOptions.options.fxOn;
-    _.each(this.config.fxAudio, howl => howl.mute(muted));
+    _.each(this.config.fxAudio, (howl:Howl) => howl.mute(muted));
   }
 }
 
-export function installFxMachine(rootConfig, rootEntity) {
+export function installFxMachine(rootConfig:any, rootEntity:any) {
   rootConfig.fxMachine = new FxMachine();
   rootEntity.addEntity(rootConfig.fxMachine);
 }
 
 /** Creates a Promise from the Howl callbacks used for loading */
 
-export function makeHowlerLoadPromise(howl) {
+export function makeHowlerLoadPromise(howl:Howl) {
   return new Promise((resolve, reject) => {
     howl.on("load", () => resolve(howl));
-    howl.on("loaderror", (id, err) => reject(howl, id, err));
+    howl.on("loaderror", (id, err) => reject({howl, id, err}));
   });
 }
 
 /** Create map of file names or {key, url} to Howl objects */
-export function makeHowls(directory, assetDescriptions) {
-  const assets = {};
+export function makeHowls(directory:string, assetDescriptions:(string|{key:string,url:string})[]) {
+  const assets:{[key:string]:Howl} = {};
   for (let assetDescription of assetDescriptions) {
     if (_.isString(assetDescription)) {
       assets[assetDescription] = new Howl({
@@ -172,24 +181,15 @@ export function makeHowls(directory, assetDescriptions) {
           audioFormat => `audio/${directory}/${assetDescription}.${audioFormat}`
         )
       });
-    } else if (
-      _.isObject(assetDescription) &&
-      assetDescription.key &&
-      assetDescription.url
-    ) {
+    } else {
+      const url = assetDescription.url
       assets[assetDescription.key] = new Howl({
         src: _.map(
           AUDIO_FILE_FORMATS,
           audioFormat =>
-            `audio/${directory}/${assetDescription.url}.${audioFormat}`
+            `audio/${directory}/${url}.${audioFormat}`
         )
       });
-    } else {
-      throw new Error(
-        `Unrecognized audio asset description '${JSON.stringify(
-          assetDescription
-        )}'`
-      );
     }
   }
   return assets;

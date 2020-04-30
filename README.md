@@ -43,7 +43,7 @@ import * as booyah from "../booyah/src/booyah.js";
 import * as geom from "../booyah/src/geom.ts";
 import * as entity from "../booyah/src/entity.ts";
 import * as narration from "../booyah/src/narration.js";
-import * as audio from "../booyah/src/audio.js";
+import * as audio from "../booyah/src/audio.ts";
 ```
 
 You can then call the Booyah framework like this:
