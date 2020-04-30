@@ -17,7 +17,7 @@
     ],
     "listEmittedFiles":true,
     "module": "es2020",
-    "moduleResolution":"Classic",
+    "moduleResolution":"Node",
     "outDir":"src",
     "pretty":true,
     "target":"es2020"

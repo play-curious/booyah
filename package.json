@@ -43,6 +43,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@types/pixi.js": "^5.0.0",
     "@types/underscore": "^1.9.4",
     "typescript": "^3.8.3"
   },

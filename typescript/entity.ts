@@ -1,38 +1,44 @@
-import * as util from "./util.js";
+import _, {partition} from 'underscore';
+import * as util from './util';
 
-/** 
-  In Booyah, the game is structured as a tree of entities. This is the base class for all entities. 
-  
-  An entity has the following lifecycle:
-    1. It is instantiated using the contructor. 
-      Only parameters specific to the entity should be passed here. 
-      The entity should not make any changes to the environment here, it should wait for setup().
-    2. setup() is called just once, with a configuration. 
-      This is when the entity should add dispaly objects  to the scene, or subscribe to events.
-      The typical config contains { app, preloader, narrator, jukebox, container }
-    3. update() is called one or more times, with options. 
-      It could also never be called, in case the entity is torn down directly.
-      If the entity wishes to be terminated, it should set this.requestedTransition to a truthy value.
-      Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState } 
-      For more complicated transitions, it can return an object like { name: "", params: {} }
-    4. teardown() is called just once.
-      The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
+export interface BooyahEventListener {
+  emitter:PIXI.utils.EventEmitter
+  event:string
+  cb:()=>void
+}
 
-  The base class will check that this lifecyle is respected, and will log errors to signal any problems.
+/**
+ In Booyah, the game is structured as a tree of entities. This is the base class for all entities.
 
-  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
-  This ensures that the base class behavior of will be called automatically.
-*/
-export class Entity extends PIXI.utils.EventEmitter {
-  constructor() {
-    super();
+ An entity has the following lifecycle:
+ 1. It is instantiated using the contructor.
+ Only parameters specific to the entity should be passed here.
+ The entity should not make any changes to the environment here, it should wait for setup().
+ 2. setup() is called just once, with a configuration.
+ This is when the entity should add dispaly objects  to the scene, or subscribe to events.
+ The typical config contains { app, preloader, narrator, jukebox, container }
+ 3. update() is called one or more times, with options.
+ It could also never be called, in case the entity is torn down directly.
+ If the entity wishes to be terminated, it should set this.requestedTransition to a truthy value.
+ Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
+ For more complicated transitions, it can return an object like { name: "", params: {} }
+ 4. teardown() is called just once.
+ The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
 
-    this.isSetup = false;
-    this.eventListeners = [];
-  }
+ The base class will check that this lifecyle is respected, and will log errors to signal any problems.
 
-  // @config includes narrator
-  setup(config) {
+ In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
+ This ensures that the base class behavior of will be called automatically.
+ */
+export abstract class Entity extends PIXI.utils.EventEmitter {
+
+  public isSetup = false;
+  public eventListeners:BooyahEventListener[] = [];
+  public requestedTransition:any;
+  public config:any;
+
+  public setup( config:any ): void {
+
     if (this.isSetup) {
       console.error("setup() called twice", this);
       console.trace();
@@ -45,8 +51,8 @@ export class Entity extends PIXI.utils.EventEmitter {
     this._setup(config);
   }
 
-  // options include { playTime, timeSinceStart, timeScale, gameState }
-  update(options) {
+  public update( options:any ): void {
+
     if (!this.isSetup) {
       console.error("update() called before setup()", this);
       console.trace();
@@ -55,13 +61,13 @@ export class Entity extends PIXI.utils.EventEmitter {
     this._update(options);
   }
 
-  teardown() {
+  public teardown( options?:any ): void {
     if (!this.isSetup) {
       console.error("teardown() called before setup()", this);
       console.trace();
     }
 
-    this._teardown();
+    this._teardown(options);
 
     this._off(); // Remove all event listeners
 
@@ -69,8 +75,7 @@ export class Entity extends PIXI.utils.EventEmitter {
     this.isSetup = false;
   }
 
-  // @signal is string, @data is whatever
-  onSignal(signal, data = null) {
+  public onSignal( signal:string, data?:any ): void {
     if (!this.config) {
       console.error("onSignal() called before setup()", this);
     }
@@ -78,21 +83,20 @@ export class Entity extends PIXI.utils.EventEmitter {
     this._onSignal(signal, data);
   }
 
-  _on(emitter, event, cb) {
+  protected _on(emitter:PIXI.utils.EventEmitter, event:string, cb:()=>void): void {
     this.eventListeners.push({ emitter, event, cb });
     emitter.on(event, cb, this);
   }
 
   // if @cb is null, will remove all event listeners for the given emitter and event
-  _off(emitter = null, event = null, cb = null) {
-    const props = {};
-    if (emitter) props.emitter = emitter;
-    if (event) props.event = event;
-    if (cb) props.cb = cb;
+  protected _off(emitter?:PIXI.utils.EventEmitter, event?:string, cb?:()=>void): void {
+    const props:BooyahEventListener = {
+      emitter, event, cb
+    };
 
-    const [listenersToRemove, listenersToKeep] = _.partition(
-      this.eventListeners,
-      props
+    const [listenersToRemove, listenersToKeep] = partition(
+        this.eventListeners,
+        props as any
     );
     for (const listener of listenersToRemove)
       listener.emitter.off(listener.event, listener.cb, this);
@@ -100,11 +104,23 @@ export class Entity extends PIXI.utils.EventEmitter {
     this.eventListeners = listenersToKeep;
   }
 
-  // Noop methods than can be overriden by subclasses
-  _setup(config) {}
-  _update(options) {}
-  _teardown(options) {}
-  _onSignal(signal, data) {}
+  public _setup(config:any){}
+  public _update(options:any){}
+  public _teardown(options?:any){}
+  public _onSignal(signal:string, data?:any){}
+
+  public static processEntityConfig(
+      config:any,
+      alteredConfig:any
+  ): any {
+    if (!alteredConfig) return config;
+    if (typeof alteredConfig == 'function') return alteredConfig(config);
+    return alteredConfig;
+  }
+
+  public static extendConfig(values:any[]):(config:any)=>{} {
+    return config => _.extend({}, config, values);
+  }
 }
 
 /** Empty class just to indicate an entity that does nothing and never requests a transition  */
@@ -112,10 +128,9 @@ export class NullEntity extends Entity {}
 
 /** An entity that returns the requested transition immediately  */
 export class TransitoryEntity extends Entity {
-  constructor(transition = true) {
-    super();
 
-    this.transition = transition;
+  constructor(public transition = true) {
+    super();
   }
 
   _setup() {
@@ -123,27 +138,31 @@ export class TransitoryEntity extends Entity {
   }
 }
 
+export interface ParallelEntityOptions {
+  autoTransition?: boolean
+}
+
 /**
-  Allows a bunch of entities to execute in parallel.
-  Updates child entities until they ask for a transition, at which point they are torn down.
-  If autoTransition=true, requests a transition when all child entities have completed.
-*/
+ Allows a bunch of entities to execute in parallel.
+ Updates child entities until they ask for a transition, at which point they are torn down.
+ If autoTransition=true, requests a transition when all child entities have completed.
+ */
 export class ParallelEntity extends Entity {
-  /* 
-    @entities can be subclasses of entity.Entity or an object like { entity:, config: } 
-    @options:
-      * autoTransition: Should the entity request a transition when all the child entities are done?  (defaults to false)  
-  */
-  constructor(entities = [], options = {}) {
+  public entities:Entity[] = [];
+  public entityConfigs:any[] = [];
+  public entityIsActive:boolean[] = [];
+  public autoTransition:boolean = false;
+  /**
+   @entities can be subclasses of entity.Entity or an object like { entity:, config: }
+   @options:
+   * autoTransition: Should the entity request a transition when all the child entities are done?  (defaults to false)
+   */
+  constructor(entities:any[] = [], options:ParallelEntityOptions = {}) {
     super();
 
     util.setupOptions(this, options, {
       autoTransition: false
     });
-
-    this.entities = [];
-    this.entityConfigs = [];
-    this.entityIsActive = [];
 
     for (const currentEntity of entities) {
       if (currentEntity instanceof Entity) {
@@ -154,15 +173,15 @@ export class ParallelEntity extends Entity {
     }
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     for (let i = 0; i < this.entities.length; i++) {
       const entity = this.entities[i];
       if (!entity.isSetup) {
-        const entityConfig = processEntityConfig(
-          this.config,
-          this.entityConfigs[i]
+        const entityConfig = ParallelEntity.processEntityConfig(
+            this.config,
+            this.entityConfigs[i]
         );
         entity.setup(entityConfig);
       }
@@ -171,7 +190,7 @@ export class ParallelEntity extends Entity {
     }
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     for (let i = 0; i < this.entities.length; i++) {
@@ -203,7 +222,7 @@ export class ParallelEntity extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data) {
+  onSignal(signal:string, data:any) {
     super.onSignal(signal, data);
 
     for (let i = 0; i < this.entities.length; i++) {
@@ -212,19 +231,19 @@ export class ParallelEntity extends Entity {
   }
 
   // If config is provided, it will overload the config provided to this entity by setup()
-  addEntity(entity, config = null) {
+  addEntity(entity:Entity, config:any = null) {
     this.entities.push(entity);
     this.entityConfigs.push(config);
     this.entityIsActive.push(true);
 
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
-      const entityConfig = processEntityConfig(this.config, config);
+      const entityConfig = ParallelEntity.processEntityConfig(this.config, config);
       entity.setup(entityConfig);
     }
   }
 
-  removeEntity(entity) {
+  removeEntity(entity:Entity): void {
     const index = this.entities.indexOf(entity);
     if (index === -1) throw new Error("Cannot find entity to remove");
 
@@ -237,7 +256,7 @@ export class ParallelEntity extends Entity {
     this.entityIsActive.splice(index, 1);
   }
 
-  removeAllEntities() {
+  removeAllEntities(): void {
     for (const entity of this.entities) {
       if (entity.isSetup) {
         entity.teardown();
@@ -250,22 +269,34 @@ export class ParallelEntity extends Entity {
   }
 }
 
+export interface EntitySequenceOptions {
+  loop?: boolean
+}
+
 /**
   Runs one child entity after another. 
   When done, requestes the last transition demanded.
   Optionally can loop back to the first entity.
 */
-export class EntitySequence extends Entity {
-  // @options includes loop (default: false)
-  constructor(entities, options = {}) {
-    super();
+export class EntitySequence extends Entity implements EntitySequenceOptions {
 
-    this.entities = entities;
-    this.loop = options.loop || false;
+  public loop:boolean
+  public currentEntityIndex = 0
+  public currentEntity:Entity = null
+  public lastUpdateOptions:any
+  public lastRequestedTransition:any
+  public childStartedAt:number
+
+  constructor(
+      public entities:Entity[],
+      options:EntitySequenceOptions = {}
+    ) {
+    super();
+    this.loop = !!options.loop;
   }
 
   // Does not setup entity
-  addEntity(entity) {
+  addEntity(entity:Entity) {
     if (this.requestedTransition) return;
 
     this.entities.push(entity);
@@ -277,7 +308,7 @@ export class EntitySequence extends Entity {
     this._advance({ name: "skip" });
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     this.currentEntityIndex = 0;
@@ -286,7 +317,7 @@ export class EntitySequence extends Entity {
     this._activateEntity(0);
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     if (this.lastRequestedTransition) return;
@@ -312,7 +343,7 @@ export class EntitySequence extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data) {
+  onSignal(signal:string, data?:any) {
     if (this.requestedTransition) return;
 
     super.onSignal(signal, data);
@@ -331,7 +362,7 @@ export class EntitySequence extends Entity {
     this._activateEntity(0);
   }
 
-  _activateEntity(time) {
+  _activateEntity(time:number) {
     const entityDescriptor = this.entities[this.currentEntityIndex];
     if (_.isFunction(entityDescriptor)) {
       this.currentEntity = entityDescriptor(this);
@@ -348,7 +379,7 @@ export class EntitySequence extends Entity {
       this.currentEntity.teardown();
   }
 
-  _advance(transition) {
+  _advance(transition:any) {
     if (this.currentEntityIndex < this.entities.length - 1) {
       this._deactivateEntity();
       this.currentEntityIndex = this.currentEntityIndex + 1;
@@ -376,27 +407,34 @@ export class EntitySequence extends Entity {
   To use have a transition table within a transition table, use the function makeTransitionTable()
 */
 export class StateMachine extends Entity {
-  /**
-      @states: an object of names to Entity, or to function(params, stateMachine): Entity
-      @transitions: an object of names to transition, or to function(name, params, stateMachine): Transition
-      @options.startingState: a state name OR a function that returns a state name
-      @options.startingParams: am object OR a function that returns an object
-  */
-  constructor(states, transitions, options) {
-    super();
 
-    this.states = states;
-    this.transitions = transitions;
+  public startingStateParams:any
+  public startingState:any;
+  public startingProgress:any;
+  public visitedStates:any;
+  public progress:any;
+  public state:any;
+  public stateName:string;
+  public sceneStartedAt:number;
+  public endingStates:any;
+  public stateParams:any;
+
+  constructor(
+      public states:any,
+      public transitions:any,
+      options:any = {}
+  ) {
+    super();
 
     util.setupOptions(this, options, {
       startingState: "start",
-      startingStateParams: {},
       endingStates: ["end"],
+      startingStateParams: {},
       startingProgress: {}
     });
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     this.visitedStates = [];
@@ -411,7 +449,7 @@ export class StateMachine extends Entity {
     this._changeState(0, startingState, startingStateParams);
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     if (!this.state) return;
@@ -495,13 +533,13 @@ export class StateMachine extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data = null) {
+  onSignal(signal:string, data?:any) {
     super.onSignal(signal, data);
 
     if (this.state) this.state.onSignal(signal, data);
   }
 
-  _changeState(timeSinceStart, nextStateName, nextStateParams) {
+  _changeState(timeSinceStart:number, nextStateName:string, nextStateParams:any) {
     // If reached an ending state, stop here. Teardown can happen later
     if (_.contains(this.endingStates, nextStateName)) {
       this.requestedTransition = nextStateName;
@@ -556,12 +594,12 @@ export class StateMachine extends Entity {
     };
     `
 */
-export function makeTransitionTable(table) {
+export function makeTransitionTable(table:{[key:string]:string}) {
   const f = function(
-    requestedTransitionName,
-    requestedTransitionParams,
-    previousStateName,
-    previousStateParams
+    requestedTransitionName:string,
+    requestedTransitionParams:any,
+    previousStateName:string,
+    previousStateParams:any
   ) {
     if (requestedTransitionName in table) {
       const transitionDescriptor = table[requestedTransitionName];
@@ -586,12 +624,14 @@ export function makeTransitionTable(table) {
 
 /* Deprecated for most uses. Instead use ParallelEntity */
 export class CompositeEntity extends Entity {
-  constructor(entities = []) {
+
+  constructor(
+      public entities:Entity[] = []
+  ) {
     super();
-    this.entities = entities;
   }
 
-  setup(config) {
+  public setup(config:any): void {
     super.setup(config);
 
     for (const entity of this.entities) {
@@ -601,7 +641,7 @@ export class CompositeEntity extends Entity {
     }
   }
 
-  update(options) {
+  public update(options:any): void {
     super.update(options);
 
     for (const entity of this.entities) {
@@ -613,7 +653,7 @@ export class CompositeEntity extends Entity {
     }
   }
 
-  teardown() {
+  public teardown(): void {
     for (const entity of this.entities) {
       entity.teardown();
     }
@@ -621,7 +661,7 @@ export class CompositeEntity extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data) {
+  public onSignal(signal:string, data?:any): void {
     super.onSignal(signal, data);
 
     for (const entity of this.entities) {
@@ -629,7 +669,7 @@ export class CompositeEntity extends Entity {
     }
   }
 
-  addEntity(entity) {
+  public addEntity(entity:Entity): void {
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
       entity.setup(this.config);
@@ -638,7 +678,7 @@ export class CompositeEntity extends Entity {
     this.entities.push(entity);
   }
 
-  removeEntity(entity) {
+  public removeEntity(entity:Entity): void {
     const index = this.entities.indexOf(entity);
     if (index === -1) throw new Error("Cannot find entity to remove");
 
@@ -663,21 +703,28 @@ export class CompositeEntity extends Entity {
 */
 export class FunctionalEntity extends ParallelEntity {
   // @functions is an object, with keys: setup, update, teardown, onSignal
-  constructor(functions, childEntities = []) {
+  constructor(
+      public functions:{
+        setup:(config:any,entity:FunctionalEntity)=>void,
+        update:(options:any,entity:FunctionalEntity)=>void,
+        teardown:(entity:FunctionalEntity)=>void,
+        onSignal:(signal:string,data?:any)=>void,
+        requestTransition?:any
+      },
+      childEntities:Entity[] = []
+  ) {
     super();
-
-    this.functions = functions;
 
     for (let childEntity of childEntities) this.addEntity(childEntity);
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     if (this.functions.setup) this.functions.setup(config, this);
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     if (this.functions.update) this.functions.update(options, this);
@@ -695,7 +742,7 @@ export class FunctionalEntity extends ParallelEntity {
     super.teardown();
   }
 
-  onSignal(signal, data = null) {
+  onSignal(signal:string, data?:any) {
     super.onSignal(signal, data);
 
     if (this.functions.onSignal) this.functions.onSignal(signal, data);
@@ -707,11 +754,12 @@ export class FunctionalEntity extends ParallelEntity {
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class FunctionCallEntity extends Entity {
-  constructor(f, that = null) {
+  constructor(
+      public f:(arg:any)=>any,
+      public that:any
+  ) {
     super();
-
-    this.f = f;
-    this.that = that || this;
+    this.that = that && this;
   }
 
   _setup() {
@@ -723,14 +771,12 @@ export class FunctionCallEntity extends Entity {
 
 // Waits until time is up, then requests transition
 export class WaitingEntity extends Entity {
-  /* @wait is in milliseconds */
-  constructor(wait) {
+  /** @wait is in milliseconds */
+  constructor(public wait:number) {
     super();
-
-    this.wait = wait;
   }
 
-  _update(options) {
+  _update(options:any) {
     if (options.timeSinceStart >= this.wait) {
       this.requestedTransition = true;
     }
@@ -742,13 +788,11 @@ export class WaitingEntity extends Entity {
   Useful for automatically adding and removing the DisplayObject to the parent container.
 */
 export class DisplayObjectEntity extends Entity {
-  constructor(displayObject) {
+  constructor(public displayObject:any) {
     super();
-
-    this.displayObject = displayObject;
   }
 
-  _setup(config) {
+  _setup(config:any) {
     this.config.container.addChild(this.displayObject);
   }
 
@@ -761,13 +805,16 @@ export class DisplayObjectEntity extends Entity {
   An entity that creates a new PIXI container in the setup config for it's children, and manages the container. 
 */
 export class ContainerEntity extends ParallelEntity {
-  constructor(entities = [], name = null) {
-    super(entities);
 
-    this.name = name;
+  public oldConfig:any
+  public newConfig:any
+  public container:PIXI.Container
+
+  constructor(entities:Entity[] = [], public name?:string) {
+    super(entities);
   }
 
-  setup(config) {
+  setup(config:any) {
     this.oldConfig = config;
 
     this.container = new PIXI.Container();
@@ -793,16 +840,24 @@ export class ContainerEntity extends ParallelEntity {
   Asks for a transition when the video has ended.
 */
 export class VideoEntity extends Entity {
-  constructor(videoName, options = {}) {
+
+  public container:PIXI.Container
+  public videoElement:any
+  public videoSprite:any
+  public loop:boolean
+
+  constructor(
+    public videoName:string,
+    options:any = {}
+  ) {
     super();
 
-    this.videoName = videoName;
     util.setupOptions(this, options, {
       loop: false
     });
   }
 
-  _setup(config) {
+  _setup(config:any) {
     // This container is used so that the video is inserted in the right place,
     // even if the sprite isn't added until later.
     this.container = new PIXI.Container();
@@ -821,11 +876,11 @@ export class VideoEntity extends Entity {
     });
   }
 
-  _update(options) {
+  _update(options:any) {
     if (this.videoElement.ended) this.requestedTransition = true;
   }
 
-  _onSignal(signal, data) {
+  _onSignal(signal:string, data?:any) {
     if (signal === "pause") {
       this.videoElement.pause();
     } else if (signal === "play") {
@@ -844,6 +899,7 @@ export class VideoEntity extends Entity {
 
   _startVideo() {
     const videoResource = new PIXI.resources.VideoResource(this.videoElement);
+    //@ts-ignore
     this.videoSprite = PIXI.Sprite.from(videoResource);
     this.container.addChild(this.videoSprite);
   }
@@ -853,7 +909,16 @@ export class VideoEntity extends Entity {
   Creates a toggle switch that has different textures in the "off" and "on" positions.
 */
 export class ToggleSwitch extends Entity {
-  constructor(options) {
+
+  public container:PIXI.Container
+  public spriteOn:PIXI.Sprite
+  public spriteOff:PIXI.Sprite
+  public position:PIXI.IPoint
+  public onTexture:PIXI.Texture
+  public offTexture:PIXI.Texture
+  public isOn:boolean
+
+  constructor(options:any) {
     super();
 
     util.setupOptions(this, options, {
@@ -864,7 +929,7 @@ export class ToggleSwitch extends Entity {
     });
   }
 
-  setup(options) {
+  setup(options:any) {
     super.setup(options);
 
     this.container = new PIXI.Container();
@@ -891,7 +956,7 @@ export class ToggleSwitch extends Entity {
     super.teardown();
   }
 
-  setIsOn(isOn, silent = false) {
+  setIsOn(isOn:boolean, silent = false) {
     this.isOn = isOn;
     this._updateVisibility();
 
@@ -922,10 +987,8 @@ export class ToggleSwitch extends Entity {
   When the animation completes (if the animation is not set to loop, then this will request a transition)
 */
 export class AnimatedSpriteEntity extends Entity {
-  constructor(animatedSprite) {
+  constructor(public animatedSprite:PIXI.AnimatedSprite) {
     super();
-
-    this.animatedSprite = animatedSprite;
   }
 
   _setup() {
@@ -937,7 +1000,7 @@ export class AnimatedSpriteEntity extends Entity {
     this.animatedSprite.gotoAndPlay(0);
   }
 
-  onSignal(signal, data = null) {
+  onSignal(signal:string, data?:any) {
     if (signal == "pause") this.animatedSprite.stop();
     else if (signal == "play") this.animatedSprite.play();
   }
@@ -954,7 +1017,10 @@ export class AnimatedSpriteEntity extends Entity {
 }
 
 export class SkipButton extends Entity {
-  setup(config) {
+
+  public sprite:PIXI.Sprite
+
+  setup(config:any) {
     super.setup(config);
 
     this.sprite = new PIXI.Sprite(
@@ -990,20 +1056,22 @@ export class SkipButton extends Entity {
   Instead, entities that have completed are removed after teardown 
 */
 export class DeflatingCompositeEntity extends Entity {
+
+  public entities:Entity[] = []
+  public autoTransition:boolean
+
   /** Options include:
         autoTransition: If true, requests transition when the entity has no children (default true)
   */
-  constructor(options = {}) {
+  constructor(options:any = {}) {
     super();
 
     util.setupOptions(this, options, {
       autoTransition: true
     });
-
-    this.entities = [];
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     for (const entity of this.entities) {
@@ -1013,7 +1081,7 @@ export class DeflatingCompositeEntity extends Entity {
     }
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     // Slightly complicated for-loop so that we can remove entities that are complete
@@ -1047,7 +1115,7 @@ export class DeflatingCompositeEntity extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data) {
+  onSignal(signal:string, data?:any) {
     super.onSignal(signal, data);
 
     for (const entity of this.entities) {
@@ -1055,7 +1123,7 @@ export class DeflatingCompositeEntity extends Entity {
     }
   }
 
-  addEntity(entity) {
+  addEntity(entity:Entity) {
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
       entity.setup(this.config);
@@ -1064,7 +1132,7 @@ export class DeflatingCompositeEntity extends Entity {
     this.entities.push(entity);
   }
 
-  removeEntity(entity) {
+  removeEntity(entity:Entity) {
     const index = this.entities.indexOf(entity);
     if (index === -1) throw new Error("Cannot find entity to remove");
 
@@ -1089,10 +1157,8 @@ export class Block extends Entity {
  * Executes a function once and requests a transition equal to its value.
  */
 export class Decision extends Entity {
-  constructor(f) {
+  constructor(private f:()=>boolean) {
     super();
-
-    this.f = f;
   }
 
   _setup() {
@@ -1105,19 +1171,19 @@ export class Decision extends Entity {
  * @handler is a function of the event arguments, and should return a transition (or false if no transition)
  */
 export class WaitForEvent extends Entity {
-  constructor(emitter, eventName, handler = _.constant(true)) {
+  constructor(
+    public emitter:PIXI.utils.EventEmitter,
+    public eventName:string,
+    public handler:(...args:any)=>boolean = _.constant(true)
+  ) {
     super();
-
-    this.emitter = emitter;
-    this.eventName = eventName;
-    this.handler = handler;
   }
 
   _setup() {
     this._on(this.emitter, this.eventName, this._handleEvent);
   }
 
-  _handleEvent(...args) {
+  _handleEvent(...args:any) {
     this.requestedTransition = this.handler(...args);
   }
 }
@@ -1126,9 +1192,12 @@ export class WaitForEvent extends Entity {
  * A composite entity that requests a transition as soon as one of it's children requests one
  */
 export class Alternative extends Entity {
+
+  public entityPairs:{entity:Entity,transition:string}[]
+
   // Takes an array of type: { entity, transition } or just entity
   // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-  constructor(entityPairs = []) {
+  constructor(entityPairs:(Entity|{entity:Entity,transition:string})[] = []) {
     super();
 
     this.entityPairs = _.map(entityPairs, (entityPair, key) => {
@@ -1137,8 +1206,6 @@ export class Alternative extends Entity {
           entity: entityPair,
           transition: key.toString()
         };
-
-      if (!entityPair.entity) throw new Error("Missing entity");
 
       // Assume an object of type { entity, transition }
       return _.defaults({}, entityPair, {
@@ -1155,7 +1222,7 @@ export class Alternative extends Entity {
     }
   }
 
-  _update(options) {
+  _update(options:any) {
     for (const entityPair of this.entityPairs) {
       entityPair.entity.update(options);
       if (entityPair.entity.requestedTransition)
@@ -1175,15 +1242,16 @@ export class Alternative extends Entity {
  * By default, the first entity is active
  */
 export class SwitchingEntity extends Entity {
+
+  public entities:Entity[] = [];
+  public entityConfigs:any[] = [];
+  public activeEntityIndex = -1;
+
   constructor() {
     super();
-
-    this.entities = [];
-    this.entityConfigs = [];
-    this.activeEntityIndex = -1;
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     if (this.entities && this.activeEntityIndex > 0) {
@@ -1191,7 +1259,7 @@ export class SwitchingEntity extends Entity {
     }
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     if (this.activeEntityIndex >= 0) {
@@ -1205,7 +1273,7 @@ export class SwitchingEntity extends Entity {
     super.teardown();
   }
 
-  onSignal(signal, data) {
+  onSignal(signal:string, data?:any) {
     super.onSignal(signal, data);
 
     if (this.activeEntityIndex >= 0) {
@@ -1214,12 +1282,12 @@ export class SwitchingEntity extends Entity {
   }
 
   // If config is provided, it will overload the config provided to this entity by setup()
-  addEntity(entity, config = null) {
+  addEntity(entity:Entity, config?:any) {
     this.entities.push(entity);
     this.entityConfigs.push(config);
   }
 
-  switchToIndex(index) {
+  switchToIndex(index:number) {
     if (this.activeEntityIndex >= 0) {
       this.entities[this.activeEntityIndex].teardown();
     }
@@ -1236,7 +1304,7 @@ export class SwitchingEntity extends Entity {
     }
   }
 
-  switchToEntity(entity) {
+  switchToEntity(entity:Entity) {
     if (entity === null) {
       this.switchToIndex(-1);
     } else {
@@ -1254,7 +1322,7 @@ export class SwitchingEntity extends Entity {
     return null;
   }
 
-  removeEntity(entity) {
+  removeEntity(entity:Entity) {
     const index = this.entities.indexOf(entity);
     if (index === -1) throw new Error("Cannot find entity");
 
@@ -1275,12 +1343,12 @@ export class SwitchingEntity extends Entity {
   }
 }
 
-export function processEntityConfig(config, alteredConfig) {
+export function processEntityConfig(config:Entity, alteredConfig:any) {
   if (!alteredConfig) return config;
   if (typeof alteredConfig == 'function') return alteredConfig(config);
   return alteredConfig;
 }
 
-export function extendConfig(values) {
-  return config => _.extend({}, config, values);
+export function extendConfig(values:any) {
+  return (config:any) => _.extend({}, config, values);
 }
