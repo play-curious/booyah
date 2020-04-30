@@ -1,22 +1,38 @@
-import * as util from "./util.js";
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
+import _ from "underscore";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
 /**
- * DEPRECATED. May not be up to date with other changes in Booyah
+ * @deprecated May not be up to date with other changes in Booyah
  */
 export class Narrator extends entity.Entity {
-  // filesToHowl is a Map
-  constructor(filesToHowl, narrationTable) {
-    super();
 
-    this.filesToHowl = filesToHowl;
-    this.narrationTable = narrationTable;
+  public container:PIXI.Container
+  public narratorSubtitle:PIXI.Text
+  public characterSubtitle:PIXI.Text
+  public key:string
+  public isPlaying:boolean
+  public keyQueue:any[]
+  public isPaused:boolean
+  public currentHowl:Howl
+  public currentSoundId:any
+  public keyStartTime:number
+  public nextLineAt:number
+  public lineIndex = 0
+  public lines:any[]
+  public duration:number
+
+  // filesToHowl is a Map
+  constructor(
+    public filesToHowl:Map<string,Howl>,
+    public narrationTable:any
+  ) {
+    super();
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     this.container = new PIXI.Container();
@@ -74,10 +90,10 @@ export class Narrator extends entity.Entity {
     this._updateShowSubtitles();
   }
 
-  update({ playTime, timeScale, gameState }) {
-    super.update({ playTime, timeScale, gameState });
+  update(options:{playTime: number, timeScale: number, gameState: any}) {
+    super.update(options);
 
-    if (gameState == "paused") {
+    if (options.gameState == "paused") {
       if (!this.isPaused) {
         if (this.currentHowl) this.currentHowl.pause(this.currentSoundId);
         this.isPaused = true;
@@ -88,9 +104,9 @@ export class Narrator extends entity.Entity {
     } else if (!this.isPlaying) {
       if (this.keyQueue.length > 0) {
         this.key = this.keyQueue.shift();
-        this._initNarration(playTime);
+        this._initNarration(options.playTime);
       }
-    } else if (playTime - this.keyStartTime >= this.nextLineAt) {
+    } else if (options.playTime - this.keyStartTime >= this.nextLineAt) {
       this.lineIndex++;
       if (this.lineIndex < this.lines.length) {
         this._updateNextLineAt();
@@ -115,7 +131,7 @@ export class Narrator extends entity.Entity {
   }
 
   // @priority < 0 means to skip the narration if other narration is in progress
-  changeKey(key, priority = 0) {
+  changeKey(key:string, priority = 0) {
     if (!_.has(this.narrationTable, key)) {
       console.error("No key", key, "in narration table");
       return;
@@ -145,7 +161,7 @@ export class Narrator extends entity.Entity {
     }
   }
 
-  narrationDuration(key) {
+  narrationDuration(key:string) {
     const narrationInfo = this.narrationTable[key];
     // If start and end times are provided, use them
     // Else get the entire duration of the file
@@ -157,13 +173,13 @@ export class Narrator extends entity.Entity {
     }
   }
 
-  onSignal(signal, data = null) {
+  onSignal(signal:string, data?:any) {
     super.onSignal(signal, data);
 
     if (signal === "reset") this.cancelAll();
   }
 
-  _initNarration(playTime) {
+  _initNarration(playTime:number) {
     this.duration = this.narrationDuration(this.key);
     this.lines = this.narrationTable[this.key].dialog;
     this.lineIndex = 0;
@@ -190,7 +206,7 @@ export class Narrator extends entity.Entity {
     }
   }
 
-  _updateText(text = "", speaker = null) {
+  _updateText(text = "", speaker:any = null) {
     if (text === "") {
       this.narratorSubtitle.text = "";
       this.characterSubtitle.text = "";
@@ -223,20 +239,24 @@ export class Narrator extends entity.Entity {
   }
 
   _updateShowSubtitles() {
-    const showSubtitles = this.config.playOptions.options.showSubtitles;
-    this.container.visible = showSubtitles;
+    this.container.visible = this.config.playOptions.options.showSubtitles;
   }
 }
 
 export class SpeakerDisplay extends entity.Entity {
-  constructor(namesToImages, position = new PIXI.Point(50, 540)) {
-    super();
 
-    this.namesToImages = namesToImages;
-    this.position = position;
+  public container:PIXI.Container
+  public namesToSprites:{[name:string]:PIXI.Sprite}
+  public currentSpeakerName:any
+
+  constructor(
+    public namesToImages:{[name:string]:string},
+    public position = new PIXI.Point(50, 540)
+  ) {
+    super();
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     this.container = new PIXI.Container();
@@ -266,7 +286,7 @@ export class SpeakerDisplay extends entity.Entity {
     super.teardown();
   }
 
-  _onChangeSpeaker(speaker) {
+  _onChangeSpeaker(speaker?:any) {
     if (this.currentSpeakerName)
       this.namesToSprites[this.currentSpeakerName].visible = false;
     if (speaker) this.namesToSprites[speaker].visible = true;
@@ -275,11 +295,11 @@ export class SpeakerDisplay extends entity.Entity {
 }
 
 export class SingleNarration extends entity.Entity {
-  constructor(narrationKey, priority = 0) {
+  constructor(
+    public narrationKey:string,
+    public priority = 0
+  ) {
     super();
-
-    this.narrationKey = narrationKey;
-    this.priority = priority;
   }
 
   _setup() {
@@ -287,7 +307,7 @@ export class SingleNarration extends entity.Entity {
     this._on(this.config.narrator, "done", this._onNarrationDone);
   }
 
-  _onNarrationDone(key) {
+  _onNarrationDone(key?:string) {
     if (key === this.narrationKey) this.requestedTransition = true;
   }
 
@@ -297,17 +317,18 @@ export class SingleNarration extends entity.Entity {
 }
 
 export class RandomNarration extends entity.Entity {
-  constructor(narrationKeys, priority) {
+
+  public narrationPlaylist:any[] = [];
+  public currentKey:string = null;
+
+  constructor(
+    public narrationKeys:string[],
+    public priority:number
+  ) {
     super();
-
-    this.narrationKeys = narrationKeys;
-    this.priority = priority;
-
-    this.narrationPlaylist = [];
-    this.currentKey = null;
   }
 
-  setup(config) {
+  setup(config:any) {
     super.setup(config);
 
     // If this is the first time or we have played everything, make a new playlist
@@ -320,7 +341,7 @@ export class RandomNarration extends entity.Entity {
     this.config.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  _update(options) {
+  _update(options:any) {
     if (
       options.timeSinceStart >=
       this.config.narrator.narrationDuration(this.currentKey)
@@ -341,7 +362,14 @@ export class RandomNarration extends entity.Entity {
   Terminates when either the video completes, or the skip button is pressed. 
  */
 export class VideoScene extends entity.ParallelEntity {
-  constructor(options = {}) {
+
+  public options:any
+  public narration:SingleNarration
+  public video:entity.VideoEntity
+  public skipButton:entity.SkipButton
+  public previousMusic:string
+
+  constructor(options:any = {}) {
     super();
 
     this.options = _.defaults(options, {
@@ -352,7 +380,7 @@ export class VideoScene extends entity.ParallelEntity {
     });
   }
 
-  _setup(config) {
+  _setup(config:any) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
       this.addEntity(this.narration);
@@ -374,7 +402,7 @@ export class VideoScene extends entity.ParallelEntity {
     this.addEntity(this.skipButton);
   }
 
-  _update(options) {
+  _update(options:any) {
     if (
       (this.options.video && this.video.requestedTransition) ||
       this.skipButton.requestedTransition
@@ -390,14 +418,14 @@ export class VideoScene extends entity.ParallelEntity {
   }
 }
 
-export function makeNarrationKeyList(prefix, count) {
+export function makeNarrationKeyList(prefix:number, count:number) {
   const list = [];
   for (let i = 0; i < count; i++) list.push(prefix + i);
   return list;
 }
 
 // Returns Map of file names to Howl objects, with sprite definintions
-export function loadNarrationAudio(narrationTable, languageCode) {
+export function loadNarrationAudio(narrationTable:any, languageCode:string) {
   // Prepare map of file names to sprite names
   const fileToSprites = new Map();
   for (let key in narrationTable) {
@@ -428,7 +456,7 @@ export function loadNarrationAudio(narrationTable, languageCode) {
   return fileToHowl;
 }
 
-export function loadScript(languageCode) {
+export function loadScript(languageCode:string) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("GET", `scripts/script_${languageCode}.json`);
@@ -439,7 +467,7 @@ export function loadScript(languageCode) {
   });
 }
 
-export function makeNarrationLoader(narrationTable, languageCode) {
+export function makeNarrationLoader(narrationTable:any, languageCode:string) {
   // Load audio
   const narrationAudio = loadNarrationAudio(narrationTable, languageCode);
 
@@ -461,7 +489,7 @@ export function makeNarrationLoader(narrationTable, languageCode) {
   });
 }
 
-export function breakDialogIntoLines(text) {
+export function breakDialogIntoLines(text:string) {
   // Regular expression to match dialog lines like "[Malo:481] Ahoy there, matey!"
   const r = /^(?:\[([^:]+)?(?:\:(\d+))?\])?(.*)/;
   const rNewLines = /__/g;
@@ -470,6 +498,7 @@ export function breakDialogIntoLines(text) {
   for (const textLine of text.split("--")) {
     // speaker and start can both be undefined, and will be stripped from the output
     let [, speaker, start, dialog] = r.exec(textLine);
+    //@ts-ignore
     if (start) start = parseInt(start);
     dialog = dialog.trim();
 
@@ -486,7 +515,7 @@ export function breakDialogIntoLines(text) {
   return dialogLines;
 }
 
-export function estimateDuration(text, timePerWord = TIME_PER_WORD) {
+export function estimateDuration(text:string, timePerWord:number = TIME_PER_WORD) {
   const wordCount = text.trim().split(/[\s\.\!\?]+/).length;
   return wordCount * timePerWord;
 }
