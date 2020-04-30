@@ -1,6 +1,6 @@
 {
   "include": [
-    "src/**/*"
+    "typescript/**/*"
   ],
   "exclude": [
     "node_modules"
@@ -12,14 +12,14 @@
     "declaration":true,
     "inlineSourceMap":true,
     "lib": [
-      "ESNext",
+      "es2020",
       "dom"
     ],
     "listEmittedFiles":true,
-    "module": "commonjs",
-    "moduleResolution":"Node",
-    "outDir":"booyah",
+    "module": "es2020",
+    "moduleResolution":"Classic",
+    "outDir":"src",
     "pretty":true,
-    "target":"ES2016"
+    "target":"es2020"
   }
 }
