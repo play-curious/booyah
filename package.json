@@ -44,6 +44,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/fontfaceobserver": "0.0.6",
+    "@types/google.analytics": "0.0.40",
     "@types/howler": "^2.1.2",
     "@types/p2": "^0.7.36",
     "@types/pixi.js": "^5.0.0",

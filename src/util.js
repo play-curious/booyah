@@ -142,7 +142,7 @@ export function startTiming(eventName) {
 export function endTiming(eventName, category = "loading") {
     const diff = Date.now() - eventTimings[eventName];
     console.debug("Timing for ", eventName, diff);
-    //ga("send", "timing", category, eventName, diff);
+    ga("send", "timing", category, eventName, diff);
 }
 /* Makes a video element plays easily on iOS. Requires muting */
 export function makeVideoElement() {

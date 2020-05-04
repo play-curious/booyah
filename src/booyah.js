@@ -608,7 +608,7 @@ function update(timeScale) {
 function changeGameState(newGameState) {
     console.log("switching from game state", gameState, "to", newGameState);
     gameState = newGameState;
-    // ga("send", "event", "changeGameState", newGameState);
+    ga("send", "event", "changeGameState", newGameState);
 }
 function loadFixedAssets() {
     changeGameState("loadingFixed");
@@ -778,7 +778,7 @@ export function go(directives = {}) {
         view: document.getElementById(rootConfig.directives.canvasId)
     });
     rootConfig.container = rootConfig.app.stage;
-    // ga("send", "event", "loading", "start");
+    ga("send", "event", "loading", "start");
     util.startTiming("preload");
     // Setup preloader
     rootConfig.preloader = makePreloader(_.compact([
