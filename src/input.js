@@ -1,0 +1,109 @@
+import * as entity from "./entity";
+import _ from "underscore";
+export class Keyboard extends entity.Entity {
+    constructor() {
+        super(...arguments);
+        this.keysDown = {};
+        this.keysJustDown = {};
+        this.keysJustUp = {};
+        this._lastKeysDown = {};
+        this._onKeyDownWrapper = this._onKeyDown.bind(this);
+        this._onKeyUpWrapper = this._onKeyUp.bind(this);
+        this._onFocusOutWrapper = this._onFocusOut.bind(this);
+    }
+    setup(config) {
+        super.setup(config);
+        this.config.app.view.addEventListener("keydown", this._onKeyDownWrapper);
+        this.config.app.view.addEventListener("keyup", this._onKeyUpWrapper);
+        this.config.app.view.addEventListener("focusout", this._onFocusOutWrapper);
+    }
+    update(options) {
+        this.timeSinceStart = options.timeSinceStart;
+        const keyDownSet = _.keys(this.keysDown);
+        const lastKeyDownSet = _.keys(this._lastKeysDown);
+        this.keysJustDown = {};
+        for (const key of _.difference(keyDownSet, lastKeyDownSet))
+            this.keysJustDown[key] = true;
+        this.keysJustUp = {};
+        for (const key of _.difference(lastKeyDownSet, keyDownSet))
+            this.keysJustUp[key] = true;
+        this._lastKeysDown = _.clone(this.keysDown);
+    }
+    teardown() {
+        this.config.app.view.removeEventListener("keydown", this._onKeyDownWrapper);
+        this.config.app.view.removeEventListener("keyup", this._onKeyUpWrapper);
+        this.config.app.view.removeEventListener("focusout", this._onFocusOutWrapper);
+    }
+    _onKeyDown(event) {
+        event.preventDefault();
+        // console.log("key down", event.code);
+        this.keysDown[event.code] = this.timeSinceStart;
+    }
+    _onKeyUp(event) {
+        event.preventDefault();
+        // console.log("key up", event.code);
+        delete this.keysDown[event.code];
+    }
+    _onFocusOut() {
+        this.keysDown = {};
+    }
+}
+export const GAMEPAD_DEAD_ZONE = 0.15;
+export function countGamepads() {
+    //@ts-ignore
+    return _.filter(navigator.getGamepads(), _.identity).length;
+}
+export class Gamepad extends entity.Entity {
+    constructor(gamepadIndex) {
+        super();
+        this.gamepadIndex = gamepadIndex;
+    }
+    setup(config) {
+        super.setup(config);
+        this.axes = [];
+        this.buttonsDown = {};
+        this.buttonsJustDown = {};
+        this.buttonsJustUp = {};
+        this._lastButtonsDown = {};
+        this.timeSinceStart = 1;
+        this._updateState();
+        // TODO: track events of disconnecting gamepads
+    }
+    update(options) {
+        super.update(options);
+        this.timeSinceStart = options.timeSinceStart;
+        this._updateState();
+    }
+    _updateState() {
+        //@ts-ignore
+        this.state = _.filter(navigator.getGamepads(), _.identity)[this.gamepadIndex];
+        if (!this.state)
+            return; // Gamepad must have been disconnected
+        this.axes = [];
+        for (let i = 0; i < this.state.axes.length; i++) {
+            this.axes.push(Math.abs(this.state.axes[i]) >= GAMEPAD_DEAD_ZONE
+                ? this.state.axes[i]
+                : 0);
+        }
+        this.buttonsDown = {};
+        for (let i = 0; i < this.state.buttons.length; i++) {
+            if (this.state.buttons[i].pressed) {
+                if (!this.buttonsDown[i])
+                    this.buttonsDown[i] = this.timeSinceStart;
+            }
+            else {
+                delete this.buttonsDown[i];
+            }
+        }
+        const buttonDownSet = _.keys(this.buttonsDown);
+        const lastButtonDownSet = _.keys(this._lastButtonsDown);
+        this.buttonsJustDown = {};
+        for (const button of _.difference(buttonDownSet, lastButtonDownSet))
+            this.buttonsJustDown[button] = true;
+        this.buttonsJustUp = {};
+        for (const button of _.difference(lastButtonDownSet, buttonDownSet))
+            this.buttonsJustUp[button] = true;
+        this._lastButtonsDown = _.clone(this.buttonsDown);
+    }
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5wdXQuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi90eXBlc2NyaXB0L2lucHV0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUNBLE9BQU8sS0FBSyxNQUFNLE1BQU0sVUFBVSxDQUFDO0FBQ25DLE9BQU8sQ0FBQyxNQUFNLFlBQVksQ0FBQztBQUUzQixNQUFNLE9BQU8sUUFBUyxTQUFRLE1BQU0sQ0FBQyxNQUFNO0lBQTNDOztRQUVTLGFBQVEsR0FBeUIsRUFBRSxDQUFDO1FBQ3BDLGlCQUFZLEdBQTBCLEVBQUUsQ0FBQztRQUN6QyxlQUFVLEdBQTBCLEVBQUUsQ0FBQztRQUd0QyxrQkFBYSxHQUF5QixFQUFFLENBQUM7UUFDekMsc0JBQWlCLEdBQUcsSUFBSSxDQUFDLFVBQVUsQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLENBQUM7UUFDL0Msb0JBQWUsR0FBRyxJQUFJLENBQUMsUUFBUSxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsQ0FBQztRQUMzQyx1QkFBa0IsR0FBRyxJQUFJLENBQUMsV0FBVyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsQ0FBQztJQXFEM0QsQ0FBQztJQW5EQyxLQUFLLENBQUMsTUFBVTtRQUNkLEtBQUssQ0FBQyxLQUFLLENBQUMsTUFBTSxDQUFDLENBQUM7UUFFcEIsSUFBSSxDQUFDLE1BQU0sQ0FBQyxHQUFHLENBQUMsSUFBSSxDQUFDLGdCQUFnQixDQUFDLFNBQVMsRUFBRSxJQUFJLENBQUMsaUJBQWlCLENBQUMsQ0FBQztRQUN6RSxJQUFJLENBQUMsTUFBTSxDQUFDLEdBQUcsQ0FBQyxJQUFJLENBQUMsZ0JBQWdCLENBQUMsT0FBTyxFQUFFLElBQUksQ0FBQyxlQUFlLENBQUMsQ0FBQztRQUNyRSxJQUFJLENBQUMsTUFBTSxDQUFDLEdBQUcsQ0FBQyxJQUFJLENBQUMsZ0JBQWdCLENBQUMsVUFBVSxFQUFFLElBQUksQ0FBQyxrQkFBa0IsQ0FBQyxDQUFDO0lBQzdFLENBQUM7SUFFRCxNQUFNLENBQUMs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
