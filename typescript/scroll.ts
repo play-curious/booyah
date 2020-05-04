@@ -1,6 +1,6 @@
-import * as entity from "./entity.js";
-import * as geom from "./geom.js";
-import * as util from "./util.js";
+import * as entity from "./entity";
+import * as geom from "./geom";
+import * as util from "./util";
 
 /**
  * Based on David Fig's pixi-scrollbox https://github.com/davidfig/pixi-scrollbox/, but adapted to Booyah
@@ -10,10 +10,22 @@ import * as util from "./util.js";
  *  refreshed
  **/
 export class Scrollbox extends entity.ParallelEntity {
+
+    public pointerDown:any
+    public container:PIXI.Container
+    public content:PIXI.Container
+    public scrollbar:PIXI.Graphics
+    public onWheelHandler:()=>void
+    public _isScrollbarVertical:boolean
+    public scrollbarTop:number
+    public scrollbarHeight:number
+    public scrollbarLeft:number
+    public scrollbarWidth:number
+
   /**
    * Can be provided with an existing container
    */
-  constructor(options = {}) {
+  constructor(public options:any = {}) {
     super();
 
     this.options = util.setupOptions({}, options, {
@@ -44,10 +56,10 @@ export class Scrollbox extends entity.ParallelEntity {
 
     this.container = new PIXI.Container();
     this.container.interactive = true;
-    this._on(this.container, "pointermove", this._onMove);
-    this._on(this.container, "pointerup", this._onUp);
-    this._on(this.container, "pointercancel", this._onUp);
-    this._on(this.container, "pointerupoutside", this._onUp);
+    this._on(this.container, "pointermove", this._onMove as any);
+    this._on(this.container, "pointerup", this._onUp as any);
+    this._on(this.container, "pointercancel", this._onUp as any);
+    this._on(this.container, "pointerupoutside", this._onUp as any);
     this.config.container.addChild(this.container);
 
     if (this.options.dragScroll) {
@@ -58,7 +70,7 @@ export class Scrollbox extends entity.ParallelEntity {
         .endFill();
       dragBackground.alpha = 0;
 
-      this._on(this.container, "pointerdown", this._dragDown);
+      this._on(this.container, "pointerdown", this._dragDown as any);
       this.container.addChild(dragBackground);
     }
 
@@ -67,7 +79,7 @@ export class Scrollbox extends entity.ParallelEntity {
 
     this.scrollbar = new PIXI.Graphics();
     this.scrollbar.interactive = true;
-    this._on(this.scrollbar, "pointerdown", this._scrollbarDown);
+    this._on(this.scrollbar, "pointerdown", this._scrollbarDown as any);
     this.container.addChild(this.scrollbar);
 
     const mask = new PIXI.Graphics();
@@ -122,7 +134,7 @@ export class Scrollbox extends entity.ParallelEntity {
   // From the same function in pixi-scrollbox
   _drawScrollbars() {
     this.scrollbar.clear();
-    let options = {};
+    let options:any = {};
     options.left = 0;
     options.right =
       this.content.width +
@@ -223,7 +235,7 @@ export class Scrollbox extends entity.ParallelEntity {
     }
   }
 
-  _onMove(e) {
+  _onMove(e:PIXI.interaction.InteractionEvent) {
     if (!this.pointerDown) return;
 
     if (this.pointerDown.type === "scrollbar") this._scrollbarMove(e);
@@ -231,11 +243,11 @@ export class Scrollbox extends entity.ParallelEntity {
     else throw new Error("no such type");
   }
 
-  _onUp(e) {
+  _onUp(e:PIXI.interaction.InteractionEvent) {
     if (!this.pointerDown) return;
 
-    if (this.pointerDown.type === "scrollbar") this._scrollbarUp(e);
-    else if (this.pointerDown.type === "drag") this._dragUp(e);
+    if (this.pointerDown.type === "scrollbar") this._scrollbarUp();
+    else if (this.pointerDown.type === "drag") this._dragUp();
     else throw new Error("no such type");
   }
 
@@ -244,7 +256,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
-  _scrollbarDown(e) {
+  _scrollbarDown(e:PIXI.interaction.InteractionEvent) {
     if (this.pointerDown) return;
 
     this.content.interactiveChildren = false;
@@ -305,7 +317,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
-  _scrollbarMove(e) {
+  _scrollbarMove(e:PIXI.interaction.InteractionEvent) {
     if (this.pointerDown.direction === "horizontal") {
       const local = this.container.toLocal(e.data.global);
       const fraction =
@@ -342,7 +354,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
-  _dragDown(e) {
+  _dragDown(e:any) {
     if (this.pointerDown) return;
 
     const local = this.container.toLocal(e.data.global);
@@ -359,8 +371,8 @@ export class Scrollbox extends entity.ParallelEntity {
    * @private
    */
 
-  _dragMove(e) {
-    const local = this.container.toLocal(e.data.global);
+  _dragMove(e:PIXI.interaction.InteractionEvent) {
+    const local = this.container.toLocal(e.data.global) as PIXI.Point;
     if (
       geom.distance(local, this.pointerDown.last) <= this.options.dragThreshold
     )
@@ -395,7 +407,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * handle wheel events
    * @param {WheelEvent} event
    */
-  _onWheel(e) {
+  _onWheel(e:WheelEvent) {
     if (!this.container.worldVisible) return;
 
     // Get coordinates of point and test if we touch this container
@@ -424,11 +436,11 @@ export class Scrollbox extends entity.ParallelEntity {
     e.preventDefault();
   }
 
-  scrollBy(amount, reason = "user") {
-    this.scrollTo(geom.add(this.content.position, amount), reason);
+  scrollBy(amount:PIXI.Point, reason = "user") {
+    this.scrollTo(geom.add(this.content.position as PIXI.Point, amount), reason);
   }
 
-  scrollTo(position, reason = "user") {
+  scrollTo(position:PIXI.Point, reason = "user") {
     position.x = geom.clamp(
       position.x,
       this.options.boxWidth -

@@ -1,7 +1,8 @@
-import * as util from "./util.js";
-import * as geom from "./geom.js";
-import * as entity from "./entity.js";
-import * as easing from "./easing.js";
+import * as util from "./util";
+import * as geom from "./geom";
+import * as entity from "./entity";
+import * as easing from "./easing";
+import * as _ from "underscore";
 
 /**
  * Creates a ParallelEntity that carries out multiple tweens on the same object.
@@ -10,8 +11,8 @@ import * as easing from "./easing.js";
  * @props Map of property names to options for that property (like Tween() would take)
  * @options Default options for all properties, if not overridden by @props
  */
-export function make(obj, props, options) {
-  const tweens = [];
+export function make(obj:any, props:any, options:any): entity.ParallelEntity {
+  const tweens:any[] = [];
   for (const key in props) {
     const tweenOptions = _.defaults(
       { obj, property: key },
@@ -23,11 +24,34 @@ export function make(obj, props, options) {
   return new entity.ParallelEntity(tweens, { autoTransition: true });
 }
 
+export interface TweenOptions {
+  obj?: any
+  property?:string
+  from?:any
+  to:any
+  duration?:number
+  easing?:(t:number)=>number
+  interpolate?:any
+}
+
 /**
  * Events:
  *  updatedValue(value)
  */
-export class Tween extends entity.Entity {
+export class Tween extends entity.Entity implements TweenOptions {
+
+  currentObj: any
+  interpolate: any;
+  property: string;
+  from: any;
+  obj: any;
+  to: any;
+  startValue:any
+  value:any
+  startTime:number
+  duration: number;
+  easing:(t:number)=>number
+
   /**
    * Takes the following options:
    * @obj - an actual object, a function that returns an object, or null (in which case the value is internal only)
@@ -39,7 +63,7 @@ export class Tween extends entity.Entity {
    * @interpolate - Function to use for setting a new value.
    *  Depends on data type, such as color, vector, angle, ...
    **/
-  constructor(options) {
+  constructor(options:TweenOptions) {
     super();
 
     util.setupOptions(this, options, {
@@ -68,7 +92,7 @@ export class Tween extends entity.Entity {
     this.startTime = null;
   }
 
-  _update(options) {
+  _update(options:any) {
     if (this.startTime === null) this.startTime = options.timeSinceStart;
 
     if (options.timeSinceStart - this.startTime >= this.duration) {

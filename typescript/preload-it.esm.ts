@@ -1,16 +1,16 @@
-function preloadOne(url, done) {
+function preloadOne<T>(url:string, done:(item:T)=>void): void {
 	const xhr = new XMLHttpRequest();
 	xhr.open('GET', url, true);
 	xhr.responseType = 'blob';
 	xhr.onprogress = event => {
 		if (!event.lengthComputable) return false
 		let item = this.getItemByUrl(url);
-		item.completion = parseInt((event.loaded / event.total) * 100);
+		item.completion = (event.loaded / event.total) * 100;
 		item.downloaded = event.loaded;
 		item.total = event.total;
 		this.updateProgressBar(item);
 	};
-	xhr.onload = event => {
+	xhr.onload = (event:any) => {
 		let type = event.target.response.type;
 		let blob = new Blob([event.target.response], { type: type });
 		let blobUrl = URL.createObjectURL(blob);
@@ -25,18 +25,18 @@ function preloadOne(url, done) {
 	xhr.send();
 }
 
-function updateProgressBar(item) {
-	var sumCompletion = 0;
-	var maxCompletion = this.status.length * 100;
+function updateProgressBar(item:any) {
+    let sumCompletion = 0;
+    const maxCompletion = this.status.length * 100;
 
-	for (var itemStatus of this.status) {
+    for (let itemStatus of this.status) {
 		if (itemStatus.completion) {
 			sumCompletion += itemStatus.completion;
 		}
 	}
-	var totalCompletion = parseInt((sumCompletion / maxCompletion) * 100);
+    const totalCompletion = (sumCompletion / maxCompletion) * 100;
 
-	if (!isNaN(totalCompletion)) {
+    if (!isNaN(totalCompletion)) {
 		this.onprogress({
 			progress: totalCompletion,
 			item: item
@@ -44,18 +44,18 @@ function updateProgressBar(item) {
 	}
 }
 
-function getItemByUrl(rawUrl) {
-    for (var item of this.status) {
+function getItemByUrl(rawUrl:string) {
+    for (let item of this.status) {
         if (item.url == rawUrl) return item
     }
 }
 
-function fetch(list) {	
+function fetch<T>(list:T[]) {
 	return new Promise((resolve, reject) => {
 		this.loaded = list.length;
 		for (let item of list) {
 			this.status.push({ url: item });
-			this.preloadOne(item, item => {
+			this.preloadOne(item, (item:T) => {
 				this.onfetched(item);
 				this.loaded--;
 				if (this.loaded == 0) {
@@ -69,7 +69,7 @@ function fetch(list) {
 
 function Preload() {
 	return {
-		status: [],
+		status: [] as any[],
 		loaded: false,
 		onprogress: () => {},
 		oncomplete: () => {},
