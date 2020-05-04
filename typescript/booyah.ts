@@ -1,11 +1,14 @@
-import * as util from "./util.js";
-import * as entity from "./entity.js";
-import * as audio from "./audio.js";
+import * as util from "./util";
+import * as entity from "./entity";
+import * as audio from "./audio";
 
 // TODO: Once the PR has been accepted, move back to the version from NPM
-import preload from "./preload-it.esm.js";
+import preload from "./preload-it.esm";
+import * as _ from "underscore";
 
-const DEFAULT_DIRECTIVES = {
+type Directives = any
+
+const DEFAULT_DIRECTIVES:Directives = {
   screenSize: new PIXI.Point(960, 540), // Screen size as PIXI Point
   canvasId: "pixi-canvas", // ID of element to use for PIXI
 
@@ -84,14 +87,17 @@ const PRELOADER_ASSETS = [
 ];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
-const rootConfig = {};
+const rootConfig:{
+  directives?:Directives
+  [key:string]:any
+} = {};
 
-let loadingScene;
-let rootEntity;
+let loadingScene:any;
+let rootEntity:any;
 
 let lastFrameTime = 0;
 
-let previousGameState = null;
+let previousGameState:string = null;
 let gameState = "preloading"; // One of "preloading", "loadingFixed", "ready", "playing", "paused", "done"
 let playTime = 0;
 let timeSinceStart = 0;
@@ -104,13 +110,16 @@ let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 class FilterPauseEntity extends entity.CompositeEntity {
-  update(options) {
+  update(options:any) {
     if (options.gameState == "playing") super.update(options);
   }
 }
 
 class PlayOptions extends PIXI.utils.EventEmitter {
-  constructor(directives, searchUrl) {
+
+  public options:any
+
+  constructor(directives:Directives, searchUrl:string) {
     super();
 
     this.options = {
@@ -149,19 +158,39 @@ class PlayOptions extends PIXI.utils.EventEmitter {
     }
   }
 
-  setOption(name, value) {
+  setOption(name:string, value:any) {
     this.options[name] = value;
     this.emit(name, value);
     this.emit("change", name, value);
   }
 
-  getOption(name) {
+  getOption<T>(name:string):T {
     return this.options[name];
   }
 }
 
 export class MenuEntity extends entity.ParallelEntity {
-  _setup(config) {
+
+  public container:PIXI.Container
+  public menuLayer:PIXI.Container
+  public menuButtonLayer:PIXI.Container
+  public switchLanguageConfirmLayer:PIXI.Container
+  public resetConfirmLayer:PIXI.Container
+  public pauseButton:PIXI.Sprite
+  public playButton:PIXI.Sprite
+  public confirmLanguageButton:PIXI.Sprite
+  public resetButton:PIXI.Sprite
+  public confirmResetButton:PIXI.Sprite
+  public mask:PIXI.Graphics
+  public resetMask:PIXI.Graphics
+  public creditsEntity:CreditsEntity
+  public fullScreenButton:entity.ToggleSwitch
+  public musicButton:entity.ToggleSwitch
+  public fxButton:entity.ToggleSwitch
+  public subtitlesButton:entity.ToggleSwitch
+
+
+  _setup(config:any) {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
@@ -264,7 +293,7 @@ export class MenuEntity extends entity.ParallelEntity {
         isOn: false,
         position: new PIXI.Point(405, 130)
       });
-      this._on(this.fullScreenButton, "change", this._onChangeFullScreen);
+      this._on(this.fullScreenButton, "change", this._onChangeFullScreen as any);
       this.fullScreenButton.setup(menuButtonLayerConfig);
       this.addEntity(this.fullScreenButton);
 
@@ -288,7 +317,7 @@ export class MenuEntity extends entity.ParallelEntity {
       isOn: this.config.playOptions.options.musicOn,
       position: new PIXI.Point(405, 230)
     });
-    this._on(this.musicButton, "change", this._onChangeMusicIsOn);
+    this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
     this.musicButton.setup(menuButtonLayerConfig);
     this.addEntity(this.musicButton);
 
@@ -303,7 +332,7 @@ export class MenuEntity extends entity.ParallelEntity {
       isOn: this.config.playOptions.options.fxOn,
       position: new PIXI.Point(630, 230)
     });
-    this._on(this.fxButton, "change", this._onChangeFxIsOn);
+    this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
     this.fxButton.setup(menuButtonLayerConfig);
     this.addEntity(this.fxButton);
 
@@ -317,7 +346,7 @@ export class MenuEntity extends entity.ParallelEntity {
       isOn: this.config.playOptions.options.showSubtitles,
       position: new PIXI.Point(630, 130)
     });
-    this._on(this.subtitlesButton, "change", this._onChangeShowSubtitles);
+    this._on(this.subtitlesButton, "change", this._onChangeShowSubtitles as any);
     this.subtitlesButton.setup(menuButtonLayerConfig);
     this.addEntity(this.subtitlesButton);
 
@@ -463,7 +492,7 @@ export class MenuEntity extends entity.ParallelEntity {
     this.config.container.addChild(this.container);
   }
 
-  _update(options) {
+  _update(options:any) {
     if (this.creditsEntity) {
       if (this.creditsEntity.requestedTransition) {
         this.removeEntity(this.creditsEntity);
@@ -490,20 +519,20 @@ export class MenuEntity extends entity.ParallelEntity {
     this.emit("play");
   }
 
-  _onChangeFullScreen(turnOn) {
+  _onChangeFullScreen(turnOn?:boolean) {
     if (turnOn) util.requestFullscreen(document.getElementById("game-parent"));
     else util.exitFullscreen();
   }
 
-  _onChangeMusicIsOn(isOn) {
+  _onChangeMusicIsOn(isOn:boolean) {
     this.config.playOptions.setOption("musicOn", isOn);
   }
 
-  _onChangeFxIsOn(isOn) {
+  _onChangeFxIsOn(isOn:boolean) {
     this.config.playOptions.setOption("fxOn", isOn);
   }
 
-  _onChangeShowSubtitles(showSubtitles) {
+  _onChangeShowSubtitles(showSubtitles:boolean) {
     this.config.playOptions.setOption("showSubtitles", showSubtitles);
   }
 
@@ -528,7 +557,7 @@ export class MenuEntity extends entity.ParallelEntity {
     this.addEntity(this.creditsEntity);
   }
 
-  _onSwitchLanguage(language) {
+  _onSwitchLanguage(language:string) {
     this.confirmLanguageButton.texture = this.config.app.loader.resources[
       `booyah/images/lang-${language}-on.png`
     ].texture;
@@ -538,11 +567,12 @@ export class MenuEntity extends entity.ParallelEntity {
     this.switchLanguageConfirmLayer.visible = true;
   }
 
-  _onConfirmSwitchLanguage(language) {
+  _onConfirmSwitchLanguage(language:string) {
     // Make URL with a different language
     // IDEA: use the current progress of the game, from the game state machine?
     const url = new URL(window.location.href);
     url.searchParams.set("lang", language);
+    //@ts-ignore
     window.location = url;
   }
 
@@ -552,17 +582,21 @@ export class MenuEntity extends entity.ParallelEntity {
   }
 }
 
-export function installMenu(rootConfig, rootEntity) {
+export function installMenu(rootConfig:any, rootEntity:any) {
   rootConfig.menu = new MenuEntity();
   rootEntity.addEntity(rootConfig.menu);
 }
 
 export class CreditsEntity extends entity.CompositeEntity {
-  _setup(config) {
+
+  public container:PIXI.Container
+  public mask:PIXI.Graphics
+
+  _setup(config:any) {
     this.container = new PIXI.Container();
 
-    let rolesText = [];
-    let peopleText = [];
+    let rolesText = '';
+    let peopleText = '';
     let didFirstLine = false;
     for (let role in this.config.directives.credits) {
       if (didFirstLine) {
@@ -645,7 +679,15 @@ export class CreditsEntity extends entity.CompositeEntity {
 }
 
 export class LoadingScene extends entity.CompositeEntity {
-  setup(config) {
+
+  progress:number
+  shouldUpdateProgress:boolean
+  container:PIXI.Container
+  loadingContainer:PIXI.Container
+  loadingFill:PIXI.Graphics
+  loadingCircle:PIXI.Sprite
+
+  setup(config:any) {
     super.setup(config);
 
     this.progress = 0;
@@ -698,7 +740,7 @@ export class LoadingScene extends entity.CompositeEntity {
     this.config.container.addChild(this.container);
   }
 
-  update(options) {
+  update(options:any) {
     super.update(options);
 
     this.loadingCircle.rotation += LOADING_SCENE_SPIN_SPEED * options.timeScale;
@@ -721,14 +763,17 @@ export class LoadingScene extends entity.CompositeEntity {
     super.teardown();
   }
 
-  updateProgress(fraction) {
+  updateProgress(fraction:number) {
     this.progress = fraction;
     this.shouldUpdateProgress = true;
   }
 }
 
 export class ReadyScene extends entity.CompositeEntity {
-  setup(config) {
+
+  container:PIXI.Container
+
+  setup(config:any) {
     super.setup(config);
 
     this.container = new PIXI.Container();
@@ -768,6 +813,9 @@ export class ReadyScene extends entity.CompositeEntity {
 }
 
 export class LoadingErrorScene extends entity.ParallelEntity {
+
+  container:PIXI.Container
+
   _setup() {
     this.container = new PIXI.Container();
 
@@ -800,7 +848,10 @@ export class LoadingErrorScene extends entity.ParallelEntity {
 }
 
 export class DoneScene extends entity.CompositeEntity {
-  setup(config) {
+
+  container:PIXI.Container
+
+  setup(config:any) {
     super.setup(config);
 
     this.container = new PIXI.Container();
@@ -858,12 +909,12 @@ function updateLoadingProgress() {
   if (loadingScene) loadingScene.updateProgress(progress);
 }
 
-function pixiLoadProgressHandler(loader, resource) {
+function pixiLoadProgressHandler(loader:any, resource?:any): void {
   pixiLoaderProgress = loader.progress / 100;
   updateLoadingProgress();
 }
 
-function update(timeScale) {
+function update(timeScale:number) {
   const frameTime = Date.now();
   const timeSinceLastFrame = frameTime - lastFrameTime;
   lastFrameTime = frameTime;
@@ -897,11 +948,11 @@ function update(timeScale) {
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
-function changeGameState(newGameState) {
+function changeGameState(newGameState:string) {
   console.log("switching from game state", gameState, "to", newGameState);
   gameState = newGameState;
 
-  ga("send", "event", "changeGameState", newGameState);
+  // ga("send", "event", "changeGameState", newGameState);
 }
 
 function loadFixedAssets() {
@@ -937,7 +988,7 @@ function loadFixedAssets() {
   rootConfig.jsonAssets = {};
   const jsonLoaderPromises = _.map(
     rootConfig.directives.jsonAssets,
-    jsonAssetDescription => {
+    (jsonAssetDescription:any) => {
       if (_.isString(jsonAssetDescription)) {
         return util.loadJson(jsonAssetDescription).then(data => {
           rootConfig.jsonAssets[jsonAssetDescription] = data;
@@ -985,15 +1036,15 @@ function loadFixedAssets() {
   const videoLoaderPromises = [];
   if (rootConfig.directives.videoAssets.length > 0) {
     const videoLoader = preload();
-    videoLoader.onprogress = event => {
+    videoLoader.onprogress = (event:any) => {
       videoLoaderProgress = event.progress / 100;
       updateLoadingProgress();
     };
     videoLoaderPromises.push(
       videoLoader
-        .fetch(rootConfig.directives.videoAssets.map(name => `video/${name}`))
-        .then(assets => {
-          const videoAssets = {};
+        .fetch(rootConfig.directives.videoAssets.map((name:string) => `video/${name}`))
+        .then((assets:any[]) => {
+          const videoAssets:any = {};
           for (const asset of assets) {
             const element = util.makeVideoElement();
             element.src = asset.blobUrl;
@@ -1104,14 +1155,14 @@ function doneLoading() {
   rootEntity.setup(rootConfig);
 }
 
-export function makePreloader(additionalAssets) {
+export function makePreloader(additionalAssets:string[]) {
   const loader = new PIXI.Loader();
   loader.add(PRELOADER_ASSETS);
   loader.add(additionalAssets);
   return loader;
 }
 
-export function go(directives = {}) {
+export function go(directives:Directives = {}) {
   _.extend(rootConfig, directives.rootConfig);
   rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
 
@@ -1136,11 +1187,11 @@ export function go(directives = {}) {
   rootConfig.app = new PIXI.Application({
     width: rootConfig.directives.screenSize.x,
     height: rootConfig.directives.screenSize.y,
-    view: document.getElementById(rootConfig.directives.canvasId)
+    view: document.getElementById(rootConfig.directives.canvasId) as HTMLCanvasElement
   });
   rootConfig.container = rootConfig.app.stage;
 
-  ga("send", "event", "loading", "start");
+  // ga("send", "event", "loading", "start");
   util.startTiming("preload");
 
   // Setup preloader
@@ -1188,10 +1239,10 @@ export function go(directives = {}) {
 }
 
 function onGameStateMachineChange(
-  nextStateName,
-  nextStateParams,
-  previousStateName,
-  previousStateParams
+  nextStateName:string,
+  nextStateParams:any,
+  previousStateName:string,
+  previousStateParams:any
 ) {
   const url = new URL(window.location.href);
   nextStateParams = nextStateParams
@@ -1208,8 +1259,8 @@ function onGameStateMachineChange(
   console.log("New game state link:", url.href);
 }
 
-function removePrivateProperties(obj) {
-  const result = {};
+function removePrivateProperties(obj:any) {
+  const result:any = {};
   for (const key in obj) {
     if (!key.startsWith("_")) result[key] = obj[key];
   }

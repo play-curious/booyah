@@ -71,9 +71,9 @@ function Preload() {
 	return {
 		status: [] as any[],
 		loaded: false,
-		onprogress: () => {},
-		oncomplete: () => {},
-		onfetched: () => {},
+		onprogress: (e?:any) => {},
+		oncomplete: (e?:any) => {},
+		onfetched: (e?:any) => {},
 		fetch,
 		updateProgressBar,
 		preloadOne,
