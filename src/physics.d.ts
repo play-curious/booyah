@@ -10,9 +10,12 @@ export declare class Simulation extends entity.ParallelEntity {
     oldConfig: any;
     container: PIXI.Container;
     zoom: number;
-    constructor(options: any);
-    setup(config: any): void;
-    update(options: any): void;
+    constructor(options: {
+        zoom?: number;
+        worldOptions: {};
+    });
+    setup(config: entity.Config): void;
+    update(options: entity.Options): void;
     teardown(): void;
 }
 /**
@@ -21,8 +24,11 @@ export declare class Simulation extends entity.ParallelEntity {
 export declare class BodyEntity extends entity.ParallelEntity {
     body: any;
     display: any;
-    constructor(options: any);
-    setup(config: any): void;
-    update(options: any): void;
+    constructor(options: {
+        body?: any;
+        display?: any;
+    });
+    setup(config: entity.Config): void;
+    update(options: entity.Options): void;
     teardown(): void;
 }

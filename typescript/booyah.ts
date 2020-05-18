@@ -137,7 +137,11 @@ const rootConfig:Config = {
   jsonAssets: {},
   fxAudio: null,
   gameStateMachine: null,
-  menu: null
+  menu: null,
+  muted: null,
+  jukebox: null,
+  narrator: null,
+  world: null
 };
 
 let loadingScene:any;

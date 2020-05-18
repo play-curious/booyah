@@ -1,5 +1,65 @@
 import * as entity from "./entity";
-declare type Directives = any;
+import { Config, Entity, TransitionResolvable } from "./entity";
+export interface Directives {
+    rootConfig: Config;
+    rootEntity: entity.Entity;
+    loadingPromise: any;
+    graphics: any;
+    startingSceneParams: any;
+    startingScene: any;
+    startingProgress: any;
+    menuButtonPosition: PIXI.IPoint;
+    gameLogo: string;
+    extraLogos: string[];
+    videoAssets: string[];
+    supportedLanguages: string[];
+    language: string;
+    credits: {
+        [k: string]: string;
+    };
+    creditsTextSize: number;
+    splashScreen: string;
+    graphicalAssets: string[];
+    fontAssets: string[];
+    jsonAssets: {
+        [k: string]: string;
+    };
+    musicAssets: (string | {
+        key: string;
+        url: string;
+    })[];
+    fxAssets: (string | {
+        key: string;
+        url: string;
+    })[];
+    extraLoaders: ((config: Config) => Promise<any>)[];
+    entityInstallers: ((config: Config, entity: Entity) => any)[];
+    states: {
+        [n: string]: Entity;
+    };
+    transitions: {
+        [k: string]: TransitionResolvable;
+    };
+    endingScenes: {
+        [k: string]: Entity;
+    };
+    screenSize: PIXI.IPoint;
+    canvasId: string;
+}
+export declare type GameState = ("preloading" | "loadingFixed" | "ready" | "playing" | "paused" | "done");
+export declare class PlayOptions extends PIXI.utils.EventEmitter {
+    options: {
+        musicOn: boolean;
+        fxOn: boolean;
+        showSubtitles: boolean;
+        sceneParams: {};
+        scene: any;
+        startingProgress: any;
+    };
+    constructor(directives: Directives, searchUrl: string);
+    setOption(name: string, value: any): void;
+    getOption<T>(name: string): T;
+}
 export declare class MenuEntity extends entity.ParallelEntity {
     container: PIXI.Container;
     menuLayer: PIXI.Container;
@@ -18,7 +78,7 @@ export declare class MenuEntity extends entity.ParallelEntity {
     musicButton: entity.ToggleSwitch;
     fxButton: entity.ToggleSwitch;
     subtitlesButton: entity.ToggleSwitch;
-    _setup(config: any): void;
+    _setup(config: Config): void;
     _update(options: any): void;
     _teardown(): void;
     _onPause(): void;
@@ -70,12 +130,8 @@ export declare class DoneScene extends entity.CompositeEntity {
     teardown(): void;
 }
 export declare function makePreloader(additionalAssets: string[]): PIXI.Loader;
-export declare function go(directives?: Directives): {
-    rootConfig: {
-        [key: string]: any;
-        directives?: any;
-    };
-    rootEntity: any;
+export declare function go(directives?: Partial<Directives>): {
+    rootConfig: entity.Config;
+    rootEntity: entity.ParallelEntity;
     loadingPromise: Promise<void>;
 };
-export {};

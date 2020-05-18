@@ -1,7 +1,48 @@
-export interface BooyahEventListener {
+/// <reference types="howler" />
+/// <reference types="p2" />
+import { Directives, GameState, PlayOptions } from "./booyah";
+import { Jukebox } from "./audio";
+import { Narrator } from "./narration";
+export interface IEventListener {
     emitter: PIXI.utils.EventEmitter;
     event: string;
-    cb: () => void;
+    cb: () => any;
+}
+export interface TransitionResolvable {
+    name: string;
+    params: any;
+}
+export interface Config {
+    directives: Directives;
+    app: PIXI.Application;
+    preloader: PIXI.Loader;
+    container: PIXI.Container;
+    musicAudio: {
+        [p: string]: Howl;
+    };
+    fxAudio: {
+        [p: string]: Howl;
+    };
+    videoAssets: {
+        [k: string]: HTMLVideoElement;
+    };
+    playOptions: PlayOptions;
+    jsonAssets: {
+        [k: string]: string;
+    };
+    gameStateMachine: StateMachine;
+    menu: Entity;
+    jukebox: Jukebox;
+    muted: boolean;
+    narrator: Narrator;
+    world: p2.World;
+}
+export interface Options {
+    playTime: number;
+    timeSinceStart: number;
+    timeSinceLastFrame: number;
+    timeScale: number;
+    gameState: GameState;
 }
 /**
  In Booyah, the game is structured as a tree of entities. This is the base class for all entities.
@@ -28,11 +69,11 @@ export interface BooyahEventListener {
  */
 export declare abstract class Entity extends PIXI.utils.EventEmitter {
     isSetup: boolean;
-    eventListeners: BooyahEventListener[];
+    eventListeners: IEventListener[];
     requestedTransition: any;
-    config: any;
-    setup(config: any): void;
-    update(options: any): void;
+    config: Config;
+    setup(config: Config): void;
+    update(options: Options): void;
     teardown(options?: any): void;
     onSignal(signal: string, data?: any): void;
     protected _on(emitter: PIXI.utils.EventEmitter, event: string, cb: () => void): void;
@@ -63,7 +104,7 @@ export interface ParallelEntityOptions {
  */
 export declare class ParallelEntity extends Entity {
     entities: Entity[];
-    entityConfigs: any[];
+    entityConfigs: Config[];
     entityIsActive: boolean[];
     autoTransition: boolean;
     /**
@@ -75,7 +116,7 @@ export declare class ParallelEntity extends Entity {
     setup(config: any): void;
     update(options: any): void;
     teardown(): void;
-    onSignal(signal: string, data: any): void;
+    onSignal(signal: string, data?: any): void;
     addEntity(entity: Entity, config?: any): void;
     removeEntity(entity: Entity): void;
     removeAllEntities(): void;
@@ -120,21 +161,29 @@ export declare class EntitySequence extends Entity implements EntitySequenceOpti
   To use have a transition table within a transition table, use the function makeTransitionTable()
 */
 export declare class StateMachine extends Entity {
-    states: any;
-    transitions: any;
+    states: {
+        [n: string]: Entity;
+    };
+    transitions: {
+        [k: string]: TransitionResolvable;
+    };
     startingStateParams: any;
     startingState: any;
     startingProgress: any;
     visitedStates: any;
     progress: any;
-    state: any;
+    state: Entity;
     stateName: string;
     sceneStartedAt: number;
     endingStates: any;
-    stateParams: any;
-    constructor(states: any, transitions: any, options?: any);
-    setup(config: any): void;
-    update(options: any): void;
+    stateParams: {};
+    constructor(states: {
+        [n: string]: Entity;
+    }, transitions: {
+        [k: string]: TransitionResolvable;
+    }, options?: any);
+    setup(config: Config): void;
+    update(options: Options): void;
     teardown(): void;
     onSignal(signal: string, data?: any): void;
     _changeState(timeSinceStart: number, nextStateName: string, nextStateParams: any): void;
@@ -248,7 +297,7 @@ export declare class VideoEntity extends Entity {
     videoSprite: any;
     loop: boolean;
     constructor(videoName: string, options?: any);
-    _setup(config: any): void;
+    _setup(config: Config): void;
     _update(options: any): void;
     _onSignal(signal: string, data?: any): void;
     teardown(): void;
@@ -288,7 +337,7 @@ export declare class AnimatedSpriteEntity extends Entity {
 }
 export declare class SkipButton extends Entity {
     sprite: PIXI.Sprite;
-    setup(config: any): void;
+    setup(config: Config): void;
     teardown(): void;
     _onSkip(): void;
 }
@@ -372,5 +421,5 @@ export declare class SwitchingEntity extends Entity {
     removeEntity(entity: Entity): void;
     removeAllEntities(): void;
 }
-export declare function processEntityConfig(config: Entity, alteredConfig: any): any;
-export declare function extendConfig(values: any): (config: any) => any;
+export declare function processEntityConfig(config: Config, alteredConfig: Config | ((c: Config) => Config)): Config;
+export declare function extendConfig(values: any): (c: Config) => Config;

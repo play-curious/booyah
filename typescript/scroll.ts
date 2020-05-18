@@ -25,7 +25,26 @@ export class Scrollbox extends entity.ParallelEntity {
   /**
    * Can be provided with an existing container
    */
-  constructor(public options:any = {}) {
+  constructor(public options:{
+    content?: any
+    boxWidth?: number
+    boxHeight?: number
+    overflowX?: number | string
+    overflowY?: number | string
+    scrollbarOffsetHorizontal?: number
+    scrollbarOffsetVertical?: number
+    scrollbarSize?: number
+    scrollbarBackground?: number
+    scrollbarBackgroundAlpha?: number
+    scrollbarForeground?: number
+    scrollbarForegroundAlpha?: number
+    dragScroll?: boolean
+    dragThreshold?: number
+    stopPropagation?: boolean
+    contentMarginX?: number
+    contentMarginY?: number
+    wheelScroll?: boolean
+  } = {}) {
     super();
 
     this.options = util.setupOptions({}, options, {
@@ -116,7 +135,7 @@ export class Scrollbox extends entity.ParallelEntity {
   get isScrollbarHorizontal() {
     return this.options.overflowX === "scroll"
       ? true
-      : ["hidden", "none"].indexOf(this.options.overflowX) !== -1
+      : ["hidden", "none"].indexOf(String(this.options.overflowX)) !== -1
       ? false
       : this.content.width + this.options.contentMarginX >
         this.options.boxWidth;
@@ -125,7 +144,7 @@ export class Scrollbox extends entity.ParallelEntity {
   get isScrollbarVertical() {
     return this.options.overflowY === "scroll"
       ? true
-      : ["hidden", "none"].indexOf(this.options.overflowY) !== -1
+      : ["hidden", "none"].indexOf(String(this.options.overflowY)) !== -1
       ? false
       : this.content.height + this.options.contentMarginY >
         this.options.boxHeight;
@@ -354,7 +373,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
-  _dragDown(e:any) {
+  _dragDown(e:PIXI.interaction.InteractionEvent) {
     if (this.pointerDown) return;
 
     const local = this.container.toLocal(e.data.global);
@@ -405,7 +424,7 @@ export class Scrollbox extends entity.ParallelEntity {
 
   /**
    * handle wheel events
-   * @param {WheelEvent} event
+   * @param {WheelEvent} e
    */
   _onWheel(e:WheelEvent) {
     if (!this.container.worldVisible) return;

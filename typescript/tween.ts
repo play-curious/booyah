@@ -92,7 +92,7 @@ export class Tween extends entity.Entity implements TweenOptions {
     this.startTime = null;
   }
 
-  _update(options:any) {
+  _update(options:entity.Options) {
     if (this.startTime === null) this.startTime = options.timeSinceStart;
 
     if (options.timeSinceStart - this.startTime >= this.duration) {

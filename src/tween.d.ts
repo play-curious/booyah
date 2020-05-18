@@ -46,7 +46,7 @@ export declare class Tween extends entity.Entity implements TweenOptions {
      **/
     constructor(options: TweenOptions);
     _setup(): void;
-    _update(options: any): void;
+    _update(options: entity.Options): void;
     _getValue(): any;
     _updateValue(): void;
 }

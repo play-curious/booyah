@@ -21,19 +21,15 @@ export declare class Narrator extends entity.Entity {
     lines: any[];
     duration: number;
     constructor(filesToHowl: Map<string, Howl>, narrationTable: any);
-    setup(config: any): void;
-    update(options: {
-        playTime: number;
-        timeScale: number;
-        gameState: any;
-    }): void;
+    setup(config: entity.Config): void;
+    update(options: entity.Options): void;
     teardown(): void;
     changeKey(key: string, priority?: number): void;
     cancelAll(): void;
     narrationDuration(key: string): number;
     onSignal(signal: string, data?: any): void;
     _initNarration(playTime: number): void;
-    _updateText(text?: string, speaker?: any): void;
+    _updateText(text?: string, speaker?: string): void;
     _updateNextLineAt(): void;
     _updateMuted(): void;
     _updateShowSubtitles(): void;
@@ -47,11 +43,11 @@ export declare class SpeakerDisplay extends entity.Entity {
     namesToSprites: {
         [name: string]: PIXI.Sprite;
     };
-    currentSpeakerName: any;
+    currentSpeakerName: string;
     constructor(namesToImages: {
         [name: string]: string;
     }, position?: PIXI.Point);
-    setup(config: any): void;
+    setup(config: entity.Config): void;
     teardown(): void;
     _onChangeSpeaker(speaker?: any): void;
 }
@@ -69,29 +65,40 @@ export declare class RandomNarration extends entity.Entity {
     narrationPlaylist: any[];
     currentKey: string;
     constructor(narrationKeys: string[], priority: number);
-    setup(config: any): void;
-    _update(options: any): void;
+    setup(config: entity.Config): void;
+    _update(options: entity.Options): void;
     teardown(): void;
+}
+export interface VideoSceneOptions {
+    video: null;
+    loopVideo: false;
+    narration: null;
+    music: null;
 }
 /**
   Launches a complete video scene, complete with a video, narration, music, and skip button.
   Terminates when either the video completes, or the skip button is pressed.
  */
 export declare class VideoScene extends entity.ParallelEntity {
-    options: any;
+    options: VideoSceneOptions;
     narration: SingleNarration;
     video: entity.VideoEntity;
     skipButton: entity.SkipButton;
     previousMusic: string;
-    constructor(options?: any);
-    _setup(config: any): void;
-    _update(options: any): void;
+    constructor(options?: Partial<VideoSceneOptions>);
+    _setup(config: entity.Config): void;
+    _update(options: entity.Options): void;
     _teardown(): void;
 }
 export declare function makeNarrationKeyList(prefix: number, count: number): number[];
-export declare function loadNarrationAudio(narrationTable: any, languageCode: string): Map<any, any>;
-export declare function loadScript(languageCode: string): Promise<unknown>;
-export declare function makeNarrationLoader(narrationTable: any, languageCode: string): Promise<void | unknown[]>;
+/** Returns Map of file names to Howl objects, with sprite definintions */
+export declare function loadNarrationAudio(narrationTable: {
+    [k: string]: any;
+}, languageCode: string): Map<string, Howl>;
+export declare function loadScript(languageCode: string): Promise<XMLHttpRequestResponseType>;
+export declare function makeNarrationLoader(narrationTable: {
+    [k: string]: any;
+}, languageCode: string): Promise<void | unknown[]>;
 export declare function breakDialogIntoLines(text: string): {
     speaker: string;
     text: string;

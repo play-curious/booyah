@@ -7,7 +7,26 @@ import * as entity from "./entity";
  *  refreshed
  **/
 export declare class Scrollbox extends entity.ParallelEntity {
-    options: any;
+    options: {
+        content?: any;
+        boxWidth?: number;
+        boxHeight?: number;
+        overflowX?: number | string;
+        overflowY?: number | string;
+        scrollbarOffsetHorizontal?: number;
+        scrollbarOffsetVertical?: number;
+        scrollbarSize?: number;
+        scrollbarBackground?: number;
+        scrollbarBackgroundAlpha?: number;
+        scrollbarForeground?: number;
+        scrollbarForegroundAlpha?: number;
+        dragScroll?: boolean;
+        dragThreshold?: number;
+        stopPropagation?: boolean;
+        contentMarginX?: number;
+        contentMarginY?: number;
+        wheelScroll?: boolean;
+    };
     pointerDown: any;
     container: PIXI.Container;
     content: PIXI.Container;
@@ -21,7 +40,26 @@ export declare class Scrollbox extends entity.ParallelEntity {
     /**
      * Can be provided with an existing container
      */
-    constructor(options?: any);
+    constructor(options?: {
+        content?: any;
+        boxWidth?: number;
+        boxHeight?: number;
+        overflowX?: number | string;
+        overflowY?: number | string;
+        scrollbarOffsetHorizontal?: number;
+        scrollbarOffsetVertical?: number;
+        scrollbarSize?: number;
+        scrollbarBackground?: number;
+        scrollbarBackgroundAlpha?: number;
+        scrollbarForeground?: number;
+        scrollbarForegroundAlpha?: number;
+        dragScroll?: boolean;
+        dragThreshold?: number;
+        stopPropagation?: boolean;
+        contentMarginX?: number;
+        contentMarginY?: number;
+        wheelScroll?: boolean;
+    });
     _setup(): void;
     _teardown(): void;
     /** Call when container contents have changed  */
@@ -53,7 +91,7 @@ export declare class Scrollbox extends entity.ParallelEntity {
      * @param {PIXI.interaction.InteractionEvent} e
      * @private
      */
-    _dragDown(e: any): void;
+    _dragDown(e: PIXI.interaction.InteractionEvent): void;
     /**
      * handle pointer move on content
      * @param {PIXI.interaction.InteractionEvent} e
@@ -67,7 +105,7 @@ export declare class Scrollbox extends entity.ParallelEntity {
     _dragUp(): void;
     /**
      * handle wheel events
-     * @param {WheelEvent} event
+     * @param {WheelEvent} e
      */
     _onWheel(e: WheelEvent): void;
     scrollBy(amount: PIXI.Point, reason?: string): void;

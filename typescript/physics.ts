@@ -27,7 +27,10 @@ export class Simulation extends entity.ParallelEntity {
   public container:PIXI.Container
   public zoom:number
 
-  constructor(options:any) {
+  constructor(options:{
+    zoom?: number
+    worldOptions: {}
+  }) {
     super();
 
     util.setupOptions(this, options, {
@@ -36,7 +39,7 @@ export class Simulation extends entity.ParallelEntity {
     });
   }
 
-  setup(config:any) {
+  setup(config:entity.Config) {
     this.world = new p2.World(this.worldOptions);
     this.oldConfig = config;
 
@@ -57,7 +60,7 @@ export class Simulation extends entity.ParallelEntity {
     super.setup(config);
   }
 
-  update(options:any) {
+  update(options:entity.Options) {
     super.update(options);
 
     // Limit how fast the physics can catch up
@@ -82,7 +85,10 @@ export class BodyEntity extends entity.ParallelEntity {
   public body:any
   public display:any
 
-  constructor(options:any) {
+  constructor(options:{
+    body?: any
+    display?: any
+  }) {
     super();
 
     util.setupOptions(this, options, {
@@ -91,7 +97,7 @@ export class BodyEntity extends entity.ParallelEntity {
     });
   }
 
-  setup(config:any) {
+  setup(config:entity.Config) {
     super.setup(config);
 
     this.config.world.addBody(this.body);
@@ -99,7 +105,7 @@ export class BodyEntity extends entity.ParallelEntity {
     if (this.display) this.config.container.addChild(this.display);
   }
 
-  update(options:any) {
+  update(options:entity.Options) {
     super.update(options);
 
     // Transfer positions of the physics objects to Pixi.js

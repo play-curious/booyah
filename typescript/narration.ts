@@ -343,7 +343,7 @@ export class RandomNarration extends entity.Entity {
     this.config.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  _update(options:any) {
+  _update(options:entity.Options) {
     if (
       options.timeSinceStart >=
       this.config.narrator.narrationDuration(this.currentKey)
@@ -359,19 +359,26 @@ export class RandomNarration extends entity.Entity {
   }
 }
 
+export interface VideoSceneOptions {
+  video: null,
+  loopVideo: false,
+  narration: null,
+  music: null
+}
+
 /** 
   Launches a complete video scene, complete with a video, narration, music, and skip button.
   Terminates when either the video completes, or the skip button is pressed. 
  */
 export class VideoScene extends entity.ParallelEntity {
 
-  public options:any
+  public options:VideoSceneOptions
   public narration:SingleNarration
   public video:entity.VideoEntity
   public skipButton:entity.SkipButton
   public previousMusic:string
 
-  constructor(options:any = {}) {
+  constructor(options:Partial<VideoSceneOptions> = {}) {
     super();
 
     this.options = _.defaults(options, {
@@ -382,7 +389,7 @@ export class VideoScene extends entity.ParallelEntity {
     });
   }
 
-  _setup(config:any) {
+  _setup(config:entity.Config) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
       this.addEntity(this.narration);
@@ -404,7 +411,7 @@ export class VideoScene extends entity.ParallelEntity {
     this.addEntity(this.skipButton);
   }
 
-  _update(options:any) {
+  _update(options:entity.Options) {
     if (
       (this.options.video && this.video.requestedTransition) ||
       this.skipButton.requestedTransition
@@ -420,16 +427,16 @@ export class VideoScene extends entity.ParallelEntity {
   }
 }
 
-export function makeNarrationKeyList(prefix:number, count:number) {
+export function makeNarrationKeyList(prefix:number, count:number): number[] {
   const list = [];
   for (let i = 0; i < count; i++) list.push(prefix + i);
   return list;
 }
 
-// Returns Map of file names to Howl objects, with sprite definintions
-export function loadNarrationAudio(narrationTable:any, languageCode:string) {
+/** Returns Map of file names to Howl objects, with sprite definintions */
+export function loadNarrationAudio(narrationTable:{[k:string]:any}, languageCode:string) {
   // Prepare map of file names to sprite names
-  const fileToSprites = new Map();
+  const fileToSprites = new Map<string,any>();
   for (let key in narrationTable) {
     const value = narrationTable[key];
     if (value.skipFile) continue;
@@ -442,7 +449,7 @@ export function loadNarrationAudio(narrationTable:any, languageCode:string) {
   }
 
   // Create map of file names to Howl objects
-  const fileToHowl = new Map();
+  const fileToHowl = new Map<string,Howl>();
   for (let [file, sprites] of fileToSprites) {
     fileToHowl.set(
       file,
@@ -458,7 +465,7 @@ export function loadNarrationAudio(narrationTable:any, languageCode:string) {
   return fileToHowl;
 }
 
-export function loadScript(languageCode:string) {
+export function loadScript(languageCode:string): Promise<XMLHttpRequestResponseType> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("GET", `scripts/script_${languageCode}.json`);
@@ -469,7 +476,10 @@ export function loadScript(languageCode:string) {
   });
 }
 
-export function makeNarrationLoader(narrationTable:any, languageCode:string) {
+export function makeNarrationLoader(
+  narrationTable:{[k:string]:any},
+  languageCode:string
+) {
   // Load audio
   const narrationAudio = loadNarrationAudio(narrationTable, languageCode);
 

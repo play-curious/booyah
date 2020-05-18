@@ -14,8 +14,8 @@ export declare class Keyboard extends entity.Entity {
     private _onKeyDownWrapper;
     private _onKeyUpWrapper;
     private _onFocusOutWrapper;
-    setup(config: any): void;
-    update(options: any): void;
+    setup(config: entity.Config): void;
+    update(options: entity.Options): void;
     teardown(): void;
     _onKeyDown(event: KeyboardEvent): void;
     _onKeyUp(event: KeyboardEvent): void;
@@ -39,7 +39,7 @@ export declare class Gamepad extends entity.Entity {
     private _lastButtonsDown;
     axes: number[];
     constructor(gamepadIndex: number);
-    setup(config: any): void;
-    update(options: any): void;
+    setup(config: entity.Config): void;
+    update(options: entity.Options): void;
     _updateState(): void;
 }

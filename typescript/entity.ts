@@ -30,6 +30,7 @@ export interface Config {
   jukebox: Jukebox
   muted: boolean
   narrator: Narrator
+  world: p2.World
 }
 
 export interface Options {
