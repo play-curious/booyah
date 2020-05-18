@@ -1,5 +1,6 @@
 /// <reference types="howler" />
 import * as entity from "./entity";
+import {Config, Options, Entity} from "../typescript/entity";
 export declare const AUDIO_FILE_FORMATS: string[];
 /**
   A music player, that only plays one track at a time.
@@ -8,9 +9,9 @@ export declare const AUDIO_FILE_FORMATS: string[];
 export declare class Jukebox extends entity.Entity {
     volume: number;
     musicName: string;
-    musicPlaying: any;
+    musicPlaying: MusicEntity;
     muted: boolean;
-    constructor(options?: any);
+    constructor(options?: Options);
     _setup(config: boolean): void;
     _teardown(): void;
     _onSignal(signal: string, data?: any): void;
@@ -18,8 +19,8 @@ export declare class Jukebox extends entity.Entity {
     setMuted(isMuted: boolean): void;
     _updateMuted(): void;
 }
-export declare function installJukebox(rootConfig: any, rootEntity: any): void;
-export declare function makeInstallJukebox(options?: any): (rootConfig: any, rootEntity: any) => void;
+export declare function installJukebox(rootConfig: Config, rootEntity: Entity): void;
+export declare function makeInstallJukebox(options?: Options): (rootConfig: Config, rootEntity: Entity) => void;
 /**
   Am entity that requests the music be changed upon setup.
   Optionally can stop the music on teardown.
@@ -28,7 +29,7 @@ export declare class MusicEntity extends entity.Entity {
     trackName: string;
     stopOnTeardown: boolean;
     constructor(trackName: string, stopOnTeardown?: boolean);
-    _setup(config: any): void;
+    _setup(config: Config): void;
     _teardown(): void;
 }
 /**
@@ -36,7 +37,7 @@ export declare class MusicEntity extends entity.Entity {
 */
 export declare class FxMachine extends entity.Entity {
     volume: number;
-    constructor(options?: any);
+    constructor(options?: Options);
     _setup(): void;
     play(name: string): void;
     _updateMuted(): void;

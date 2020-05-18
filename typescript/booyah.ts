@@ -5,10 +5,49 @@ import * as audio from "./audio";
 // TODO: Once the PR has been accepted, move back to the version from NPM
 import preload from "./preload-it.esm";
 import * as _ from "underscore";
+import {Config, Entity, Options, StateMachine, TransitionResolvable} from "./entity";
 
-type Directives = any
+export interface Directives {
+  rootConfig: Config
+  rootEntity: entity.Entity
+  loadingPromise: any
+  graphics: any
+  startingSceneParams: any
+  startingScene: any
+  startingProgress: any
+  menuButtonPosition: PIXI.IPoint
+  gameLogo: string
+  extraLogos: string[]
+  videoAssets: string[]
+  supportedLanguages: string[]
+  language: string
+  credits: {[k:string]:string}
+  creditsTextSize: number
+  splashScreen: string
+  graphicalAssets: string[]
+  fontAssets: string[]
+  jsonAssets: {[k:string]:string}
+  musicAssets: (string|{key:string,url:string})[]
+  fxAssets: (string|{key:string,url:string})[]
+  extraLoaders: ((config:Config)=>Promise<any>)[]
+  entityInstallers: ((config:Config,entity:Entity)=>any)[]
+  states: { [n:string]:Entity }
+  transitions: { [k:string]:TransitionResolvable}
+  endingScenes: { [k:string]:Entity }
+  screenSize: PIXI.IPoint
+  canvasId: string
+}
 
-const DEFAULT_DIRECTIVES:Directives = {
+export type GameState = (
+  "preloading" |
+  "loadingFixed" |
+  "ready" |
+  "playing" |
+  "paused" |
+  "done"
+)
+
+const DEFAULT_DIRECTIVES:any = {
   screenSize: new PIXI.Point(960, 540), // Screen size as PIXI Point
   canvasId: "pixi-canvas", // ID of element to use for PIXI
 
@@ -87,18 +126,27 @@ const PRELOADER_ASSETS = [
 ];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
-const rootConfig:{
-  directives?:Directives
-  [key:string]:any
-} = {};
+const rootConfig:Config = {
+  directives: null,
+  app: null,
+  preloader: null,
+  container: null,
+  playOptions: null,
+  musicAudio: {},
+  videoAssets: {},
+  jsonAssets: {},
+  fxAudio: null,
+  gameStateMachine: null,
+  menu: null
+};
 
 let loadingScene:any;
-let rootEntity:any;
+let rootEntity:entity.ParallelEntity;
 
 let lastFrameTime = 0;
 
-let previousGameState:string = null;
-let gameState = "preloading"; // One of "preloading", "loadingFixed", "ready", "playing", "paused", "done"
+let previousGameState:GameState = null;
+let gameState:GameState = "preloading";
 let playTime = 0;
 let timeSinceStart = 0;
 
@@ -110,28 +158,34 @@ let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 class FilterPauseEntity extends entity.CompositeEntity {
-  update(options:any) {
+  update(options:Options) {
     if (options.gameState == "playing") super.update(options);
   }
 }
 
-class PlayOptions extends PIXI.utils.EventEmitter {
+export class PlayOptions extends PIXI.utils.EventEmitter {
 
-  public options:any
+  public options:{
+    musicOn: boolean
+    fxOn: boolean
+    showSubtitles: boolean
+    sceneParams: {}
+    scene: any
+    startingProgress: any
+  }
 
   constructor(directives:Directives, searchUrl:string) {
+
     super();
 
     this.options = {
       musicOn: true,
       fxOn: true,
       showSubtitles: true,
-      sceneParams: {}
+      sceneParams: directives.startingSceneParams,
+      scene: directives.startingScene,
+      startingProgress: directives.startingProgress
     };
-
-    this.options.scene = directives.startingScene;
-    this.options.sceneParams = directives.startingSceneParams;
-    this.options.startingProgress = directives.startingProgress;
 
     const searchParams = new URLSearchParams(searchUrl);
     if (searchParams.has("music"))
@@ -159,12 +213,14 @@ class PlayOptions extends PIXI.utils.EventEmitter {
   }
 
   setOption(name:string, value:any) {
+    //@ts-ignore
     this.options[name] = value;
     this.emit(name, value);
     this.emit("change", name, value);
   }
 
   getOption<T>(name:string):T {
+    //@ts-ignore
     return this.options[name];
   }
 }
@@ -190,7 +246,7 @@ export class MenuEntity extends entity.ParallelEntity {
   public subtitlesButton:entity.ToggleSwitch
 
 
-  _setup(config:any) {
+  _setup(config:Config) {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
@@ -948,7 +1004,7 @@ function update(timeScale:number) {
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
-function changeGameState(newGameState:string) {
+function changeGameState(newGameState:GameState) {
   console.log("switching from game state", gameState, "to", newGameState);
   gameState = newGameState;
 
@@ -1162,7 +1218,7 @@ export function makePreloader(additionalAssets:string[]) {
   return loader;
 }
 
-export function go(directives:Directives = {}) {
+export function go(directives:Partial<Directives> = {}) {
   _.extend(rootConfig, directives.rootConfig);
   rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
 

@@ -1,10 +1,43 @@
 import _, {partition} from 'underscore';
 import * as util from './util';
+import {Directives, GameState, PlayOptions} from "./booyah";
+import {Jukebox} from "./audio";
+import {Narrator} from "./narration";
 
-export interface BooyahEventListener {
+export interface IEventListener {
   emitter:PIXI.utils.EventEmitter
   event:string
-  cb:()=>void
+  cb:()=>any
+}
+
+export interface TransitionResolvable {
+  name: string,
+  params: any
+}
+
+export interface Config {
+  directives: Directives
+  app: PIXI.Application
+  preloader: PIXI.Loader
+  container: PIXI.Container
+  musicAudio: {[p: string]: Howl}
+  fxAudio: {[p: string]: Howl}
+  videoAssets: {[k: string]: HTMLVideoElement}
+  playOptions: PlayOptions
+  jsonAssets: {[k: string]: string}
+  gameStateMachine: StateMachine
+  menu: Entity
+  jukebox: Jukebox
+  muted: boolean
+  narrator: Narrator
+}
+
+export interface Options {
+  playTime: number
+  timeSinceStart: number
+  timeSinceLastFrame: number
+  timeScale: number
+  gameState: GameState
 }
 
 /**
@@ -33,11 +66,11 @@ export interface BooyahEventListener {
 export abstract class Entity extends PIXI.utils.EventEmitter {
 
   public isSetup = false;
-  public eventListeners:BooyahEventListener[] = [];
+  public eventListeners:IEventListener[] = [];
   public requestedTransition:any;
-  public config:any;
+  public config:Config;
 
-  public setup( config:any ): void {
+  public setup( config:Config ): void {
 
     if (this.isSetup) {
       console.error("setup() called twice", this);
@@ -51,7 +84,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
     this._setup(config);
   }
 
-  public update( options:any ): void {
+  public update( options:Options ): void {
 
     if (!this.isSetup) {
       console.error("update() called before setup()", this);
@@ -90,7 +123,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
 
   // if @cb is null, will remove all event listeners for the given emitter and event
   protected _off(emitter?:PIXI.utils.EventEmitter, event?:string, cb?:()=>void): void {
-    const props:BooyahEventListener = {
+    const props:IEventListener = {
       emitter, event, cb
     };
 
@@ -149,7 +182,7 @@ export interface ParallelEntityOptions {
  */
 export class ParallelEntity extends Entity {
   public entities:Entity[] = [];
-  public entityConfigs:any[] = [];
+  public entityConfigs:Config[] = [];
   public entityIsActive:boolean[] = [];
   public autoTransition:boolean = false;
   /**
@@ -222,7 +255,7 @@ export class ParallelEntity extends Entity {
     super.teardown();
   }
 
-  onSignal(signal:string, data:any) {
+  onSignal(signal:string, data?:any) {
     super.onSignal(signal, data);
 
     for (let i = 0; i < this.entities.length; i++) {
@@ -413,15 +446,15 @@ export class StateMachine extends Entity {
   public startingProgress:any;
   public visitedStates:any;
   public progress:any;
-  public state:any;
+  public state:Entity;
   public stateName:string;
   public sceneStartedAt:number;
   public endingStates:any;
-  public stateParams:any;
+  public stateParams:{};
 
   constructor(
-      public states:any,
-      public transitions:any,
+      public states: { [n:string]:Entity },
+      public transitions: { [k:string]:TransitionResolvable },
       options:any = {}
   ) {
     super();
@@ -434,7 +467,7 @@ export class StateMachine extends Entity {
     });
   }
 
-  setup(config:any) {
+  setup(config:Config) {
     super.setup(config);
 
     this.visitedStates = [];
@@ -449,7 +482,7 @@ export class StateMachine extends Entity {
     this._changeState(0, startingState, startingStateParams);
   }
 
-  update(options:any) {
+  update(options:Options) {
     super.update(options);
 
     if (!this.state) return;
@@ -857,7 +890,7 @@ export class VideoEntity extends Entity {
     });
   }
 
-  _setup(config:any) {
+  _setup(config:Config) {
     // This container is used so that the video is inserted in the right place,
     // even if the sprite isn't added until later.
     this.container = new PIXI.Container();
@@ -1020,12 +1053,12 @@ export class SkipButton extends Entity {
 
   public sprite:PIXI.Sprite
 
-  setup(config:any) {
+  setup(config:Config) {
     super.setup(config);
 
     this.sprite = new PIXI.Sprite(
       this.config.app.loader.resources[
-        this.config.directives.graphics.skip
+        this.config.directives.graphics.skip as number
       ].texture
     );
     this.sprite.anchor.set(0.5);
@@ -1343,12 +1376,15 @@ export class SwitchingEntity extends Entity {
   }
 }
 
-export function processEntityConfig(config:Entity, alteredConfig:any) {
+export function processEntityConfig(
+  config:Config,
+  alteredConfig:Config|((c:Config)=>Config)
+): Config {
   if (!alteredConfig) return config;
   if (typeof alteredConfig == 'function') return alteredConfig(config);
   return alteredConfig;
 }
 
-export function extendConfig(values:any) {
-  return (config:any) => _.extend({}, config, values);
+export function extendConfig(values:any): (c:Config)=>Config {
+  return (config:Config) => _.extend({}, config, values);
 }

@@ -32,7 +32,7 @@ export class Narrator extends entity.Entity {
     super();
   }
 
-  setup(config:any) {
+  setup(config:entity.Config) {
     super.setup(config);
 
     this.container = new PIXI.Container();
@@ -90,7 +90,7 @@ export class Narrator extends entity.Entity {
     this._updateShowSubtitles();
   }
 
-  update(options:{playTime: number, timeScale: number, gameState: any}) {
+  update(options:entity.Options) {
     super.update(options);
 
     if (options.gameState == "paused") {
@@ -206,7 +206,7 @@ export class Narrator extends entity.Entity {
     }
   }
 
-  _updateText(text = "", speaker:any = null) {
+  _updateText(text = "", speaker:string = null) {
     if (text === "") {
       this.narratorSubtitle.text = "";
       this.characterSubtitle.text = "";
@@ -247,7 +247,7 @@ export class SpeakerDisplay extends entity.Entity {
 
   public container:PIXI.Container
   public namesToSprites:{[name:string]:PIXI.Sprite}
-  public currentSpeakerName:any
+  public currentSpeakerName:string
 
   constructor(
     public namesToImages:{[name:string]:string},
@@ -256,7 +256,7 @@ export class SpeakerDisplay extends entity.Entity {
     super();
   }
 
-  setup(config:any) {
+  setup(config:entity.Config) {
     super.setup(config);
 
     this.container = new PIXI.Container();
@@ -312,7 +312,9 @@ export class SingleNarration extends entity.Entity {
   }
 
   _teardown() {
-    this.config.narrator.stopNarration(this.narrationKey);
+    /* TODO: make <Narrator>.stopNarration method
+      this.config.narrator.stopNarration(this.narrationKey);
+    */
   }
 }
 
@@ -328,7 +330,7 @@ export class RandomNarration extends entity.Entity {
     super();
   }
 
-  setup(config:any) {
+  setup(config:entity.Config) {
     super.setup(config);
 
     // If this is the first time or we have played everything, make a new playlist

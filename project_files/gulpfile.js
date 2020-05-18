@@ -18,7 +18,7 @@ const template = require("gulp-template");
 const git = require("git-rev-sync");
 
 // Read the name of the game from the package.json file
-const PACKAGE = JSON.parse(fs.readFileSync("./package.json"));
+const PACKAGE = require("./package.json");
 const SITE_DIR =
   process.env.SITE_DIR ||
   `${process.env.HOME}/projects/play-curious/play-curious-site`;

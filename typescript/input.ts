@@ -14,7 +14,7 @@ export class Keyboard extends entity.Entity {
   private _onKeyUpWrapper = this._onKeyUp.bind(this);
   private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
-  setup(config:any) {
+  setup(config:entity.Config) {
     super.setup(config);
 
     this.config.app.view.addEventListener("keydown", this._onKeyDownWrapper);
@@ -22,7 +22,7 @@ export class Keyboard extends entity.Entity {
     this.config.app.view.addEventListener("focusout", this._onFocusOutWrapper);
   }
 
-  update(options:any) {
+  update(options:entity.Options) {
     this.timeSinceStart = options.timeSinceStart;
 
     const keyDownSet = _.keys(this.keysDown);
@@ -92,7 +92,7 @@ export class Gamepad extends entity.Entity {
     super();
   }
 
-  setup(config:any) {
+  setup(config:entity.Config) {
     super.setup(config);
 
     this.axes = [];
@@ -108,7 +108,7 @@ export class Gamepad extends entity.Entity {
     // TODO: track events of disconnecting gamepads
   }
 
-  update(options:any) {
+  update(options:entity.Options) {
     super.update(options);
 
     this.timeSinceStart = options.timeSinceStart;

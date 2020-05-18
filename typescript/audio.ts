@@ -3,7 +3,11 @@ import * as entity from "./entity";
 import {Howl} from "howler";
 import _ from "underscore";
 
-export const AUDIO_FILE_FORMATS = ["mp3"];
+export const AUDIO_FILE_FORMATS = ["mp3"]
+
+export interface JukeboxOptions {
+  volume?: number
+}
 
 /** 
   A music player, that only plays one track at a time.
@@ -16,7 +20,7 @@ export class Jukebox extends entity.Entity {
   public musicPlaying:any
   public muted:boolean
 
-  constructor(options:any = {}) {
+  constructor(options:JukeboxOptions = {}) {
     super();
 
     util.setupOptions(this, options, {
@@ -24,7 +28,7 @@ export class Jukebox extends entity.Entity {
     });
   }
 
-  _setup(config:boolean) {
+  _setup(config: entity.Config) {
     this.musicName = null;
     this.musicPlaying = null;
 
@@ -33,7 +37,7 @@ export class Jukebox extends entity.Entity {
       howl.loop(true);
     });
 
-    this.muted = this.config;
+    this.muted = this.config.muted;
     this._updateMuted();
 
     this._on(this.config.playOptions, "musicOn", this._updateMuted);
@@ -78,13 +82,13 @@ export class Jukebox extends entity.Entity {
   }
 }
 
-export function installJukebox(rootConfig:any, rootEntity:any) {
+export function installJukebox(rootConfig:entity.Config, rootEntity:entity.ParallelEntity) {
   rootConfig.jukebox = new Jukebox();
   rootEntity.addEntity(rootConfig.jukebox);
 }
 
-export function makeInstallJukebox(options:any = {}) {
-  return (rootConfig:any, rootEntity:any) => {
+export function makeInstallJukebox(options:JukeboxOptions) {
+  return (rootConfig:entity.Config, rootEntity:entity.ParallelEntity) => {
     rootConfig.jukebox = new Jukebox(options);
     rootEntity.addEntity(rootConfig.jukebox);
   };
@@ -102,7 +106,7 @@ export class MusicEntity extends entity.Entity {
     super();
   }
 
-  _setup(config:any) {
+  _setup(config:entity.Config) {
     this.config.jukebox.changeMusic(this.trackName);
 
     this.requestedTransition = true;
