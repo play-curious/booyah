@@ -117,7 +117,7 @@ const GRAPHICAL_ASSETS = [
   "booyah/images/voices-on.png"
 ];
 
-// String of characters to look for in a font
+/** String of characters to look for in a font */
 const FONT_OBSERVER_CHARS = "asdf";
 
 const PRELOADER_ASSETS = [

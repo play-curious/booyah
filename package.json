@@ -39,7 +39,8 @@
   "scripts": {
     "build": "gulp build",
     "dist": "gulp dist",
-    "watch": "gulp watch"
+    "watch": "gulp watch",
+    "test": "npx jest test.js"
   },
   "license": "MIT",
   "devDependencies": {
@@ -49,6 +50,7 @@
     "@types/p2": "^0.7.36",
     "@types/pixi.js": "^5.0.0",
     "@types/underscore": "^1.9.4",
+    "jest": "^26.0.1",
     "typescript": "^3.8.3"
   },
   "repository": "https://github.com/play-curious/booyah.git",
