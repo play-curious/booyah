@@ -3,43 +3,39 @@ import * as entity from "./entity";
 import p2 from "p2";
 import _ from "underscore";
 
-export type p2Vec = [number,number]
+export type p2Vec = [number, number];
 
-export function p2VecToPoint(a:p2Vec): PIXI.Point {
+export function p2VecToPoint(a: p2Vec): PIXI.Point {
   return new PIXI.Point(a[0], a[1]);
 }
 
-export function pointToP2Vec(a:PIXI.Point): p2Vec {
+export function pointToP2Vec(a: PIXI.Point): p2Vec {
   return [a.x, a.y];
 }
 
-export function distanceBetweenBodies(a:any, b:any): number {
+export function distanceBetweenBodies(a: any, b: any): number {
   const x = a.position[0] - b.position[0];
   const y = a.position[1] - b.position[1];
   return Math.sqrt(x * x + y * y);
 }
 
 export class Simulation extends entity.ParallelEntity {
+  public world: p2.World;
+  public worldOptions: p2.WorldOptions;
+  public oldConfig: any;
+  public container: PIXI.Container;
+  public zoom: number;
 
-  public world:p2.World
-  public worldOptions:p2.WorldOptions
-  public oldConfig:any
-  public container:PIXI.Container
-  public zoom:number
-
-  constructor(options:{
-    zoom?: number
-    worldOptions: {}
-  }) {
+  constructor(options: { zoom?: number; worldOptions: {} }) {
     super();
 
     util.setupOptions(this, options, {
       zoom: 50,
-      worldOptions: {}
+      worldOptions: {},
     });
   }
 
-  setup(config:entity.Config) {
+  setup(config: entity.EntityConfig) {
     this.world = new p2.World(this.worldOptions);
     this.oldConfig = config;
 
@@ -54,13 +50,13 @@ export class Simulation extends entity.ParallelEntity {
 
     config = _.extend({}, config, {
       world: this.world,
-      container: this.container
+      container: this.container,
     });
 
     super.setup(config);
   }
 
-  update(options:entity.Options) {
+  update(options: entity.FrameInfo) {
     super.update(options);
 
     // Limit how fast the physics can catch up
@@ -81,23 +77,19 @@ export class Simulation extends entity.ParallelEntity {
   Meant to be a child of a Simulation.
 */
 export class BodyEntity extends entity.ParallelEntity {
+  public body: any;
+  public display: any;
 
-  public body:any
-  public display:any
-
-  constructor(options:{
-    body?: any
-    display?: any
-  }) {
+  constructor(options: { body?: any; display?: any }) {
     super();
 
     util.setupOptions(this, options, {
       body: null,
-      display: null
+      display: null,
     });
   }
 
-  setup(config:entity.Config) {
+  setup(config: entity.EntityConfig) {
     super.setup(config);
 
     this.config.world.addBody(this.body);
@@ -105,7 +97,7 @@ export class BodyEntity extends entity.ParallelEntity {
     if (this.display) this.config.container.addChild(this.display);
   }
 
-  update(options:entity.Options) {
+  update(options: entity.FrameInfo) {
     super.update(options);
 
     // Transfer positions of the physics objects to Pixi.js

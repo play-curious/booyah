@@ -14,15 +14,15 @@ export declare class Jukebox extends entity.Entity {
     musicPlaying: any;
     muted: boolean;
     constructor(options?: JukeboxOptions);
-    _setup(config: entity.Config): void;
+    _setup(config: entity.EntityConfig): void;
     _teardown(): void;
     _onSignal(signal: string, data?: any): void;
     changeMusic(name?: string): void;
     setMuted(isMuted: boolean): void;
     _updateMuted(): void;
 }
-export declare function installJukebox(rootConfig: entity.Config, rootEntity: entity.ParallelEntity): void;
-export declare function makeInstallJukebox(options: JukeboxOptions): (rootConfig: entity.Config, rootEntity: entity.ParallelEntity) => void;
+export declare function installJukebox(rootConfig: entity.EntityConfig, rootEntity: entity.ParallelEntity): void;
+export declare function makeInstallJukebox(options: JukeboxOptions): (rootConfig: entity.EntityConfig, rootEntity: entity.ParallelEntity) => void;
 /**
   Am entity that requests the music be changed upon setup.
   Optionally can stop the music on teardown.
@@ -31,7 +31,7 @@ export declare class MusicEntity extends entity.Entity {
     trackName: string;
     stopOnTeardown: boolean;
     constructor(trackName: string, stopOnTeardown?: boolean);
-    _setup(config: entity.Config): void;
+    _setup(config: entity.EntityConfig): void;
     _teardown(): void;
 }
 /**

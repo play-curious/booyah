@@ -11,8 +11,12 @@ import * as _ from "underscore";
  * @props Map of property names to options for that property (like Tween() would take)
  * @options Default options for all properties, if not overridden by @props
  */
-export function make(obj:any, props:any, options:any): entity.ParallelEntity {
-  const tweens:any[] = [];
+export function make(
+  obj: any,
+  props: any,
+  options: any
+): entity.ParallelEntity {
+  const tweens: any[] = [];
   for (const key in props) {
     const tweenOptions = _.defaults(
       { obj, property: key },
@@ -25,13 +29,13 @@ export function make(obj:any, props:any, options:any): entity.ParallelEntity {
 }
 
 export interface TweenOptions {
-  obj?: any
-  property?:string
-  from?:any
-  to:any
-  duration?:number
-  easing?:(t:number)=>number
-  interpolate?:any
+  obj?: any;
+  property?: string;
+  from?: any;
+  to: any;
+  duration?: number;
+  easing?: (t: number) => number;
+  interpolate?: any;
 }
 
 /**
@@ -39,18 +43,17 @@ export interface TweenOptions {
  *  updatedValue(value)
  */
 export class Tween extends entity.Entity implements TweenOptions {
-
-  currentObj: any
+  currentObj: any;
   interpolate: any;
   property: string;
   from: any;
   obj: any;
   to: any;
-  startValue:any
-  value:any
-  startTime:number
+  startValue: any;
+  value: any;
+  startTime: number;
   duration: number;
-  easing:(t:number)=>number
+  easing: (t: number) => number;
 
   /**
    * Takes the following options:
@@ -63,7 +66,7 @@ export class Tween extends entity.Entity implements TweenOptions {
    * @interpolate - Function to use for setting a new value.
    *  Depends on data type, such as color, vector, angle, ...
    **/
-  constructor(options:TweenOptions) {
+  constructor(options: TweenOptions) {
     super();
 
     util.setupOptions(this, options, {
@@ -73,7 +76,7 @@ export class Tween extends entity.Entity implements TweenOptions {
       to: util.REQUIRED_OPTION,
       duration: 1000,
       easing: easing.linear,
-      interpolate: interpolation.scalar
+      interpolate: interpolation.scalar,
     });
   }
 
@@ -92,7 +95,7 @@ export class Tween extends entity.Entity implements TweenOptions {
     this.startTime = null;
   }
 
-  _update(options:entity.Options) {
+  _update(options: entity.FrameInfo) {
     if (this.startTime === null) this.startTime = options.timeSinceStart;
 
     if (options.timeSinceStart - this.startTime >= this.duration) {
@@ -129,5 +132,5 @@ export const interpolation = {
   color: geom.lerpColor,
   point: geom.lerpPoint,
   angle: geom.lerpAngle,
-  array: geom.lerpArray
+  array: geom.lerpArray,
 };

@@ -1,5 +1,5 @@
-import { List } from "underscore";
-import * as PIXI from 'pixi.js-legacy';
+import * as _ from "underscore";
+import * as PIXI from "pixi.js-legacy";
 /** Test containment using _.isEqual() */
 export declare function contains<T = any>(list: T[], p: T): boolean;
 /** Test containment using _.isEqual() */
@@ -35,7 +35,7 @@ export declare function stringToBool(s: string): boolean;
  * Returns true if @list all of the values in @values.
  * Uses _.contains() internally
  */
-export declare function containsAll<T = any>(list: List<T>, values: T[]): boolean;
+export declare function containsAll<T = any>(list: _.List<T>, values: T[]): boolean;
 /** Like Underscore's defaults(), excepts merges embedded objects */
 export declare function deepDefaults(...args: any[]): any;
 export declare function uppercaseFirstLetter(name: string): string;

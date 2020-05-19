@@ -3,18 +3,17 @@ import * as entity from "./entity";
 import _ from "underscore";
 
 export class Keyboard extends entity.Entity {
+  public keysDown: { [key: string]: number } = {};
+  public keysJustDown: { [key: string]: boolean } = {};
+  public keysJustUp: { [key: string]: boolean } = {};
+  public timeSinceStart: number;
 
-  public keysDown:{[key:string]:number} = {};
-  public keysJustDown:{[key:string]:boolean} = {};
-  public keysJustUp:{[key:string]:boolean} = {};
-  public timeSinceStart:number
-
-  private _lastKeysDown:{[key:string]:number} = {};
+  private _lastKeysDown: { [key: string]: number } = {};
   private _onKeyDownWrapper = this._onKeyDown.bind(this);
   private _onKeyUpWrapper = this._onKeyUp.bind(this);
   private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
-  setup(config:entity.Config) {
+  setup(config: entity.EntityConfig) {
     super.setup(config);
 
     this.config.app.view.addEventListener("keydown", this._onKeyDownWrapper);
@@ -22,7 +21,7 @@ export class Keyboard extends entity.Entity {
     this.config.app.view.addEventListener("focusout", this._onFocusOutWrapper);
   }
 
-  update(options:entity.Options) {
+  update(options: entity.FrameInfo) {
     this.timeSinceStart = options.timeSinceStart;
 
     const keyDownSet = _.keys(this.keysDown);
@@ -48,14 +47,14 @@ export class Keyboard extends entity.Entity {
     );
   }
 
-  _onKeyDown(event:KeyboardEvent) {
+  _onKeyDown(event: KeyboardEvent) {
     event.preventDefault();
 
     // console.log("key down", event.code);
     this.keysDown[event.code] = this.timeSinceStart;
   }
 
-  _onKeyUp(event:KeyboardEvent) {
+  _onKeyUp(event: KeyboardEvent) {
     event.preventDefault();
 
     // console.log("key up", event.code);
@@ -69,30 +68,27 @@ export class Keyboard extends entity.Entity {
 
 export const GAMEPAD_DEAD_ZONE = 0.15;
 
-export function countGamepads():number {
+export function countGamepads(): number {
   //@ts-ignore
   return _.filter(navigator.getGamepads(), _.identity).length;
 }
 
 export class Gamepad extends entity.Entity {
+  public state: any;
+  public buttonsDown: { [key: string]: number };
+  public buttonsJustDown: { [key: string]: boolean };
+  public buttonsJustUp: { [key: string]: boolean };
+  public timeSinceStart: number;
 
-  public state:any
-  public buttonsDown:{[key:string]:number}
-  public buttonsJustDown:{[key:string]:boolean}
-  public buttonsJustUp:{[key:string]:boolean}
-  public timeSinceStart:number
+  private _lastButtonsDown: { [key: string]: number };
 
-  private _lastButtonsDown:{[key:string]:number}
+  public axes: number[];
 
-  public axes:number[]
-
-  constructor(
-    public gamepadIndex:number
-  ) {
+  constructor(public gamepadIndex: number) {
     super();
   }
 
-  setup(config:entity.Config) {
+  setup(config: entity.EntityConfig) {
     super.setup(config);
 
     this.axes = [];
@@ -108,7 +104,7 @@ export class Gamepad extends entity.Entity {
     // TODO: track events of disconnecting gamepads
   }
 
-  update(options:entity.Options) {
+  update(options: entity.FrameInfo) {
     super.update(options);
 
     this.timeSinceStart = options.timeSinceStart;

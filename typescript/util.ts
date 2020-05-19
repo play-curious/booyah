@@ -1,10 +1,9 @@
 import * as geom from "./geom";
-import * as _ from 'underscore';
-import {List} from "underscore";
-import * as PIXI from 'pixi.js-legacy';
+import * as _ from "underscore";
+import * as PIXI from "pixi.js-legacy";
 
 /** Test containment using _.isEqual() */
-export function contains<T=any>(list:T[], p:T): boolean {
+export function contains<T = any>(list: T[], p: T): boolean {
   for (let x of list) {
     if (_.isEqual(x, p)) return true;
   }
@@ -12,7 +11,7 @@ export function contains<T=any>(list:T[], p:T): boolean {
 }
 
 /** Test containment using _.isEqual() */
-export function indexOf<T=any>(list:T[], p:T): number {
+export function indexOf<T = any>(list: T[], p: T): number {
   for (let i = 0; i < list.length; i++) {
     if (_.isEqual(list[i], p)) return i;
   }
@@ -20,9 +19,9 @@ export function indexOf<T=any>(list:T[], p:T): number {
 }
 
 /** Find unique elements using _.isEqual() */
-export function uniq<T=any>(array:T[]): T[] {
-  let results:T[] = [];
-  let seen:T[] = [];
+export function uniq<T = any>(array: T[]): T[] {
+  let results: T[] = [];
+  let seen: T[] = [];
   array.forEach((value, index) => {
     if (!contains(seen, value)) {
       seen.push(value);
@@ -33,50 +32,58 @@ export function uniq<T=any>(array:T[]): T[] {
 }
 
 /** Like _.difference(), but uses contains() */
-export function difference<T=any>(array:T[]): T[] {
+export function difference<T = any>(array: T[]): T[] {
   const rest = Array.prototype.concat.apply(
     Array.prototype,
     Array.prototype.slice.call(arguments, 1)
   );
-  return _.filter<T>(array, value => !contains(rest, value));
+  return _.filter<T>(array, (value) => !contains(rest, value));
 }
 
 /** Returns a new array with the given element excluded, tested using _.isEqual() */
-export function removeFromArray<T=any>(array:T[], value:T): T[] {
-  let ret:T[] = [];
+export function removeFromArray<T = any>(array: T[], value: T): T[] {
+  let ret: T[] = [];
   for (let element of array) if (!_.isEqual(element, value)) ret.push(element);
   return ret;
 }
 
 /** Deep clone of JSON-serializable objects */
-export function cloneData<T=any>(o:T): T {
+export function cloneData<T = any>(o: T): T {
   return JSON.parse(JSON.stringify(o));
 }
 
 /** Picks a random element from the array */
-export function randomArrayElement<T=any>(array:T[]): T {
+export function randomArrayElement<T = any>(array: T[]): T {
   return array[_.random(0, array.length - 1)];
 }
 
-export function lerpColor(start:number, end:number, fraction:number): number {
+export function lerpColor(
+  start: number,
+  end: number,
+  fraction: number
+): number {
   const r = ((end & 0xff0000) >> 16) - ((start & 0xff0000) >> 16);
   const g = ((end & 0x00ff00) >> 8) - ((start & 0x00ff00) >> 8);
   const b = (end & 0x0000ff) - (start & 0x0000ff);
   return start + ((r * fraction) << 16) + ((g * fraction) << 8) + b;
 }
 
-export function cyclicLerpColor(start:number, end:number, fraction:number): number {
+export function cyclicLerpColor(
+  start: number,
+  end: number,
+  fraction: number
+): number {
   return fraction < 0.5
     ? lerpColor(start, end, fraction / 0.5)
     : lerpColor(end, start, (fraction - 0.5) / 0.5);
 }
 
-export function toFixedFloor(x:number, decimalPlaces:number): number {
+export function toFixedFloor(x: number, decimalPlaces: number): number {
   const divider = Math.pow(10, decimalPlaces);
   return Number((Math.floor(x * divider) / divider).toFixed(decimalPlaces));
 }
 
-export function resizeGame(appSize:PIXI.Point): void {
+export function resizeGame(appSize: PIXI.Point): void {
   const parentSize = new PIXI.Point(window.innerWidth, window.innerHeight);
   const scale = toFixedFloor(
     Math.min(parentSize.x / appSize.x, parentSize.y / appSize.y),
@@ -101,7 +108,7 @@ export function resizeGame(appSize:PIXI.Point): void {
   }
 }
 
-export function supportsFullscreen(element:any): boolean {
+export function supportsFullscreen(element: any): boolean {
   return !!(
     element.requestFullscreen ||
     element.mozRequestFullScreen ||
@@ -110,7 +117,7 @@ export function supportsFullscreen(element:any): boolean {
   );
 }
 
-export function requestFullscreen(element:any): void {
+export function requestFullscreen(element: any): void {
   if (element.requestFullscreen) {
     element.requestFullscreen();
   } else if (element.mozRequestFullScreen) {
@@ -144,14 +151,16 @@ export function inFullscreen(): boolean {
   );
 }
 
-export function makePixiLoadPromise(loader:PIXI.Loader): Promise<void> {
+export function makePixiLoadPromise(loader: PIXI.Loader): Promise<void> {
   return new Promise((resolve, reject) => {
     loader.onError.add(reject);
     loader.load(resolve as any);
   });
 }
 
-export function makeDomContentLoadPromise(document:Document): Promise<true|void> {
+export function makeDomContentLoadPromise(
+  document: Document
+): Promise<true | void> {
   if (_.contains(["complete", "loaded", "interactive"], document.readyState))
     return Promise.resolve(true);
 
@@ -160,11 +169,11 @@ export function makeDomContentLoadPromise(document:Document): Promise<true|void>
   });
 }
 
-const eventTimings:{[key:string]:number} = {};
-export function startTiming(eventName:string): void {
+const eventTimings: { [key: string]: number } = {};
+export function startTiming(eventName: string): void {
   eventTimings[eventName] = Date.now();
 }
-export function endTiming(eventName:string, category = "loading"): void {
+export function endTiming(eventName: string, category = "loading"): void {
   const diff = Date.now() - eventTimings[eventName];
   console.debug("Timing for ", eventName, diff);
   ga("send", "timing", category, eventName, diff);
@@ -183,7 +192,7 @@ export const REQUIRED_OPTION = new (class REQUIRED_OPTION {})();
 
 // Copies over the defaulted options into obj. Takes care to only copy those options specified in the provided _defaults_
 // Options that are required should have a value of REQUIRED_OPTION
-export function setupOptions(obj:{}, options:{}, defaults:{}) {
+export function setupOptions(obj: {}, options: {}, defaults: {}) {
   const requiredKeys = _.chain(defaults)
     .pairs()
     .filter(([key, value]) => value === REQUIRED_OPTION)
@@ -206,10 +215,13 @@ export function setupOptions(obj:{}, options:{}, defaults:{}) {
     console.warn("Unneeded options", unneededOptions, "for", obj);
   }
 
-  return _.extend(obj, _.defaults(_.pick(options, _.keys(defaults) as any), defaults));
+  return _.extend(
+    obj,
+    _.defaults(_.pick(options, _.keys(defaults) as any), defaults)
+  );
 }
 
-export function loadJson(fileName:string): Promise<any> {
+export function loadJson(fileName: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("GET", fileName);
@@ -220,7 +232,7 @@ export function loadJson(fileName:string): Promise<any> {
   });
 }
 
-export function stringToBool(s:string): boolean {
+export function stringToBool(s: string): boolean {
   return !/^(?:false|off|0)$/i.test(s);
 }
 
@@ -228,7 +240,7 @@ export function stringToBool(s:string): boolean {
  * Returns true if @list all of the values in @values.
  * Uses _.contains() internally
  */
-export function containsAll<T=any>(list:List<T>, values:T[]) {
+export function containsAll<T = any>(list: _.List<T>, values: T[]) {
   for (const value of values) {
     if (!_.contains(list, value)) return false;
   }
@@ -236,7 +248,7 @@ export function containsAll<T=any>(list:List<T>, values:T[]) {
 }
 
 /** Like Underscore's defaults(), excepts merges embedded objects */
-export function deepDefaults(...args:any[]) {
+export function deepDefaults(...args: any[]) {
   if (args.length === 0) return {};
 
   const result = args[0];
@@ -256,11 +268,11 @@ export function deepDefaults(...args:any[]) {
   return result;
 }
 
-export function uppercaseFirstLetter(name:string): string {
+export function uppercaseFirstLetter(name: string): string {
   return name[0].toUpperCase() + name.substring(1);
 }
 
-export function shortenString(text:string, maxLength:number): string {
+export function shortenString(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
 
   return text.substr(0, maxLength - 3) + "...";
@@ -270,10 +282,10 @@ export function shortenString(text:string, maxLength:number): string {
  * Set properties recursively in a PIXI scene graph
  */
 export interface Root {
-  [key:string]: any
-  children: Root[]
+  [key: string]: any;
+  children: Root[];
 }
-export function setPropertyInTree(root:Root, name:string, value:any): void {
+export function setPropertyInTree(root: Root, name: string, value: any): void {
   if (name in root) root[name] = value;
 
   for (const child of root.children) {
@@ -281,11 +293,15 @@ export function setPropertyInTree(root:Root, name:string, value:any): void {
   }
 }
 
-export function getFramesForSpriteSheet(resource:PIXI.LoaderResource): PIXI.Texture[] {
-  return _.map(resource.textures, value => value);
+export function getFramesForSpriteSheet(
+  resource: PIXI.LoaderResource
+): PIXI.Texture[] {
+  return _.map(resource.textures, (value) => value);
 }
 
-export function makeAnimatedSprite(resource:PIXI.LoaderResource): PIXI.AnimatedSprite {
+export function makeAnimatedSprite(
+  resource: PIXI.LoaderResource
+): PIXI.AnimatedSprite {
   return new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource));
 }
 

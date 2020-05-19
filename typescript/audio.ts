@@ -1,12 +1,11 @@
 import * as util from "./util";
 import * as entity from "./entity";
-import {Howl} from "howler";
 import _ from "underscore";
 
-export const AUDIO_FILE_FORMATS = ["mp3"]
+export const AUDIO_FILE_FORMATS = ["mp3"];
 
 export interface JukeboxOptions {
-  volume?: number
+  volume?: number;
 }
 
 /** 
@@ -14,25 +13,24 @@ export interface JukeboxOptions {
   By default the volume is lowered to not interere with sound effects.
 */
 export class Jukebox extends entity.Entity {
+  public volume: number;
+  public musicName: string;
+  public musicPlaying: any;
+  public muted: boolean;
 
-  public volume:number
-  public musicName:string
-  public musicPlaying:any
-  public muted:boolean
-
-  constructor(options:JukeboxOptions = {}) {
+  constructor(options: JukeboxOptions = {}) {
     super();
 
     util.setupOptions(this, options, {
-      volume: 0.25
+      volume: 0.25,
     });
   }
 
-  _setup(config: entity.Config) {
+  _setup(config: entity.EntityConfig) {
     this.musicName = null;
     this.musicPlaying = null;
 
-    _.each(this.config.musicAudio, (howl:Howl) => {
+    _.each(this.config.musicAudio, (howl: Howl) => {
       howl.volume(this.volume);
       howl.loop(true);
     });
@@ -49,7 +47,7 @@ export class Jukebox extends entity.Entity {
     this.musicName = null;
   }
 
-  _onSignal(signal:string, data?:any) {
+  _onSignal(signal: string, data?: any) {
     if (!this.musicPlaying) return;
 
     if (signal === "pause") this.musicPlaying.pause();
@@ -57,7 +55,7 @@ export class Jukebox extends entity.Entity {
     else if (signal === "reset") this.changeMusic();
   }
 
-  changeMusic(name?:string) {
+  changeMusic(name?: string) {
     if (this.musicPlaying) {
       // TODO: fade
       this.musicPlaying.stop();
@@ -71,24 +69,30 @@ export class Jukebox extends entity.Entity {
     }
   }
 
-  setMuted(isMuted:boolean) {
+  setMuted(isMuted: boolean) {
     this.muted = isMuted;
     this._updateMuted();
   }
 
   _updateMuted() {
     const muted = !this.config.playOptions.options.musicOn;
-    _.each(this.config.musicAudio, (howl:Howl) => howl.mute(muted));
+    _.each(this.config.musicAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 
-export function installJukebox(rootConfig:entity.Config, rootEntity:entity.ParallelEntity) {
+export function installJukebox(
+  rootConfig: entity.EntityConfig,
+  rootEntity: entity.ParallelEntity
+) {
   rootConfig.jukebox = new Jukebox();
   rootEntity.addEntity(rootConfig.jukebox);
 }
 
-export function makeInstallJukebox(options:JukeboxOptions) {
-  return (rootConfig:entity.Config, rootEntity:entity.ParallelEntity) => {
+export function makeInstallJukebox(options: JukeboxOptions) {
+  return (
+    rootConfig: entity.EntityConfig,
+    rootEntity: entity.ParallelEntity
+  ) => {
     rootConfig.jukebox = new Jukebox(options);
     rootEntity.addEntity(rootConfig.jukebox);
   };
@@ -99,14 +103,11 @@ export function makeInstallJukebox(options:JukeboxOptions) {
   Optionally can stop the music on teardown.
 */
 export class MusicEntity extends entity.Entity {
-  constructor(
-    public trackName:string,
-    public stopOnTeardown = false
-  ) {
+  constructor(public trackName: string, public stopOnTeardown = false) {
     super();
   }
 
-  _setup(config:entity.Config) {
+  _setup(config: entity.EntityConfig) {
     this.config.jukebox.changeMusic(this.trackName);
 
     this.requestedTransition = true;
@@ -123,25 +124,24 @@ export class MusicEntity extends entity.Entity {
   Play sounds effects.
 */
 export class FxMachine extends entity.Entity {
+  public volume: number;
 
-  public volume:number
-
-  constructor(options:any = {}) {
+  constructor(options: any = {}) {
     super();
 
     util.setupOptions(this, options, {
-      volume: 1
+      volume: 1,
     });
   }
 
   _setup() {
-    _.each(this.config.fxAudio, (howl:Howl) => howl.volume(this.volume));
+    _.each(this.config.fxAudio, (howl: Howl) => howl.volume(this.volume));
     this._updateMuted();
 
     this._on(this.config.playOptions, "fxOn", this._updateMuted);
   }
 
-  play(name:string) {
+  play(name: string) {
     this.config.fxAudio[name].play();
   }
 
@@ -156,43 +156,46 @@ export class FxMachine extends entity.Entity {
 
   _updateMuted() {
     const muted = !this.config.playOptions.options.fxOn;
-    _.each(this.config.fxAudio, (howl:Howl) => howl.mute(muted));
+    _.each(this.config.fxAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 
-export function installFxMachine(rootConfig:any, rootEntity:any) {
+export function installFxMachine(rootConfig: any, rootEntity: any) {
   rootConfig.fxMachine = new FxMachine();
   rootEntity.addEntity(rootConfig.fxMachine);
 }
 
 /** Creates a Promise from the Howl callbacks used for loading */
 
-export function makeHowlerLoadPromise(howl:Howl) {
+export function makeHowlerLoadPromise(howl: Howl) {
   return new Promise((resolve, reject) => {
     howl.on("load", () => resolve(howl));
-    howl.on("loaderror", (id, err) => reject({howl, id, err}));
+    howl.on("loaderror", (id, err) => reject({ howl, id, err }));
   });
 }
 
 /** Create map of file names or {key, url} to Howl objects */
-export function makeHowls(directory:string, assetDescriptions:(string|{key:string,url:string})[]) {
-  const assets:{[key:string]:Howl} = {};
+export function makeHowls(
+  directory: string,
+  assetDescriptions: (string | { key: string; url: string })[]
+) {
+  const assets: { [key: string]: Howl } = {};
   for (let assetDescription of assetDescriptions) {
     if (_.isString(assetDescription)) {
       assets[assetDescription] = new Howl({
         src: _.map(
           AUDIO_FILE_FORMATS,
-          audioFormat => `audio/${directory}/${assetDescription}.${audioFormat}`
-        )
+          (audioFormat) =>
+            `audio/${directory}/${assetDescription}.${audioFormat}`
+        ),
       });
     } else {
-      const url = assetDescription.url
+      const url = assetDescription.url;
       assets[assetDescription.key] = new Howl({
         src: _.map(
           AUDIO_FILE_FORMATS,
-          audioFormat =>
-            `audio/${directory}/${url}.${audioFormat}`
-        )
+          (audioFormat) => `audio/${directory}/${url}.${audioFormat}`
+        ),
       });
     }
   }

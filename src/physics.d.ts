@@ -14,8 +14,8 @@ export declare class Simulation extends entity.ParallelEntity {
         zoom?: number;
         worldOptions: {};
     });
-    setup(config: entity.Config): void;
-    update(options: entity.Options): void;
+    setup(config: entity.EntityConfig): void;
+    update(options: entity.FrameInfo): void;
     teardown(): void;
 }
 /**
@@ -28,7 +28,7 @@ export declare class BodyEntity extends entity.ParallelEntity {
         body?: any;
         display?: any;
     });
-    setup(config: entity.Config): void;
-    update(options: entity.Options): void;
+    setup(config: entity.EntityConfig): void;
+    update(options: entity.FrameInfo): void;
     teardown(): void;
 }

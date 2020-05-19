@@ -1,7 +1,7 @@
 import * as entity from "./entity";
-import { Config, Entity, TransitionResolvable } from "./entity";
+import { EntityConfig, Entity, TransitionResolvable } from "./entity";
 export interface Directives {
-    rootConfig: Config;
+    rootConfig: EntityConfig;
     rootEntity: entity.Entity;
     loadingPromise: any;
     graphics: any;
@@ -32,8 +32,8 @@ export interface Directives {
         key: string;
         url: string;
     })[];
-    extraLoaders: ((config: Config) => Promise<any>)[];
-    entityInstallers: ((config: Config, entity: Entity) => any)[];
+    extraLoaders: ((config: EntityConfig) => Promise<any>)[];
+    entityInstallers: ((config: EntityConfig, entity: Entity) => any)[];
     states: {
         [n: string]: Entity;
     };
@@ -46,7 +46,7 @@ export interface Directives {
     screenSize: PIXI.IPoint;
     canvasId: string;
 }
-export declare type GameState = ("preloading" | "loadingFixed" | "ready" | "playing" | "paused" | "done");
+export declare type GameState = "preloading" | "loadingFixed" | "ready" | "playing" | "paused" | "done";
 export declare class PlayOptions extends PIXI.utils.EventEmitter {
     options: {
         musicOn: boolean;
@@ -78,7 +78,7 @@ export declare class MenuEntity extends entity.ParallelEntity {
     musicButton: entity.ToggleSwitch;
     fxButton: entity.ToggleSwitch;
     subtitlesButton: entity.ToggleSwitch;
-    _setup(config: Config): void;
+    _setup(config: EntityConfig): void;
     _update(options: any): void;
     _teardown(): void;
     _onPause(): void;
@@ -131,7 +131,7 @@ export declare class DoneScene extends entity.CompositeEntity {
 }
 export declare function makePreloader(additionalAssets: string[]): PIXI.Loader;
 export declare function go(directives?: Partial<Directives>): {
-    rootConfig: entity.Config;
+    rootConfig: entity.EntityConfig;
     rootEntity: entity.ParallelEntity;
     loadingPromise: Promise<void>;
 };

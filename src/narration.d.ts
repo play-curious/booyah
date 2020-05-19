@@ -21,8 +21,8 @@ export declare class Narrator extends entity.Entity {
     lines: any[];
     duration: number;
     constructor(filesToHowl: Map<string, Howl>, narrationTable: any);
-    setup(config: entity.Config): void;
-    update(options: entity.Options): void;
+    setup(config: entity.EntityConfig): void;
+    update(options: entity.FrameInfo): void;
     teardown(): void;
     changeKey(key: string, priority?: number): void;
     cancelAll(): void;
@@ -47,7 +47,7 @@ export declare class SpeakerDisplay extends entity.Entity {
     constructor(namesToImages: {
         [name: string]: string;
     }, position?: PIXI.Point);
-    setup(config: entity.Config): void;
+    setup(config: entity.EntityConfig): void;
     teardown(): void;
     _onChangeSpeaker(speaker?: any): void;
 }
@@ -65,8 +65,8 @@ export declare class RandomNarration extends entity.Entity {
     narrationPlaylist: any[];
     currentKey: string;
     constructor(narrationKeys: string[], priority: number);
-    setup(config: entity.Config): void;
-    _update(options: entity.Options): void;
+    setup(config: entity.EntityConfig): void;
+    _update(options: entity.FrameInfo): void;
     teardown(): void;
 }
 export interface VideoSceneOptions {
@@ -86,8 +86,8 @@ export declare class VideoScene extends entity.ParallelEntity {
     skipButton: entity.SkipButton;
     previousMusic: string;
     constructor(options?: Partial<VideoSceneOptions>);
-    _setup(config: entity.Config): void;
-    _update(options: entity.Options): void;
+    _setup(config: entity.EntityConfig): void;
+    _update(options: entity.FrameInfo): void;
     _teardown(): void;
 }
 export declare function makeNarrationKeyList(prefix: number, count: number): number[];

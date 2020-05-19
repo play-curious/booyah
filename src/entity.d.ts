@@ -1,8 +1,4 @@
-/// <reference types="howler" />
-/// <reference types="p2" />
-import { Directives, GameState, PlayOptions } from "./booyah";
-import { Jukebox } from "./audio";
-import { Narrator } from "./narration";
+import { GameState } from "./booyah";
 export interface IEventListener {
     emitter: PIXI.utils.EventEmitter;
     event: string;
@@ -12,32 +8,10 @@ export interface TransitionResolvable {
     name: string;
     params: any;
 }
-export interface Config {
-    directives: Directives;
-    app: PIXI.Application;
-    preloader: PIXI.Loader;
-    container: PIXI.Container;
-    musicAudio: {
-        [p: string]: Howl;
-    };
-    fxAudio: {
-        [p: string]: Howl;
-    };
-    videoAssets: {
-        [k: string]: HTMLVideoElement;
-    };
-    playOptions: PlayOptions;
-    jsonAssets: {
-        [k: string]: string;
-    };
-    gameStateMachine: StateMachine;
-    menu: Entity;
-    jukebox: Jukebox;
-    muted: boolean;
-    narrator: Narrator;
-    world: p2.World;
-}
-export interface Options {
+export declare type EntityConfig = {
+    [k: string]: any;
+};
+export interface FrameInfo {
     playTime: number;
     timeSinceStart: number;
     timeSinceLastFrame: number;
@@ -71,9 +45,9 @@ export declare abstract class Entity extends PIXI.utils.EventEmitter {
     isSetup: boolean;
     eventListeners: IEventListener[];
     requestedTransition: any;
-    config: Config;
-    setup(config: Config): void;
-    update(options: Options): void;
+    config: EntityConfig;
+    setup(config: EntityConfig): void;
+    update(options: FrameInfo): void;
     teardown(options?: any): void;
     onSignal(signal: string, data?: any): void;
     protected _on(emitter: PIXI.utils.EventEmitter, event: string, cb: () => void): void;
@@ -104,7 +78,7 @@ export interface ParallelEntityOptions {
  */
 export declare class ParallelEntity extends Entity {
     entities: Entity[];
-    entityConfigs: Config[];
+    entityConfigs: EntityConfig[];
     entityIsActive: boolean[];
     autoTransition: boolean;
     /**
@@ -182,8 +156,8 @@ export declare class StateMachine extends Entity {
     }, transitions: {
         [k: string]: TransitionResolvable;
     }, options?: any);
-    setup(config: Config): void;
-    update(options: Options): void;
+    setup(config: EntityConfig): void;
+    update(options: FrameInfo): void;
     teardown(): void;
     onSignal(signal: string, data?: any): void;
     _changeState(timeSinceStart: number, nextStateName: string, nextStateParams: any): void;
@@ -297,7 +271,7 @@ export declare class VideoEntity extends Entity {
     videoSprite: any;
     loop: boolean;
     constructor(videoName: string, options?: any);
-    _setup(config: Config): void;
+    _setup(config: EntityConfig): void;
     _update(options: any): void;
     _onSignal(signal: string, data?: any): void;
     teardown(): void;
@@ -337,7 +311,7 @@ export declare class AnimatedSpriteEntity extends Entity {
 }
 export declare class SkipButton extends Entity {
     sprite: PIXI.Sprite;
-    setup(config: Config): void;
+    setup(config: EntityConfig): void;
     teardown(): void;
     _onSkip(): void;
 }
@@ -421,5 +395,5 @@ export declare class SwitchingEntity extends Entity {
     removeEntity(entity: Entity): void;
     removeAllEntities(): void;
 }
-export declare function processEntityConfig(config: Config, alteredConfig: Config | ((c: Config) => Config)): Config;
-export declare function extendConfig(values: any): (c: Config) => Config;
+export declare function processEntityConfig(config: EntityConfig, alteredConfig: EntityConfig | ((c: EntityConfig) => EntityConfig)): EntityConfig;
+export declare function extendConfig(values: any): (c: EntityConfig) => EntityConfig;
