@@ -1,18 +1,19 @@
 {
   "name": "booyah",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "HTML5 game engine",
   "dependencies": {
-    "fontfaceobserver": "^2.0.13",
-    "howler": "^2.1.2",
-    "pixi-filters": "^3.0.1",
-    "pixi.js-legacy": "^5.0.2",
-    "underscore": "^1.8.3"
+    "fontfaceobserver": "^2.1.0",
+    "howler": "^2.2.0",
+    "pixi-filters": "^3.1.1",
+    "pixi.js": "^5.2.4",
+    "underscore": "^1.10.2"
   },
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "test": "npx jest test.js"
+    "test": "jest test.js",
+    "prepublish": "tsc"
   },
   "license": "MIT",
   "devDependencies": {
@@ -20,8 +21,7 @@
     "@types/google.analytics": "0.0.40",
     "@types/howler": "^2.1.2",
     "@types/p2": "^0.7.36",
-    "@types/pixi.js": "^5.0.0",
-    "@types/underscore": "^1.9.4",
+    "@types/underscore": "^1.10.0",
     "jest": "^26.0.1",
     "typescript": "^3.8.3"
   },

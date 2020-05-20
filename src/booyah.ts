@@ -8,10 +8,9 @@ import * as util from "./util";
 import * as entity from "./entity";
 import * as audio from "./audio";
 
-
 export interface Directives {
   rootConfig: entity.EntityConfig;
-  rootEntity: entity.entity.Entity;
+  rootEntity: entity.Entity;
   loadingPromise: any;
   graphics: any;
   startingSceneParams: any;
@@ -32,7 +31,10 @@ export interface Directives {
   musicAssets: (string | { key: string; url: string })[];
   fxAssets: (string | { key: string; url: string })[];
   extraLoaders: ((config: entity.EntityConfig) => Promise<any>)[];
-  entityInstallers: ((config: entity.EntityConfig, entity: entity.Entity) => any)[];
+  entityInstallers: ((
+    config: entity.EntityConfig,
+    entity: entity.Entity
+  ) => any)[];
   states: { [n: string]: entity.Entity };
   transitions: { [k: string]: entity.TransitionResolvable };
   endingScenes: { [k: string]: entity.Entity };
@@ -163,7 +165,7 @@ let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 class FilterPauseEntity extends entity.CompositeEntity {
-  update(options: FrameInfo) {
+  update(options: entity.FrameInfo) {
     if (options.gameState == "playing") super.update(options);
   }
 }
@@ -1012,7 +1014,7 @@ function changeGameState(newGameState: GameState) {
   console.log("switching from game state", gameState, "to", newGameState);
   gameState = newGameState;
 
-  ga("send", "event", "changeGameState", newGameState);
+  util.sendMetrics("send", "event", "changeGameState", newGameState);
 }
 
 function loadFixedAssets() {
@@ -1257,7 +1259,7 @@ export function go(directives: Partial<Directives> = {}) {
   });
   rootConfig.container = rootConfig.app.stage;
 
-  ga("send", "event", "loading", "start");
+  util.sendMetrics("send", "event", "loading", "start");
   util.startTiming("preload");
 
   // Setup preloader

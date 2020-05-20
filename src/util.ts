@@ -170,6 +170,12 @@ export function makeDomContentLoadPromise(
   });
 }
 
+export function sendMetrics(...params: any) {
+  if (typeof ga === "undefined") return;
+
+  ga("send", ...params);
+}
+
 const eventTimings: { [key: string]: number } = {};
 export function startTiming(eventName: string): void {
   eventTimings[eventName] = Date.now();
@@ -177,7 +183,7 @@ export function startTiming(eventName: string): void {
 export function endTiming(eventName: string, category = "loading"): void {
   const diff = Date.now() - eventTimings[eventName];
   console.debug("Timing for ", eventName, diff);
-  ga("send", "timing", category, eventName, diff);
+  sendMetrics("timing", category, eventName, diff);
 }
 
 /* Makes a video element plays easily on iOS. Requires muting */

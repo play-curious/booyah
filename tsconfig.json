@@ -1,25 +1,18 @@
 {
-  "include": [
-    "typescript/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
-  "compilerOptions":{
-    "alwaysStrict":true,
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "alwaysStrict": true,
     "noImplicitAny": true,
-    "allowSyntheticDefaultImports":true,
-    "declaration":true,
-    "inlineSourceMap":true,
-    "lib": [
-      "es2020",
-      "dom"
-    ],
-    "listEmittedFiles":true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "inlineSourceMap": true,
+    "lib": ["es2020", "dom"],
+    "listEmittedFiles": true,
     "module": "es2020",
-    "moduleResolution":"Node",
-    "outDir":"src",
-    "pretty":true,
-    "target":"es2020"
+    "moduleResolution": "Node",
+    "outDir": "dist",
+    "pretty": true,
+    "target": "es2020"
   }
 }
