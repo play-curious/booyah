@@ -1,21 +1,17 @@
+import * as PIXI from "pixi.js";
+
+// TODO: Once the PR has been accepted, move back to the version from NPM
+import preload from "./preload-it.esm";
+
+import * as _ from "underscore";
 import * as util from "./util";
 import * as entity from "./entity";
 import * as audio from "./audio";
 
-// TODO: Once the PR has been accepted, move back to the version from NPM
-import preload from "./preload-it.esm";
-import * as _ from "underscore";
-import {
-  EntityConfig,
-  Entity,
-  FrameInfo,
-  StateMachine,
-  TransitionResolvable,
-} from "./entity";
 
 export interface Directives {
-  rootConfig: EntityConfig;
-  rootEntity: entity.Entity;
+  rootConfig: entity.EntityConfig;
+  rootEntity: entity.entity.Entity;
   loadingPromise: any;
   graphics: any;
   startingSceneParams: any;
@@ -35,11 +31,11 @@ export interface Directives {
   jsonAssets: { [k: string]: string };
   musicAssets: (string | { key: string; url: string })[];
   fxAssets: (string | { key: string; url: string })[];
-  extraLoaders: ((config: EntityConfig) => Promise<any>)[];
-  entityInstallers: ((config: EntityConfig, entity: Entity) => any)[];
-  states: { [n: string]: Entity };
-  transitions: { [k: string]: TransitionResolvable };
-  endingScenes: { [k: string]: Entity };
+  extraLoaders: ((config: entity.EntityConfig) => Promise<any>)[];
+  entityInstallers: ((config: entity.EntityConfig, entity: entity.Entity) => any)[];
+  states: { [n: string]: entity.Entity };
+  transitions: { [k: string]: entity.TransitionResolvable };
+  endingScenes: { [k: string]: entity.Entity };
   screenSize: PIXI.IPoint;
   canvasId: string;
 }
@@ -131,7 +127,7 @@ const PRELOADER_ASSETS = [
 ];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
-const rootConfig: EntityConfig = {
+const rootConfig: entity.EntityConfig = {
   directives: null,
   app: null,
   preloader: null,
@@ -251,7 +247,7 @@ export class MenuEntity extends entity.ParallelEntity {
   public fxButton: entity.ToggleSwitch;
   public subtitlesButton: entity.ToggleSwitch;
 
-  _setup(config: EntityConfig) {
+  _setup(config: entity.EntityConfig) {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 

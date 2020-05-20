@@ -1,6 +1,7 @@
+import * as PIXI from "pixi.js";
+
 import * as geom from "./geom";
 import * as _ from "underscore";
-import * as PIXI from "pixi.js-legacy";
 
 /** Test containment using _.isEqual() */
 export function contains<T = any>(list: T[], p: T): boolean {

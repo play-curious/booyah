@@ -1,3 +1,6 @@
+import * as PIXI from "pixi.js";
+
+
 // Geometry
 
 export const EPSILON = 0.001;

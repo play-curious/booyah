@@ -1,3 +1,5 @@
+import * as PIXI from "pixi.js";
+
 import * as entity from "./entity";
 import * as geom from "./geom";
 import * as util from "./util";

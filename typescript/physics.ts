@@ -1,7 +1,9 @@
-import * as util from "./util";
-import * as entity from "./entity";
+import * as PIXI from "pixi.js";
 import p2 from "p2";
 import _ from "underscore";
+
+import * as util from "./util";
+import * as entity from "./entity";
 
 export type p2Vec = [number, number];
 

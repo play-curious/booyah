@@ -1,3 +1,5 @@
+import * as PIXI from "pixi.js";
+
 import _ from "underscore";
 import * as util from "./util";
 import { Directives, GameState, PlayOptions } from "./booyah";

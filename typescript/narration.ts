@@ -1,3 +1,5 @@
+import * as PIXI from "pixi.js";
+
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
 import _ from "underscore";
