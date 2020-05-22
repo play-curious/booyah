@@ -94,39 +94,39 @@ const DEFAULT_DIRECTIVES: any = {
 
   // Standard icons. They will be added to "graphicalAssets"
   graphics: {
-    menu: "booyah/images/button-mainmenu.png",
-    skip: "booyah/images/button-skip.png",
-    play: "booyah/images/button-play.png",
+    menu: booyahRessource("images/button-mainmenu.png"),
+    skip: booyahRessource("images/button-skip.png"),
+    play: booyahRessource("images/button-play.png"),
   },
 };
 
 const GRAPHICAL_ASSETS = [
-  "booyah/images/a-playcurious-game.png",
-  "booyah/images/button-back.png",
-  "booyah/images/button-close.png",
-  "booyah/images/button-replay.png",
-  "booyah/images/fullscreen-off.png",
-  "booyah/images/fullscreen-on.png",
-  "booyah/images/fullscreen-disabled.png",
-  "booyah/images/lang-en-off.png",
-  "booyah/images/lang-en-on.png",
-  "booyah/images/lang-fr-off.png",
-  "booyah/images/lang-fr-on.png",
-  "booyah/images/music-off.png",
-  "booyah/images/music-on.png",
-  "booyah/images/subtitles-off.png",
-  "booyah/images/subtitles-on.png",
-  "booyah/images/voices-off.png",
-  "booyah/images/voices-on.png",
-];
+  "images/a-playcurious-game.png",
+  "images/button-back.png",
+  "images/button-close.png",
+  "images/button-replay.png",
+  "images/fullscreen-off.png",
+  "images/fullscreen-on.png",
+  "images/fullscreen-disabled.png",
+  "images/lang-en-off.png",
+  "images/lang-en-on.png",
+  "images/lang-fr-off.png",
+  "images/lang-fr-on.png",
+  "images/music-off.png",
+  "images/music-on.png",
+  "images/subtitles-off.png",
+  "images/subtitles-on.png",
+  "images/voices-off.png",
+  "images/voices-on.png",
+].map(booyahRessource);
 
 /** String of characters to look for in a font */
 const FONT_OBSERVER_CHARS = "asdf";
 
 const PRELOADER_ASSETS = [
-  "booyah/images/loader-circle.png",
-  "booyah/images/loader-error.png",
-];
+  "images/loader-circle.png",
+  "images/loader-error.png",
+].map(booyahRessource);
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
 const rootConfig: entity.EntityConfig = {
@@ -1333,4 +1333,12 @@ function removePrivateProperties(obj: any) {
     if (!key.startsWith("_")) result[key] = obj[key];
   }
   return result;
+}
+
+/**
+ * Booyah path resolver
+ * @param {string} path - A path that starts after "booyah/"
+ */
+function booyahRessource(path: string): string {
+  return require.resolve(require('path').join('booyah',path));
 }
