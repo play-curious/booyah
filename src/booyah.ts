@@ -291,7 +291,7 @@ export class MenuEntity extends entity.ParallelEntity {
     this.menuLayer.addChild(this.menuButtonLayer);
 
     this.playButton = new PIXI.Sprite(
-      this.config.app.loader.resources["booyah/images/button-close.png"].texture
+      this.config.app.loader.resources[booyahRessource("images/button-close.png")].texture
     );
     this.playButton.anchor.set(0.5);
     this.playButton.position.set(this.config.app.renderer.width - 50, 50);
@@ -314,7 +314,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
     const pcLogo = new PIXI.Sprite(
       this.config.app.loader.resources[
-        "booyah/images/a-playcurious-game.png"
+        booyahRessource("images/a-playcurious-game.png")
       ].texture
     );
     pcLogo.anchor.set(0.5, 1);
@@ -344,10 +344,10 @@ export class MenuEntity extends entity.ParallelEntity {
     if (util.supportsFullscreen(document.getElementById("game-parent"))) {
       this.fullScreenButton = new entity.ToggleSwitch({
         onTexture: this.config.app.loader.resources[
-          "booyah/images/fullscreen-on.png"
+          booyahRessource("images/fullscreen-on.png")
         ].texture,
         offTexture: this.config.app.loader.resources[
-          "booyah/images/fullscreen-off.png"
+          booyahRessource("images/fullscreen-off.png")
         ].texture,
         isOn: false,
         position: new PIXI.Point(405, 130),
@@ -364,7 +364,7 @@ export class MenuEntity extends entity.ParallelEntity {
     } else {
       const fullScreenButton = new PIXI.Sprite(
         this.config.app.loader.resources[
-          "booyah/images/fullscreen-disabled.png"
+          booyahRessource("images/fullscreen-disabled.png")
         ].texture
       );
       fullScreenButton.position.set(405, 130);
@@ -372,10 +372,10 @@ export class MenuEntity extends entity.ParallelEntity {
     }
 
     this.musicButton = new entity.ToggleSwitch({
-      onTexture: this.config.app.loader.resources["booyah/images/music-on.png"]
+      onTexture: this.config.app.loader.resources[booyahRessource("images/music-on.png")]
         .texture,
       offTexture: this.config.app.loader.resources[
-        "booyah/images/music-off.png"
+        booyahRessource("images/music-off.png")
       ].texture,
       isOn: this.config.playOptions.options.musicOn,
       position: new PIXI.Point(405, 230),
@@ -387,10 +387,10 @@ export class MenuEntity extends entity.ParallelEntity {
     // TODO prevent being able to turn both subtitles and sound off
 
     this.fxButton = new entity.ToggleSwitch({
-      onTexture: this.config.app.loader.resources["booyah/images/voices-on.png"]
+      onTexture: this.config.app.loader.resources[booyahRessource("images/voices-on.png")]
         .texture,
       offTexture: this.config.app.loader.resources[
-        "booyah/images/voices-off.png"
+        booyahRessource("images/voices-off.png")
       ].texture,
       isOn: this.config.playOptions.options.fxOn,
       position: new PIXI.Point(630, 230),
@@ -401,10 +401,10 @@ export class MenuEntity extends entity.ParallelEntity {
 
     this.subtitlesButton = new entity.ToggleSwitch({
       onTexture: this.config.app.loader.resources[
-        "booyah/images/subtitles-on.png"
+        booyahRessource("images/subtitles-on.png")
       ].texture,
       offTexture: this.config.app.loader.resources[
-        "booyah/images/subtitles-off.png"
+        booyahRessource("images/subtitles-off.png")
       ].texture,
       isOn: this.config.playOptions.options.showSubtitles,
       position: new PIXI.Point(630, 130),
@@ -440,7 +440,7 @@ export class MenuEntity extends entity.ParallelEntity {
         const isSelected = language === this.config.directives.language;
         const sprite = new PIXI.Sprite(
           this.config.app.loader.resources[
-            `booyah/images/lang-${language}-${isSelected ? "off" : "on"}.png`
+            booyahRessource(`images/lang-${language}-${isSelected ? "off" : "on"}.png`)
           ].texture
         );
         sprite.position.set(405 + i * 100, 330);
@@ -485,7 +485,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
       const cancelSwitchLanguageButton = new PIXI.Sprite(
         this.config.app.loader.resources[
-          "booyah/images/button-back.png"
+          booyahRessource("images/button-back.png")
         ].texture
       );
       cancelSwitchLanguageButton.anchor.set(0.5);
@@ -503,7 +503,7 @@ export class MenuEntity extends entity.ParallelEntity {
     {
       this.resetButton = new PIXI.Sprite(
         this.config.app.loader.resources[
-          "booyah/images/button-replay.png"
+          booyahRessource("images/button-replay.png")
         ].texture
       );
       this.resetButton.scale.set(0.58); // From 102 to 60 px
@@ -532,7 +532,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
       this.confirmResetButton = new PIXI.Sprite(
         this.config.app.loader.resources[
-          "booyah/images/button-replay.png"
+          booyahRessource("images/button-replay.png")
         ].texture
       );
       this.confirmResetButton.anchor.set(0.5);
@@ -546,7 +546,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
       const cancelResetButton = new PIXI.Sprite(
         this.config.app.loader.resources[
-          "booyah/images/button-back.png"
+          booyahRessource("images/button-back.png")
         ].texture
       );
       cancelResetButton.anchor.set(0.5);
@@ -626,7 +626,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
   _onSwitchLanguage(language: string) {
     this.confirmLanguageButton.texture = this.config.app.loader.resources[
-      `booyah/images/lang-${language}-on.png`
+      booyahRessource(`images/lang-${language}-on.png`)
     ].texture;
     this._on(this.confirmLanguageButton, "pointertap", () =>
       this._onConfirmSwitchLanguage(language)
@@ -698,7 +698,7 @@ export class CreditsEntity extends entity.CompositeEntity {
     this.container.addChild(mask);
 
     const closeButton = new PIXI.Sprite(
-      this.config.app.loader.resources["booyah/images/button-back.png"].texture
+      this.config.app.loader.resources[booyahRessource("images/button-back.png")].texture
     );
     closeButton.anchor.set(0.5);
     closeButton.position.set(50);
@@ -793,7 +793,7 @@ export class LoadingScene extends entity.CompositeEntity {
     this.loadingFill.mask = loadingFillMask;
 
     this.loadingCircle = new PIXI.Sprite(
-      this.config.preloader.resources["booyah/images/loader-circle.png"].texture
+      this.config.preloader.resources[booyahRessource("images/loader-circle.png")].texture
     );
     this.loadingCircle.anchor.set(0.5);
     this.loadingCircle.position.set(
@@ -893,7 +893,7 @@ export class LoadingErrorScene extends entity.ParallelEntity {
     }
 
     const button = new PIXI.Sprite(
-      this.config.preloader.resources["booyah/images/loader-error.png"].texture
+      this.config.preloader.resources[booyahRessource("images/loader-error.png")].texture
     );
     button.anchor.set(0.5);
     button.position.set(
@@ -930,7 +930,7 @@ export class DoneScene extends entity.CompositeEntity {
 
     const button = new PIXI.Sprite(
       this.config.app.loader.resources[
-        "booyah/images/button-replay.png"
+        booyahRessource("images/button-replay.png")
       ].texture
     );
     button.anchor.set(0.5);
@@ -1337,7 +1337,7 @@ function removePrivateProperties(obj: any) {
 
 /**
  * Booyah path resolver
- * @param {string} path - A path that starts after "booyah/"
+ * @param {string} path - A path that starts after booyahRessource("")
  */
 function booyahRessource(path: string): string {
   return require.resolve(require('path').join('booyah',path));
