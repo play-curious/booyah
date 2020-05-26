@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import "fontfaceobserver";
 
 // TODO: Once the PR has been accepted, move back to the version from NPM
 import preload from "./preload-it.esm";
@@ -291,7 +292,9 @@ export class MenuEntity extends entity.ParallelEntity {
     this.menuLayer.addChild(this.menuButtonLayer);
 
     this.playButton = new PIXI.Sprite(
-      this.config.app.loader.resources[booyahRessource("images/button-close.png")].texture
+      this.config.app.loader.resources[
+        booyahRessource("images/button-close.png")
+      ].texture
     );
     this.playButton.anchor.set(0.5);
     this.playButton.position.set(this.config.app.renderer.width - 50, 50);
@@ -372,8 +375,9 @@ export class MenuEntity extends entity.ParallelEntity {
     }
 
     this.musicButton = new entity.ToggleSwitch({
-      onTexture: this.config.app.loader.resources[booyahRessource("images/music-on.png")]
-        .texture,
+      onTexture: this.config.app.loader.resources[
+        booyahRessource("images/music-on.png")
+      ].texture,
       offTexture: this.config.app.loader.resources[
         booyahRessource("images/music-off.png")
       ].texture,
@@ -387,8 +391,9 @@ export class MenuEntity extends entity.ParallelEntity {
     // TODO prevent being able to turn both subtitles and sound off
 
     this.fxButton = new entity.ToggleSwitch({
-      onTexture: this.config.app.loader.resources[booyahRessource("images/voices-on.png")]
-        .texture,
+      onTexture: this.config.app.loader.resources[
+        booyahRessource("images/voices-on.png")
+      ].texture,
       offTexture: this.config.app.loader.resources[
         booyahRessource("images/voices-off.png")
       ].texture,
@@ -440,7 +445,9 @@ export class MenuEntity extends entity.ParallelEntity {
         const isSelected = language === this.config.directives.language;
         const sprite = new PIXI.Sprite(
           this.config.app.loader.resources[
-            booyahRessource(`images/lang-${language}-${isSelected ? "off" : "on"}.png`)
+            booyahRessource(
+              `images/lang-${language}-${isSelected ? "off" : "on"}.png`
+            )
           ].texture
         );
         sprite.position.set(405 + i * 100, 330);
@@ -698,7 +705,9 @@ export class CreditsEntity extends entity.CompositeEntity {
     this.container.addChild(mask);
 
     const closeButton = new PIXI.Sprite(
-      this.config.app.loader.resources[booyahRessource("images/button-back.png")].texture
+      this.config.app.loader.resources[
+        booyahRessource("images/button-back.png")
+      ].texture
     );
     closeButton.anchor.set(0.5);
     closeButton.position.set(50);
@@ -793,7 +802,9 @@ export class LoadingScene extends entity.CompositeEntity {
     this.loadingFill.mask = loadingFillMask;
 
     this.loadingCircle = new PIXI.Sprite(
-      this.config.preloader.resources[booyahRessource("images/loader-circle.png")].texture
+      this.config.preloader.resources[
+        booyahRessource("images/loader-circle.png")
+      ].texture
     );
     this.loadingCircle.anchor.set(0.5);
     this.loadingCircle.position.set(
@@ -893,7 +904,9 @@ export class LoadingErrorScene extends entity.ParallelEntity {
     }
 
     const button = new PIXI.Sprite(
-      this.config.preloader.resources[booyahRessource("images/loader-error.png")].texture
+      this.config.preloader.resources[
+        booyahRessource("images/loader-error.png")
+      ].texture
     );
     button.anchor.set(0.5);
     button.position.set(
@@ -1340,5 +1353,5 @@ function removePrivateProperties(obj: any) {
  * @param {string} path - A path that starts after booyahRessource("")
  */
 function booyahRessource(path: string): string {
-  return require.resolve(require('path').join('booyah',path));
+  return require.resolve(require("path").join("booyah", path));
 }

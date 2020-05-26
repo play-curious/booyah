@@ -17,13 +17,17 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/fontfaceobserver": "0.0.6",
+    "@types/fontfaceobserver": "^0.0.6",
     "@types/google.analytics": "0.0.40",
     "@types/howler": "^2.1.2",
     "@types/p2": "^0.7.36",
     "@types/underscore": "^1.10.0",
     "jest": "^26.0.1",
     "typescript": "^3.8.3"
+  },
+  "staticPath": {
+    "source": "/source/dir",
+    "target": "/target/dir"
   },
   "repository": "https://github.com/play-curious/booyah.git",
   "author": "drpepper"
