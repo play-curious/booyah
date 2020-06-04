@@ -13,9 +13,15 @@ export class Keyboard extends entity.Entity {
   private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
   _setup() {
-    this.config.app.view.addEventListener("keydown", this._onKeyDownWrapper);
-    this.config.app.view.addEventListener("keyup", this._onKeyUpWrapper);
-    this.config.app.view.addEventListener("focusout", this._onFocusOutWrapper);
+    this.entityConfig.app.view.addEventListener(
+      "keydown",
+      this._onKeyDownWrapper
+    );
+    this.entityConfig.app.view.addEventListener("keyup", this._onKeyUpWrapper);
+    this.entityConfig.app.view.addEventListener(
+      "focusout",
+      this._onFocusOutWrapper
+    );
   }
 
   _update(frameInfo: entity.FrameInfo) {
@@ -34,9 +40,15 @@ export class Keyboard extends entity.Entity {
   }
 
   teardown() {
-    this.config.app.view.removeEventListener("keydown", this._onKeyDownWrapper);
-    this.config.app.view.removeEventListener("keyup", this._onKeyUpWrapper);
-    this.config.app.view.removeEventListener(
+    this.entityConfig.app.view.removeEventListener(
+      "keydown",
+      this._onKeyDownWrapper
+    );
+    this.entityConfig.app.view.removeEventListener(
+      "keyup",
+      this._onKeyUpWrapper
+    );
+    this.entityConfig.app.view.removeEventListener(
       "focusout",
       this._onFocusOutWrapper
     );

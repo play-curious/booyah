@@ -25,14 +25,17 @@ export interface FrameInfo {
   gameState: GameState;
 }
 
-export function processEntityConfig(config: any, alteredConfig: any): any {
-  if (!alteredConfig) return config;
-  if (typeof alteredConfig == "function") return alteredConfig(config);
+export function processEntityConfig(
+  entityConfig: any,
+  alteredConfig: any
+): any {
+  if (!alteredConfig) return entityConfig;
+  if (typeof alteredConfig == "function") return alteredConfig(entityConfig);
   return alteredConfig;
 }
 
-export function extendConfig(values: any[]): (config: any) => {} {
-  return (config) => _.extend({}, config, values);
+export function extendConfig(values: any[]): (entityConfig: any) => {} {
+  return (entityConfig) => _.extend({}, entityConfig, values);
 }
 
 /**
@@ -44,7 +47,7 @@ export function extendConfig(values: any[]): (config: any) => {} {
  The entity should not make any changes to the environment here, it should wait for setup().
  2. setup() is called just once, with a configuration.
  This is when the entity should add dispaly objects  to the scene, or subscribe to events.
- The typical config contains { app, preloader, narrator, jukebox, container }
+ The typical entityConfig contains { app, preloader, narrator, jukebox, container }
  3. update() is called one or more times, with options.
  It could also never be called, in case the entity is torn down directly.
  If the entity wishes to be terminated, it should set this.requestedTransition to a truthy value.
@@ -62,21 +65,21 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
   public isSetup = false;
   public eventListeners: IEventListener[] = [];
   public requestedTransition: any;
-  public config: EntityConfig;
+  public entityConfig: EntityConfig;
   public lastFrameInfo: FrameInfo;
 
-  public setup(frameInfo: FrameInfo, config: EntityConfig): void {
+  public setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void {
     if (this.isSetup) {
       console.error("setup() called twice", this);
       console.trace();
     }
 
-    this.config = config;
+    this.entityConfig = entityConfig;
     this.lastFrameInfo = frameInfo;
     this.isSetup = true;
     this.requestedTransition = null;
 
-    this._setup(frameInfo, config);
+    this._setup(frameInfo, entityConfig);
   }
 
   public update(frameInfo: FrameInfo): void {
@@ -100,12 +103,12 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
 
     this._off(); // Remove all event listeners
 
-    this.config = null;
+    this.entityConfig = null;
     this.isSetup = false;
   }
 
   public onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
-    if (!this.config) {
+    if (!this.entityConfig) {
       console.error("onSignal() called before setup()", this);
     }
 
@@ -144,7 +147,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
     this.eventListeners = listenersToKeep;
   }
 
-  public _setup(frameInfo: FrameInfo, config: any) {}
+  public _setup(frameInfo: FrameInfo, entityConfig: any) {}
   public _update(frameInfo: FrameInfo) {}
   public _teardown(frameInfo: FrameInfo) {}
   public _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {}
@@ -179,7 +182,7 @@ export class ParallelEntity extends Entity {
   public entityIsActive: boolean[] = [];
   public autoTransition: boolean = false;
   /**
-   @entities can be subclasses of entity.Entity or an object like { entity:, config: }
+   @entities can be subclasses of entity.Entity or an object like { entity:, entityConfig: }
    @options:
    * autoTransition: Should the entity request a transition when all the child entities are done?  (defaults to false)
    */
@@ -194,19 +197,19 @@ export class ParallelEntity extends Entity {
       if (currentEntity instanceof Entity) {
         this.addEntity(currentEntity);
       } else {
-        this.addEntity(currentEntity.entity, currentEntity.config);
+        this.addEntity(currentEntity.entity, currentEntity.entityConfig);
       }
     }
   }
 
-  setup(frameInfo: FrameInfo, config: any) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: any) {
+    super.setup(frameInfo, entityConfig);
 
     for (let i = 0; i < this.entities.length; i++) {
       const entity = this.entities[i];
       if (!entity.isSetup) {
         const entityConfig = processEntityConfig(
-          this.config,
+          this.entityConfig,
           this.entityConfigs[i]
         );
         entity.setup(frameInfo, entityConfig);
@@ -257,16 +260,16 @@ export class ParallelEntity extends Entity {
     }
   }
 
-  // If config is provided, it will overload the config provided to this entity by setup()
-  addEntity(entity: Entity, config: any = null) {
+  // If entityConfig is provided, it will overload the entityConfig provided to this entity by setup()
+  addEntity(entity: Entity, entityConfig: any = null) {
     this.entities.push(entity);
-    this.entityConfigs.push(config);
+    this.entityConfigs.push(entityConfig);
     this.entityIsActive.push(true);
 
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
-      const entityConfig = processEntityConfig(this.config, config);
-      entity.setup(this.lastFrameInfo, entityConfig);
+      const newConfig = processEntityConfig(this.entityConfig, entityConfig);
+      entity.setup(this.lastFrameInfo, newConfig);
     }
   }
 
@@ -329,8 +332,8 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
     this._advance({ name: "skip" });
   }
 
-  setup(frameInfo: FrameInfo, config: any) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: any) {
+    super.setup(frameInfo, entityConfig);
 
     this.currentEntityIndex = 0;
     this.currentEntity = null;
@@ -384,7 +387,7 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
       this.currentEntity = entityDescriptor;
     }
 
-    this.currentEntity.setup(this.lastFrameInfo, this.config);
+    this.currentEntity.setup(this.lastFrameInfo, this.entityConfig);
   }
 
   _deactivateEntity() {
@@ -445,8 +448,8 @@ export class StateMachine extends Entity {
     });
   }
 
-  setup(frameInfo: FrameInfo, config: EntityConfig) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
+    super.setup(frameInfo, entityConfig);
 
     this.visitedStates = [];
     this.progress = util.cloneData(this.startingProgress);
@@ -566,7 +569,7 @@ export class StateMachine extends Entity {
         this.state = nextStateDescriptor;
       }
 
-      this.state.setup(this.lastFrameInfo, this.config);
+      this.state.setup(this.lastFrameInfo, this.entityConfig);
     } else {
       throw new Error(`Cannot find state '${nextStateName}'`);
     }
@@ -634,7 +637,7 @@ export function makeTransitionTable(table: { [key: string]: string }) {
 
   Example usage:
     new FunctionalEntity({
-      setup: (config) => console.log("setup", config),
+      setup: (entityConfig) => console.log("setup", entityConfig),
       teardown: () => console.log("teardown"),
     });
 */
@@ -644,7 +647,7 @@ export class FunctionalEntity extends ParallelEntity {
     public functions: {
       setup: (
         frameInfo: FrameInfo,
-        config: any,
+        entityConfig: any,
         entity: FunctionalEntity
       ) => void;
       update: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
@@ -667,10 +670,11 @@ export class FunctionalEntity extends ParallelEntity {
     for (let childEntity of childEntities) this.addEntity(null, childEntity);
   }
 
-  setup(frameInfo: FrameInfo, config: any) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: any) {
+    super.setup(frameInfo, entityConfig);
 
-    if (this.functions.setup) this.functions.setup(frameInfo, config, this);
+    if (this.functions.setup)
+      this.functions.setup(frameInfo, entityConfig, this);
   }
 
   update(frameInfo: FrameInfo) {
@@ -731,7 +735,7 @@ export class WaitingEntity extends Entity {
 }
 
 /**
-  An entity that creates a new PIXI container in the setup config for it's children, and manages the container. 
+  An entity that creates a new PIXI container in the setup entityConfig for it's children, and manages the container. 
 */
 export class ContainerEntity extends ParallelEntity {
   public oldConfig: any;
@@ -742,14 +746,14 @@ export class ContainerEntity extends ParallelEntity {
     super(entities);
   }
 
-  setup(frameInfo: FrameInfo, config: any) {
-    this.oldConfig = config;
+  setup(frameInfo: FrameInfo, entityConfig: any) {
+    this.oldConfig = entityConfig;
 
     this.container = new PIXI.Container();
     this.container.name = this.name;
     this.oldConfig.container.addChild(this.container);
 
-    this.newConfig = _.extend({}, config, {
+    this.newConfig = _.extend({}, entityConfig, {
       container: this.container,
     });
 
@@ -781,13 +785,13 @@ export class VideoEntity extends Entity {
     });
   }
 
-  _setup(frameInfo: FrameInfo, config: EntityConfig) {
+  _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
     // This container is used so that the video is inserted in the right place,
     // even if the sprite isn't added until later.
     this.container = new PIXI.Container();
-    this.config.container.addChild(this.container);
+    this.entityConfig.container.addChild(this.container);
 
-    this.videoElement = this.config.videoAssets[this.videoName];
+    this.videoElement = this.entityConfig.videoAssets[this.videoName];
     this.videoElement.loop = this.loop;
     this.videoElement.currentTime = 0;
 
@@ -815,7 +819,7 @@ export class VideoEntity extends Entity {
   teardown(frameInfo: FrameInfo) {
     this.videoElement.pause();
     this.videoSprite = null;
-    this.config.container.removeChild(this.container);
+    this.entityConfig.container.removeChild(this.container);
     this.container = null;
 
     super.teardown(frameInfo);
@@ -852,8 +856,8 @@ export class ToggleSwitch extends Entity {
     });
   }
 
-  setup(frameInfo: FrameInfo, config: any) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: any) {
+    super.setup(frameInfo, entityConfig);
 
     this.container = new PIXI.Container();
     this.container.position = this.position;
@@ -870,11 +874,11 @@ export class ToggleSwitch extends Entity {
 
     this._updateVisibility();
 
-    this.config.container.addChild(this.container);
+    this.entityConfig.container.addChild(this.container);
   }
 
   teardown(frameInfo: FrameInfo) {
-    this.config.container.removeChild(this.container);
+    this.entityConfig.container.removeChild(this.container);
 
     super.teardown(frameInfo);
   }
@@ -919,7 +923,7 @@ export class AnimatedSpriteEntity extends Entity {
       console.warn("Warning: overwriting this.animatedSprite.onComplete");
     this.animatedSprite.onComplete = this._onAnimationComplete.bind(this);
 
-    this.config.container.addChild(this.animatedSprite);
+    this.entityConfig.container.addChild(this.animatedSprite);
     this.animatedSprite.gotoAndPlay(0);
   }
 
@@ -931,7 +935,7 @@ export class AnimatedSpriteEntity extends Entity {
   _teardown(frameInfo: FrameInfo) {
     this.animatedSprite.stop();
     this.animatedSprite.onComplete = null;
-    this.config.container.removeChild(this.animatedSprite);
+    this.entityConfig.container.removeChild(this.animatedSprite);
   }
 
   _onAnimationComplete() {
@@ -942,27 +946,27 @@ export class AnimatedSpriteEntity extends Entity {
 export class SkipButton extends Entity {
   public sprite: PIXI.Sprite;
 
-  setup(frameInfo: FrameInfo, config: EntityConfig) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
+    super.setup(frameInfo, entityConfig);
 
     this.sprite = new PIXI.Sprite(
-      this.config.app.loader.resources[
-        this.config.directives.graphics.skip as number
+      this.entityConfig.app.loader.resources[
+        this.entityConfig.directives.graphics.skip as number
       ].texture
     );
     this.sprite.anchor.set(0.5);
     this.sprite.position.set(
-      this.config.app.screen.width - 50,
-      this.config.app.screen.height - 50
+      this.entityConfig.app.screen.width - 50,
+      this.entityConfig.app.screen.height - 50
     );
     this.sprite.interactive = true;
     this._on(this.sprite, "pointertap", this._onSkip);
 
-    this.config.container.addChild(this.sprite);
+    this.entityConfig.container.addChild(this.sprite);
   }
 
   teardown(frameInfo: FrameInfo) {
-    this.config.container.removeChild(this.sprite);
+    this.entityConfig.container.removeChild(this.sprite);
 
     super.teardown(frameInfo);
   }
@@ -992,12 +996,12 @@ export class DeflatingCompositeEntity extends Entity {
     });
   }
 
-  setup(frameInfo: FrameInfo, config: any) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: any) {
+    super.setup(frameInfo, entityConfig);
 
     for (const entity of this.entities) {
       if (!entity.isSetup) {
-        entity.setup(frameInfo, config);
+        entity.setup(frameInfo, entityConfig);
       }
     }
   }
@@ -1047,7 +1051,7 @@ export class DeflatingCompositeEntity extends Entity {
   addEntity(entity: Entity) {
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
-      entity.setup(this.lastFrameInfo, this.config);
+      entity.setup(this.lastFrameInfo, this.entityConfig);
     }
 
     this.entities.push(entity);
@@ -1138,7 +1142,7 @@ export class Alternative extends Entity {
 
   _setup(frameInfo: FrameInfo) {
     for (const entityPair of this.entityPairs) {
-      entityPair.entity.setup(frameInfo, this.config);
+      entityPair.entity.setup(frameInfo, this.entityConfig);
       if (entityPair.entity.requestedTransition)
         this.requestedTransition = entityPair.transition;
     }
@@ -1172,8 +1176,8 @@ export class SwitchingEntity extends Entity {
     super();
   }
 
-  setup(frameInfo: FrameInfo, config: any) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: FrameInfo, entityConfig: any) {
+    super.setup(frameInfo, entityConfig);
 
     if (this.entities && this.activeEntityIndex > 0) {
       this.switchToIndex(this.activeEntityIndex);
@@ -1202,10 +1206,10 @@ export class SwitchingEntity extends Entity {
     }
   }
 
-  // If config is provided, it will overload the config provided to this entity by setup()
-  addEntity(entity: Entity, config?: any) {
+  // If entityConfig is provided, it will overload the entityConfig provided to this entity by setup()
+  addEntity(entity: Entity, entityConfig?: any) {
     this.entities.push(entity);
-    this.entityConfigs.push(config);
+    this.entityConfigs.push(entityConfig);
   }
 
   switchToIndex(index: number) {
@@ -1217,7 +1221,7 @@ export class SwitchingEntity extends Entity {
 
     if (this.activeEntityIndex >= 0) {
       const entityConfig = processEntityConfig(
-        this.config,
+        this.entityConfig,
         this.entityConfigs[this.activeEntityIndex]
       );
 

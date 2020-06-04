@@ -37,25 +37,25 @@ export class Simulation extends entity.ParallelEntity {
     });
   }
 
-  _setup(frameInfo: entity.FrameInfo, config: entity.EntityConfig) {
+  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     this.world = new p2.World(this.worldOptions);
-    this.oldConfig = config;
+    this.oldConfig = entityConfig;
 
     this.container = new PIXI.Container();
     // center at origin
-    this.container.position.x = config.app.renderer.width / 2;
-    this.container.position.y = config.app.renderer.height / 2;
+    this.container.position.x = entityConfig.app.renderer.width / 2;
+    this.container.position.y = entityConfig.app.renderer.height / 2;
 
     this.container.scale.x = this.zoom; // zoom in
     this.container.scale.y = -this.zoom; // Note: we flip the y axis to make "up" the physics "up"
     this.oldConfig.container.addChild(this.container);
 
-    config = _.extend({}, config, {
+    entityConfig = _.extend({}, entityConfig, {
       world: this.world,
       container: this.container,
     });
 
-    super.setup(frameInfo, config);
+    super.setup(frameInfo, entityConfig);
   }
 
   update(frameInfo: entity.FrameInfo) {
@@ -91,12 +91,12 @@ export class BodyEntity extends entity.ParallelEntity {
     });
   }
 
-  setup(frameInfo: entity.FrameInfo, config: entity.EntityConfig) {
-    super.setup(frameInfo, config);
+  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+    super.setup(frameInfo, entityConfig);
 
-    this.config.world.addBody(this.body);
+    this.entityConfig.world.addBody(this.body);
 
-    if (this.display) this.config.container.addChild(this.display);
+    if (this.display) this.entityConfig.container.addChild(this.display);
   }
 
   update(frameInfo: entity.FrameInfo) {
@@ -112,9 +112,9 @@ export class BodyEntity extends entity.ParallelEntity {
   }
 
   teardown(frameInfo: entity.FrameInfo) {
-    this.config.world.removeBody(this.body);
+    this.entityConfig.world.removeBody(this.body);
 
-    if (this.display) this.config.container.removeChild(this.display);
+    if (this.display) this.entityConfig.container.removeChild(this.display);
 
     super.teardown(frameInfo);
   }

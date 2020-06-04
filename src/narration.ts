@@ -43,12 +43,12 @@ export class Narrator extends entity.Entity {
       strokeThickness: 4,
       align: "center",
       wordWrap: true,
-      wordWrapWidth: this.config.app.screen.width - 150,
+      wordWrapWidth: this.entityConfig.app.screen.width - 150,
     });
     this.narratorSubtitle.anchor.set(0.5, 0.5);
     this.narratorSubtitle.position.set(
-      this.config.app.screen.width / 2,
-      this.config.app.screen.height - 75
+      this.entityConfig.app.screen.width / 2,
+      this.entityConfig.app.screen.height - 75
     );
     this.container.addChild(this.narratorSubtitle);
 
@@ -59,16 +59,16 @@ export class Narrator extends entity.Entity {
       strokeThickness: 4,
       align: "left",
       wordWrap: true,
-      wordWrapWidth: this.config.app.screen.width - 350,
+      wordWrapWidth: this.entityConfig.app.screen.width - 350,
     });
     this.characterSubtitle.anchor.set(0, 0.5);
     this.characterSubtitle.position.set(
       300,
-      this.config.app.screen.height - 75
+      this.entityConfig.app.screen.height - 75
     );
     this.container.addChild(this.characterSubtitle);
 
-    this.config.container.addChild(this.container);
+    this.entityConfig.container.addChild(this.container);
 
     this.key = null;
     this.isPlaying = false;
@@ -78,9 +78,9 @@ export class Narrator extends entity.Entity {
     this.currentHowl = null;
     this.currentSoundId = null;
 
-    this._on(this.config.playOptions, "fxOn", () => this._updateMuted);
+    this._on(this.entityConfig.playOptions, "fxOn", () => this._updateMuted);
     this._on(
-      this.config.playOptions,
+      this.entityConfig.playOptions,
       "showSubtitles",
       () => this._updateShowSubtitles
     );
@@ -124,7 +124,7 @@ export class Narrator extends entity.Entity {
   }
 
   _teardown() {
-    this.config.container.removeChild(this.container);
+    this.entityConfig.container.removeChild(this.container);
   }
 
   // @priority < 0 means to skip the narration if other narration is in progress
@@ -229,12 +229,12 @@ export class Narrator extends entity.Entity {
   }
 
   _updateMuted() {
-    const muted = !this.config.playOptions.options.fxOn;
+    const muted = !this.entityConfig.playOptions.options.fxOn;
     for (let howl of this.filesToHowl.values()) howl.mute(muted);
   }
 
   _updateShowSubtitles() {
-    this.container.visible = this.config.playOptions.options.showSubtitles;
+    this.container.visible = this.entityConfig.playOptions.options.showSubtitles;
   }
 }
 
@@ -250,14 +250,14 @@ export class SpeakerDisplay extends entity.Entity {
     super();
   }
 
-  _setup(config: entity.EntityConfig) {
+  _setup(entityConfig: entity.EntityConfig) {
     this.container = new PIXI.Container();
     this.container.position = this.position;
 
     // Make a hidden sprite for each texture, add it to the container
     this.namesToSprites = _.mapObject(this.namesToImages, (image) => {
       const sprite = new PIXI.Sprite(
-        this.config.app.loader.resources[image].texture
+        this.entityConfig.app.loader.resources[image].texture
       );
       sprite.anchor.set(0, 1); // lower-left
       sprite.visible = false;
@@ -267,13 +267,17 @@ export class SpeakerDisplay extends entity.Entity {
 
     this.currentSpeakerName = null;
 
-    this._on(this.config.narrator, "changeSpeaker", this._onChangeSpeaker);
+    this._on(
+      this.entityConfig.narrator,
+      "changeSpeaker",
+      this._onChangeSpeaker
+    );
 
-    this.config.container.addChild(this.container);
+    this.entityConfig.container.addChild(this.container);
   }
 
   _teardown() {
-    this.config.container.removeChild(this.container);
+    this.entityConfig.container.removeChild(this.container);
   }
 
   _onChangeSpeaker(speaker?: any) {
@@ -290,8 +294,8 @@ export class SingleNarration extends entity.Entity {
   }
 
   _setup() {
-    this.config.narrator.changeKey(this.narrationKey, this.priority);
-    this._on(this.config.narrator, "done", this._onNarrationDone);
+    this.entityConfig.narrator.changeKey(this.narrationKey, this.priority);
+    this._on(this.entityConfig.narrator, "done", this._onNarrationDone);
   }
 
   _onNarrationDone(key?: string) {
@@ -300,7 +304,7 @@ export class SingleNarration extends entity.Entity {
 
   _teardown() {
     /* TODO: make <Narrator>.stopNarration method
-      this.config.narrator.stopNarration(this.narrationKey);
+      this.entityConfig.narrator.stopNarration(this.narrationKey);
     */
   }
 }
@@ -321,13 +325,13 @@ export class RandomNarration extends entity.Entity {
 
     // Pick the next key in the list
     this.currentKey = this.narrationPlaylist.shift();
-    this.config.narrator.changeKey(this.currentKey, this.priority);
+    this.entityConfig.narrator.changeKey(this.currentKey, this.priority);
   }
 
   _update(frameInfo: entity.FrameInfo) {
     if (
       frameInfo.timeSinceStart >=
-      this.config.narrator.narrationDuration(this.currentKey)
+      this.entityConfig.narrator.narrationDuration(this.currentKey)
     ) {
       this.requestedTransition = true;
     }
@@ -367,7 +371,7 @@ export class VideoScene extends entity.ParallelEntity {
     });
   }
 
-  _setup(config: entity.EntityConfig) {
+  _setup(entityConfig: entity.EntityConfig) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
       this.addEntity(this.narration);
@@ -381,8 +385,8 @@ export class VideoScene extends entity.ParallelEntity {
     }
 
     if (this.options.music) {
-      this.previousMusic = this.config.jukebox.musicName;
-      this.config.jukebox.changeMusic(this.options.music);
+      this.previousMusic = this.entityConfig.jukebox.musicName;
+      this.entityConfig.jukebox.changeMusic(this.options.music);
     }
 
     this.skipButton = new entity.SkipButton();
@@ -399,7 +403,8 @@ export class VideoScene extends entity.ParallelEntity {
   }
 
   _teardown() {
-    if (this.options.music) this.config.jukebox.changeMusic(this.previousMusic);
+    if (this.options.music)
+      this.entityConfig.jukebox.changeMusic(this.previousMusic);
 
     this.removeAllEntities();
   }
