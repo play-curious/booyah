@@ -1,0 +1,24 @@
+{
+  "name": "booyah",
+  "version": "1.0.0",
+  "description": "HTML5 game engine",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/play-curious/booyah.git"
+  },
+  "keywords": [
+    "game",
+    "engine",
+    "html5",
+    "pixi"
+  ],
+  "author": "Jesse Himmelstein",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/play-curious/booyah/issues"
+  },
+  "homepage": "https://github.com/play-curious/booyah#readme"
+}
