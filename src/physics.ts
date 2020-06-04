@@ -37,7 +37,7 @@ export class Simulation extends entity.ParallelEntity {
     });
   }
 
-  setup(config: entity.EntityConfig) {
+  _setup(frameInfo: entity.FrameInfo, config: entity.EntityConfig) {
     this.world = new p2.World(this.worldOptions);
     this.oldConfig = config;
 
@@ -55,23 +55,23 @@ export class Simulation extends entity.ParallelEntity {
       container: this.container,
     });
 
-    super.setup(config);
+    super.setup(frameInfo, config);
   }
 
-  update(options: entity.FrameInfo) {
-    super.update(options);
+  update(frameInfo: entity.FrameInfo) {
+    super.update(frameInfo);
 
     // Limit how fast the physics can catch up
-    const stepTime = Math.min(options.timeSinceLastFrame / 1000, 1 / 30);
+    const stepTime = Math.min(frameInfo.timeSinceLastFrame / 1000, 1 / 30);
     this.world.step(stepTime);
   }
 
-  teardown() {
+  teardown(frameInfo: entity.FrameInfo) {
     this.world.clear();
 
     this.oldConfig.container.removeChild(this.container);
 
-    super.teardown();
+    super.teardown(frameInfo);
   }
 }
 
@@ -91,16 +91,16 @@ export class BodyEntity extends entity.ParallelEntity {
     });
   }
 
-  setup(config: entity.EntityConfig) {
-    super.setup(config);
+  setup(frameInfo: entity.FrameInfo, config: entity.EntityConfig) {
+    super.setup(frameInfo, config);
 
     this.config.world.addBody(this.body);
 
     if (this.display) this.config.container.addChild(this.display);
   }
 
-  update(options: entity.FrameInfo) {
-    super.update(options);
+  update(frameInfo: entity.FrameInfo) {
+    super.update(frameInfo);
 
     // Transfer positions of the physics objects to Pixi.js
     // OPT: no need to do this for static bodies (mass = 0) except for the first framce
@@ -111,11 +111,11 @@ export class BodyEntity extends entity.ParallelEntity {
     }
   }
 
-  teardown() {
+  teardown(frameInfo: entity.FrameInfo) {
     this.config.world.removeBody(this.body);
 
     if (this.display) this.config.container.removeChild(this.display);
 
-    super.teardown();
+    super.teardown(frameInfo);
   }
 }

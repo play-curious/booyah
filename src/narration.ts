@@ -33,9 +33,7 @@ export class Narrator extends entity.Entity {
     super();
   }
 
-  setup(config: entity.EntityConfig) {
-    super.setup(config);
-
+  _setup() {
     this.container = new PIXI.Container();
 
     this.narratorSubtitle = new PIXI.Text("", {
@@ -91,10 +89,10 @@ export class Narrator extends entity.Entity {
     this._updateShowSubtitles();
   }
 
-  update(options: entity.FrameInfo) {
-    super.update(options);
+  update(frameInfo: entity.FrameInfo) {
+    super.update(frameInfo);
 
-    if (options.gameState == "paused") {
+    if (frameInfo.gameState == "paused") {
       if (!this.isPaused) {
         if (this.currentHowl) this.currentHowl.pause(this.currentSoundId);
         this.isPaused = true;
@@ -105,9 +103,9 @@ export class Narrator extends entity.Entity {
     } else if (!this.isPlaying) {
       if (this.keyQueue.length > 0) {
         this.key = this.keyQueue.shift();
-        this._initNarration(options.playTime);
+        this._initNarration(frameInfo.playTime);
       }
-    } else if (options.playTime - this.keyStartTime >= this.nextLineAt) {
+    } else if (frameInfo.playTime - this.keyStartTime >= this.nextLineAt) {
       this.lineIndex++;
       if (this.lineIndex < this.lines.length) {
         this._updateNextLineAt();
@@ -125,10 +123,8 @@ export class Narrator extends entity.Entity {
     }
   }
 
-  teardown() {
+  _teardown() {
     this.config.container.removeChild(this.container);
-
-    super.teardown();
   }
 
   // @priority < 0 means to skip the narration if other narration is in progress
@@ -174,9 +170,7 @@ export class Narrator extends entity.Entity {
     }
   }
 
-  onSignal(signal: string, data?: any) {
-    super.onSignal(signal, data);
-
+  _onSignal(frameInfo: entity.FrameInfo, signal: string, data?: any) {
     if (signal === "reset") this.cancelAll();
   }
 
@@ -256,9 +250,7 @@ export class SpeakerDisplay extends entity.Entity {
     super();
   }
 
-  setup(config: entity.EntityConfig) {
-    super.setup(config);
-
+  _setup(config: entity.EntityConfig) {
     this.container = new PIXI.Container();
     this.container.position = this.position;
 
@@ -280,10 +272,8 @@ export class SpeakerDisplay extends entity.Entity {
     this.config.container.addChild(this.container);
   }
 
-  teardown() {
+  _teardown() {
     this.config.container.removeChild(this.container);
-
-    super.teardown();
   }
 
   _onChangeSpeaker(speaker?: any) {
@@ -323,9 +313,7 @@ export class RandomNarration extends entity.Entity {
     super();
   }
 
-  setup(config: entity.EntityConfig) {
-    super.setup(config);
-
+  _setup() {
     // If this is the first time or we have played everything, make a new playlist
     if (this.narrationPlaylist.length === 0) {
       this.narrationPlaylist = _.shuffle(this.narrationKeys);
@@ -336,19 +324,17 @@ export class RandomNarration extends entity.Entity {
     this.config.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  _update(options: entity.FrameInfo) {
+  _update(frameInfo: entity.FrameInfo) {
     if (
-      options.timeSinceStart >=
+      frameInfo.timeSinceStart >=
       this.config.narrator.narrationDuration(this.currentKey)
     ) {
       this.requestedTransition = true;
     }
   }
 
-  teardown() {
+  _teardown() {
     this.currentKey = null;
-
-    super.teardown();
   }
 }
 
@@ -403,7 +389,7 @@ export class VideoScene extends entity.ParallelEntity {
     this.addEntity(this.skipButton);
   }
 
-  _update(options: entity.FrameInfo) {
+  _update(frameInfo: entity.FrameInfo) {
     if (
       (this.options.video && this.video.requestedTransition) ||
       this.skipButton.requestedTransition

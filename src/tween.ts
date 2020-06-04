@@ -95,10 +95,10 @@ export class Tween extends entity.Entity implements TweenOptions {
     this.startTime = null;
   }
 
-  _update(options: entity.FrameInfo) {
-    if (this.startTime === null) this.startTime = options.timeSinceStart;
+  _update(frameInfo: entity.FrameInfo) {
+    if (this.startTime === null) this.startTime = frameInfo.timeSinceStart;
 
-    if (options.timeSinceStart - this.startTime >= this.duration) {
+    if (frameInfo.timeSinceStart - this.startTime >= this.duration) {
       this.requestedTransition = true;
 
       // Snap to end
@@ -106,7 +106,7 @@ export class Tween extends entity.Entity implements TweenOptions {
       this._updateValue();
     } else {
       const easedProgress = this.easing(
-        (options.timeSinceStart - this.startTime) / this.duration
+        (frameInfo.timeSinceStart - this.startTime) / this.duration
       );
       this.value = this.interpolate(this.startValue, this.to, easedProgress);
       this._updateValue();

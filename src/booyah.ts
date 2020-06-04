@@ -168,8 +168,8 @@ let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 class FilterPauseEntity extends entity.ParallelEntity {
-  update(options: entity.FrameInfo) {
-    if (options.gameState == "playing") super.update(options);
+  update(frameInfo: entity.FrameInfo) {
+    if (frameInfo.gameState == "playing") super.update(frameInfo);
   }
 }
 
@@ -361,7 +361,7 @@ export class MenuEntity extends entity.ParallelEntity {
         this._onChangeFullScreen as any
       );
       this.fullScreenButton.setup(frameInfo, menuButtonLayerConfig);
-      this.addEntity(frameInfo, this.fullScreenButton);
+      this.addEntity(this.fullScreenButton);
 
       // TODO: use event listener to check if full screen was exited manually with ESC key
     } else {
@@ -385,7 +385,7 @@ export class MenuEntity extends entity.ParallelEntity {
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
     this.musicButton.setup(frameInfo, menuButtonLayerConfig);
-    this.addEntity(frameInfo, this.musicButton);
+    this.addEntity(this.musicButton);
 
     // TODO prevent being able to turn both subtitles and sound off
 
@@ -400,7 +400,7 @@ export class MenuEntity extends entity.ParallelEntity {
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
     this.fxButton.setup(frameInfo, menuButtonLayerConfig);
-    this.addEntity(frameInfo, this.fxButton);
+    this.addEntity(this.fxButton);
 
     this.subtitlesButton = new entity.ToggleSwitch({
       onTexture: this.config.app.loader.resources[
@@ -418,7 +418,7 @@ export class MenuEntity extends entity.ParallelEntity {
       this._onChangeShowSubtitles as any
     );
     this.subtitlesButton.setup(frameInfo, menuButtonLayerConfig);
-    this.addEntity(frameInfo, this.subtitlesButton);
+    this.addEntity(this.subtitlesButton);
 
     const creditLink = new PIXI.Text("Credits", {
       fontFamily: "Roboto Condensed",
@@ -565,7 +565,7 @@ export class MenuEntity extends entity.ParallelEntity {
   _update(frameInfo: entity.FrameInfo) {
     if (this.creditsEntity) {
       if (this.creditsEntity.requestedTransition) {
-        this.removeEntity(frameInfo, this.creditsEntity);
+        this.removeEntity(this.creditsEntity);
         this.creditsEntity = null;
       }
     }
@@ -755,9 +755,7 @@ export class LoadingScene extends entity.ParallelEntity {
   loadingFill: PIXI.Graphics;
   loadingCircle: PIXI.Sprite;
 
-  setup(config: any) {
-    super.setup(config);
-
+  _setup() {
     this.progress = 0;
     this.shouldUpdateProgress = true;
 
@@ -808,10 +806,9 @@ export class LoadingScene extends entity.ParallelEntity {
     this.config.container.addChild(this.container);
   }
 
-  update(options: any) {
-    super.update(options);
-
-    this.loadingCircle.rotation += LOADING_SCENE_SPIN_SPEED * options.timeScale;
+  _update(frameInfo: entity.FrameInfo) {
+    this.loadingCircle.rotation +=
+      LOADING_SCENE_SPIN_SPEED * frameInfo.timeScale;
 
     if (this.shouldUpdateProgress) {
       const height = this.progress * 100; // Because the graphic happens to be 100px tall
@@ -825,10 +822,8 @@ export class LoadingScene extends entity.ParallelEntity {
     }
   }
 
-  teardown() {
+  _teardown(frameInfo: entity.FrameInfo) {
     this.config.container.removeChild(this.container);
-
-    super.teardown();
   }
 
   updateProgress(fraction: number) {
@@ -840,9 +835,7 @@ export class LoadingScene extends entity.ParallelEntity {
 export class ReadyScene extends entity.ParallelEntity {
   container: PIXI.Container;
 
-  setup(config: any) {
-    super.setup(config);
-
+  _setup() {
     this.container = new PIXI.Container();
 
     if (this.config.directives.splashScreen) {
@@ -872,10 +865,8 @@ export class ReadyScene extends entity.ParallelEntity {
     this.config.container.addChild(this.container);
   }
 
-  teardown() {
+  _teardown() {
     this.config.container.removeChild(this.container);
-
-    super.teardown();
   }
 }
 
@@ -916,9 +907,7 @@ export class LoadingErrorScene extends entity.ParallelEntity {
 export class DoneScene extends entity.ParallelEntity {
   container: PIXI.Container;
 
-  setup(config: any) {
-    super.setup(config);
-
+  _setup() {
     this.container = new PIXI.Container();
 
     if (this.config.directives.splashScreen) {
@@ -948,10 +937,8 @@ export class DoneScene extends entity.ParallelEntity {
     this.config.container.addChild(this.container);
   }
 
-  teardown() {
+  _teardown() {
     this.config.container.removeChild(this.container);
-
-    super.teardown();
   }
 }
 
@@ -990,7 +977,7 @@ function update(timeScale: number) {
     timeSinceStart += timeSinceLastFrame;
   }
 
-  const options = {
+  const frameInfo: entity.FrameInfo = {
     playTime,
     timeSinceStart,
     timeSinceLastFrame,
@@ -1000,15 +987,15 @@ function update(timeScale: number) {
 
   if (previousGameState !== gameState) {
     if (previousGameState == "playing" && gameState == "paused") {
-      rootEntity.onSignal("pause");
+      rootEntity.onSignal(frameInfo, "pause");
     } else if (previousGameState == "paused" && gameState == "playing") {
-      rootEntity.onSignal("play");
+      rootEntity.onSignal(frameInfo, "play");
     }
 
     previousGameState = gameState;
   }
 
-  rootEntity.update(options);
+  rootEntity.update(frameInfo);
 
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
@@ -1216,12 +1203,19 @@ function doneLoading() {
     rootConfig.menu.on("pause", () => changeGameState("paused"));
     rootConfig.menu.on("play", () => changeGameState("playing"));
     rootConfig.menu.on("reset", () => {
-      rootEntity.onSignal("reset");
+      rootEntity.onSignal(rootConfig.menu.lastFrameInfo, "reset");
       changeGameState("playing");
     });
   }
 
-  rootEntity.setup(rootConfig);
+  const frameInfo: entity.FrameInfo = {
+    playTime: 0,
+    timeSinceStart: 0,
+    timeSinceLastFrame: 0,
+    timeScale: 1,
+    gameState,
+  };
+  rootEntity.setup(frameInfo, rootConfig);
 }
 
 export function makePreloader(additionalAssets: string[]) {
@@ -1297,7 +1291,15 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene = null;
 
       rootEntity = new LoadingErrorScene();
-      rootEntity.setup(rootConfig);
+
+      const frameInfo: entity.FrameInfo = {
+        playTime: 0,
+        timeSinceStart: 0,
+        timeSinceLastFrame: 0,
+        timeScale: 1,
+        gameState,
+      };
+      rootEntity.setup(frameInfo, rootConfig);
 
       throw err;
     });

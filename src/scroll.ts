@@ -12,41 +12,42 @@ import * as util from "./util";
  *  refreshed
  **/
 export class Scrollbox extends entity.ParallelEntity {
-
-    public pointerDown:any
-    public container:PIXI.Container
-    public content:PIXI.Container
-    public scrollbar:PIXI.Graphics
-    public onWheelHandler:()=>void
-    public _isScrollbarVertical:boolean
-    public scrollbarTop:number
-    public scrollbarHeight:number
-    public scrollbarLeft:number
-    public scrollbarWidth:number
+  public pointerDown: any;
+  public container: PIXI.Container;
+  public content: PIXI.Container;
+  public scrollbar: PIXI.Graphics;
+  public onWheelHandler: () => void;
+  public _isScrollbarVertical: boolean;
+  public scrollbarTop: number;
+  public scrollbarHeight: number;
+  public scrollbarLeft: number;
+  public scrollbarWidth: number;
 
   /**
    * Can be provided with an existing container
    */
-  constructor(public options:{
-    content?: any
-    boxWidth?: number
-    boxHeight?: number
-    overflowX?: number | string
-    overflowY?: number | string
-    scrollbarOffsetHorizontal?: number
-    scrollbarOffsetVertical?: number
-    scrollbarSize?: number
-    scrollbarBackground?: number
-    scrollbarBackgroundAlpha?: number
-    scrollbarForeground?: number
-    scrollbarForegroundAlpha?: number
-    dragScroll?: boolean
-    dragThreshold?: number
-    stopPropagation?: boolean
-    contentMarginX?: number
-    contentMarginY?: number
-    wheelScroll?: boolean
-  } = {}) {
+  constructor(
+    public options: {
+      content?: any;
+      boxWidth?: number;
+      boxHeight?: number;
+      overflowX?: number | string;
+      overflowY?: number | string;
+      scrollbarOffsetHorizontal?: number;
+      scrollbarOffsetVertical?: number;
+      scrollbarSize?: number;
+      scrollbarBackground?: number;
+      scrollbarBackgroundAlpha?: number;
+      scrollbarForeground?: number;
+      scrollbarForegroundAlpha?: number;
+      dragScroll?: boolean;
+      dragThreshold?: number;
+      stopPropagation?: boolean;
+      contentMarginX?: number;
+      contentMarginY?: number;
+      wheelScroll?: boolean;
+    } = {}
+  ) {
     super();
 
     this.options = util.setupOptions({}, options, {
@@ -67,7 +68,7 @@ export class Scrollbox extends entity.ParallelEntity {
       stopPropagation: true,
       contentMarginX: 0,
       contentMarginY: 0,
-      wheelScroll: true
+      wheelScroll: true,
     });
   }
 
@@ -155,7 +156,7 @@ export class Scrollbox extends entity.ParallelEntity {
   // From the same function in pixi-scrollbox
   _drawScrollbars() {
     this.scrollbar.clear();
-    let options:any = {};
+    let options: any = {};
     options.left = 0;
     options.right =
       this.content.width +
@@ -256,7 +257,7 @@ export class Scrollbox extends entity.ParallelEntity {
     }
   }
 
-  _onMove(e:PIXI.interaction.InteractionEvent) {
+  _onMove(e: PIXI.interaction.InteractionEvent) {
     if (!this.pointerDown) return;
 
     if (this.pointerDown.type === "scrollbar") this._scrollbarMove(e);
@@ -264,7 +265,7 @@ export class Scrollbox extends entity.ParallelEntity {
     else throw new Error("no such type");
   }
 
-  _onUp(e:PIXI.interaction.InteractionEvent) {
+  _onUp(e: PIXI.interaction.InteractionEvent) {
     if (!this.pointerDown) return;
 
     if (this.pointerDown.type === "scrollbar") this._scrollbarUp();
@@ -277,7 +278,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
-  _scrollbarDown(e:PIXI.interaction.InteractionEvent) {
+  _scrollbarDown(e: PIXI.interaction.InteractionEvent) {
     if (this.pointerDown) return;
 
     this.content.interactiveChildren = false;
@@ -292,7 +293,7 @@ export class Scrollbox extends entity.ParallelEntity {
           this.pointerDown = {
             type: "scrollbar",
             direction: "horizontal",
-            last: local
+            last: local,
           };
         } else {
           if (local.x > this.scrollbarLeft) {
@@ -316,7 +317,7 @@ export class Scrollbox extends entity.ParallelEntity {
           this.pointerDown = {
             type: "scrollbar",
             direction: "vertical",
-            last: local
+            last: local,
           };
         } else {
           if (local.y > this.scrollbarTop) {
@@ -338,7 +339,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
-  _scrollbarMove(e:PIXI.interaction.InteractionEvent) {
+  _scrollbarMove(e: PIXI.interaction.InteractionEvent) {
     if (this.pointerDown.direction === "horizontal") {
       const local = this.container.toLocal(e.data.global);
       const fraction =
@@ -375,7 +376,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @param {PIXI.interaction.InteractionEvent} e
    * @private
    */
-  _dragDown(e:PIXI.interaction.InteractionEvent) {
+  _dragDown(e: PIXI.interaction.InteractionEvent) {
     if (this.pointerDown) return;
 
     const local = this.container.toLocal(e.data.global);
@@ -392,7 +393,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * @private
    */
 
-  _dragMove(e:PIXI.interaction.InteractionEvent) {
+  _dragMove(e: PIXI.interaction.InteractionEvent) {
     const local = this.container.toLocal(e.data.global) as PIXI.Point;
     if (
       geom.distance(local, this.pointerDown.last) <= this.options.dragThreshold
@@ -428,7 +429,7 @@ export class Scrollbox extends entity.ParallelEntity {
    * handle wheel events
    * @param {WheelEvent} e
    */
-  _onWheel(e:WheelEvent) {
+  _onWheel(e: WheelEvent) {
     if (!this.container.worldVisible) return;
 
     // Get coordinates of point and test if we touch this container
@@ -457,11 +458,14 @@ export class Scrollbox extends entity.ParallelEntity {
     e.preventDefault();
   }
 
-  scrollBy(amount:PIXI.Point, reason = "user") {
-    this.scrollTo(geom.add(this.content.position as PIXI.Point, amount), reason);
+  scrollBy(amount: PIXI.Point, reason = "user") {
+    this.scrollTo(
+      geom.add(this.content.position as PIXI.Point, amount),
+      reason
+    );
   }
 
-  scrollTo(position:PIXI.Point, reason = "user") {
+  scrollTo(position: PIXI.Point, reason = "user") {
     position.x = geom.clamp(
       position.x,
       this.options.boxWidth -

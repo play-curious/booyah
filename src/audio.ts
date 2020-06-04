@@ -26,7 +26,7 @@ export class Jukebox extends entity.Entity {
     });
   }
 
-  _setup(config: entity.EntityConfig) {
+  _setup() {
     this.musicName = null;
     this.musicPlaying = null;
 
@@ -47,7 +47,7 @@ export class Jukebox extends entity.Entity {
     this.musicName = null;
   }
 
-  _onSignal(signal: string, data?: any) {
+  _onSignal(frameInfo: entity.FrameInfo, signal: string, data?: any) {
     if (!this.musicPlaying) return;
 
     if (signal === "pause") this.musicPlaying.pause();
