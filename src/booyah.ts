@@ -167,7 +167,7 @@ let videoLoaderProgress = 0;
 let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
-class FilterPauseEntity extends entity.CompositeEntity {
+class FilterPauseEntity extends entity.ParallelEntity {
   update(options: entity.FrameInfo) {
     if (options.gameState == "playing") super.update(options);
   }
@@ -252,7 +252,7 @@ export class MenuEntity extends entity.ParallelEntity {
   public fxButton: entity.ToggleSwitch;
   public subtitlesButton: entity.ToggleSwitch;
 
-  _setup(config: entity.EntityConfig) {
+  _setup(frameInfo: entity.FrameInfo, config: entity.EntityConfig) {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
@@ -360,8 +360,8 @@ export class MenuEntity extends entity.ParallelEntity {
         "change",
         this._onChangeFullScreen as any
       );
-      this.fullScreenButton.setup(menuButtonLayerConfig);
-      this.addEntity(this.fullScreenButton);
+      this.fullScreenButton.setup(frameInfo, menuButtonLayerConfig);
+      this.addEntity(frameInfo, this.fullScreenButton);
 
       // TODO: use event listener to check if full screen was exited manually with ESC key
     } else {
@@ -384,8 +384,8 @@ export class MenuEntity extends entity.ParallelEntity {
       position: new PIXI.Point(405, 230),
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
-    this.musicButton.setup(menuButtonLayerConfig);
-    this.addEntity(this.musicButton);
+    this.musicButton.setup(frameInfo, menuButtonLayerConfig);
+    this.addEntity(frameInfo, this.musicButton);
 
     // TODO prevent being able to turn both subtitles and sound off
 
@@ -399,8 +399,8 @@ export class MenuEntity extends entity.ParallelEntity {
       position: new PIXI.Point(630, 230),
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
-    this.fxButton.setup(menuButtonLayerConfig);
-    this.addEntity(this.fxButton);
+    this.fxButton.setup(frameInfo, menuButtonLayerConfig);
+    this.addEntity(frameInfo, this.fxButton);
 
     this.subtitlesButton = new entity.ToggleSwitch({
       onTexture: this.config.app.loader.resources[
@@ -417,8 +417,8 @@ export class MenuEntity extends entity.ParallelEntity {
       "change",
       this._onChangeShowSubtitles as any
     );
-    this.subtitlesButton.setup(menuButtonLayerConfig);
-    this.addEntity(this.subtitlesButton);
+    this.subtitlesButton.setup(frameInfo, menuButtonLayerConfig);
+    this.addEntity(frameInfo, this.subtitlesButton);
 
     const creditLink = new PIXI.Text("Credits", {
       fontFamily: "Roboto Condensed",
@@ -562,10 +562,10 @@ export class MenuEntity extends entity.ParallelEntity {
     this.config.container.addChild(this.container);
   }
 
-  _update(options: any) {
+  _update(frameInfo: entity.FrameInfo) {
     if (this.creditsEntity) {
       if (this.creditsEntity.requestedTransition) {
-        this.removeEntity(this.creditsEntity);
+        this.removeEntity(frameInfo, this.creditsEntity);
         this.creditsEntity = null;
       }
     }
@@ -657,7 +657,7 @@ export function installMenu(rootConfig: any, rootEntity: any) {
   rootEntity.addEntity(rootConfig.menu);
 }
 
-export class CreditsEntity extends entity.CompositeEntity {
+export class CreditsEntity extends entity.ParallelEntity {
   public container: PIXI.Container;
   public mask: PIXI.Graphics;
 
@@ -747,7 +747,7 @@ export class CreditsEntity extends entity.CompositeEntity {
   }
 }
 
-export class LoadingScene extends entity.CompositeEntity {
+export class LoadingScene extends entity.ParallelEntity {
   progress: number;
   shouldUpdateProgress: boolean;
   container: PIXI.Container;
@@ -837,7 +837,7 @@ export class LoadingScene extends entity.CompositeEntity {
   }
 }
 
-export class ReadyScene extends entity.CompositeEntity {
+export class ReadyScene extends entity.ParallelEntity {
   container: PIXI.Container;
 
   setup(config: any) {
@@ -913,7 +913,7 @@ export class LoadingErrorScene extends entity.ParallelEntity {
   }
 }
 
-export class DoneScene extends entity.CompositeEntity {
+export class DoneScene extends entity.ParallelEntity {
   container: PIXI.Container;
 
   setup(config: any) {
