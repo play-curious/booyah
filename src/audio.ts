@@ -110,7 +110,7 @@ export class MusicEntity extends entity.Entity {
   _setup(entityConfig: entity.EntityConfig) {
     this.entityConfig.jukebox.changeMusic(this.trackName);
 
-    this.requestedTransition = new entity.Transition();
+    this.output = entity.makeEntityIO();
   }
 
   _teardown() {
