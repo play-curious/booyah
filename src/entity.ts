@@ -513,7 +513,7 @@ export class StateMachine extends Entity {
     if (this.state) {
       this.state.teardown(frameInfo);
       this.state = null;
-      this.stateName = null;
+      this.stateIO = null;
     }
 
     super.teardown(frameInfo);

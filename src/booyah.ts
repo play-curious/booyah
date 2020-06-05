@@ -38,9 +38,9 @@ export interface Directives {
     entityConfig: entity.EntityConfig,
     entity: entity.Entity
   ) => any)[];
-  states: { [n: string]: entity.Entity };
-  transitions: { [k: string]: entity.TransitionResolvable };
-  endingScenes: { [k: string]: entity.Entity };
+  states: entity.StateTable;
+  transitions: entity.TransitionTable;
+  endingScenes: string[];
   screenSize: PIXI.IPoint;
   canvasId: string;
 }
