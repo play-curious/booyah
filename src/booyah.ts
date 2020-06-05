@@ -150,7 +150,7 @@ const rootConfig: entity.EntityConfig = {
   world: null,
 };
 
-let loadingScene: any;
+let loadingScene: LoadingScene;
 let rootEntity: entity.ParallelEntity;
 
 let lastFrameTime = 0;
@@ -1184,13 +1184,21 @@ function loadVariable() {
 }
 
 function doneLoading() {
+  const frameInfo: entity.FrameInfo = {
+    playTime: 0,
+    timeSinceStart: 0,
+    timeSinceLastFrame: 0,
+    timeScale: 1,
+    gameState,
+  };
+
   util.endTiming("loadVariable");
   util.startTiming("playing");
 
   changeGameState("playing");
 
   // Remove loading screen
-  loadingScene.teardown();
+  loadingScene.teardown(frameInfo);
   loadingScene = null;
   rootEntity = null;
 
@@ -1223,13 +1231,6 @@ function doneLoading() {
     });
   }
 
-  const frameInfo: entity.FrameInfo = {
-    playTime: 0,
-    timeSinceStart: 0,
-    timeSinceLastFrame: 0,
-    timeScale: 1,
-    gameState,
-  };
   rootEntity.setup(frameInfo, rootConfig);
 }
 
@@ -1282,6 +1283,13 @@ export function go(directives: Partial<Directives> = {}) {
     ])
   );
 
+  const frameInfo: entity.FrameInfo = {
+    playTime: 0,
+    timeSinceStart: 0,
+    timeSinceLastFrame: 0,
+    timeScale: 1,
+    gameState,
+  };
   const loadingPromise = Promise.all([
     util.makeDomContentLoadPromise(document),
     util.makePixiLoadPromise(rootConfig.preloader),
@@ -1292,7 +1300,7 @@ export function go(directives: Partial<Directives> = {}) {
       rootEntity = loadingScene;
 
       // The loading scene doesn't get the full entityConfig
-      loadingScene.setup(rootConfig);
+      loadingScene.setup(frameInfo, rootConfig);
       rootConfig.app.ticker.add(update);
     })
     .then(() => loadFixedAssets())
@@ -1302,18 +1310,10 @@ export function go(directives: Partial<Directives> = {}) {
       console.error("Error during load", err);
 
       // Replace loading scene with loading error
-      loadingScene.teardown();
+      loadingScene.teardown(frameInfo);
       loadingScene = null;
 
       rootEntity = new LoadingErrorScene();
-
-      const frameInfo: entity.FrameInfo = {
-        playTime: 0,
-        timeSinceStart: 0,
-        timeSinceLastFrame: 0,
-        timeScale: 1,
-        gameState,
-      };
       rootEntity.setup(frameInfo, rootConfig);
 
       throw err;
