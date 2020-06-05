@@ -299,7 +299,8 @@ export class SingleNarration extends entity.Entity {
   }
 
   _onNarrationDone(key?: string) {
-    if (key === this.narrationKey) this.requestedTransition = true;
+    if (key === this.narrationKey)
+      this.requestedTransition = new entity.Transition();
   }
 
   _teardown() {
@@ -333,7 +334,7 @@ export class RandomNarration extends entity.Entity {
       frameInfo.timeSinceStart >=
       this.entityConfig.narrator.narrationDuration(this.currentKey)
     ) {
-      this.requestedTransition = true;
+      this.requestedTransition = new entity.Transition();
     }
   }
 
@@ -398,7 +399,7 @@ export class VideoScene extends entity.ParallelEntity {
       (this.options.video && this.video.requestedTransition) ||
       this.skipButton.requestedTransition
     ) {
-      this.requestedTransition = true;
+      this.requestedTransition = new entity.Transition();
     }
   }
 

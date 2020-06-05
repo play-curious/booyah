@@ -10,9 +10,8 @@ export interface IEventListener {
   cb: () => any;
 }
 
-export interface TransitionResolvable {
-  name: string;
-  params: any;
+export class Transition {
+  constructor(readonly name = "default", readonly params = {}) {}
 }
 
 export type EntityConfig = { [k: string]: any };
@@ -64,7 +63,7 @@ export function extendConfig(values: any[]): (entityConfig: any) => {} {
 export abstract class Entity extends PIXI.utils.EventEmitter {
   public isSetup = false;
   public eventListeners: IEventListener[] = [];
-  public requestedTransition: any;
+  public requestedTransition: Transition;
   public entityConfig: EntityConfig;
   public lastFrameInfo: FrameInfo;
 
@@ -158,7 +157,7 @@ export class NullEntity extends Entity {}
 
 /** An entity that returns the requested transition immediately  */
 export class TransitoryEntity extends Entity {
-  constructor(public transition = true) {
+  constructor(readonly transition = new Transition()) {
     super();
   }
 
@@ -237,7 +236,7 @@ export class ParallelEntity extends Entity {
     }
 
     if (this.autoTransition && !_.some(this.entityIsActive))
-      this.requestedTransition = true;
+      this.requestedTransition = new Transition();
   }
 
   teardown(frameInfo: FrameInfo) {
@@ -374,7 +373,7 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
     this._deactivateEntity();
 
     this.currentEntityIndex = 0;
-    this.requestedTransition = false;
+    this.requestedTransition = null;
 
     this._activateEntity();
   }
@@ -716,7 +715,7 @@ export class FunctionCallEntity extends Entity {
   _setup() {
     this.f.call(this.that);
 
-    this.requestedTransition = true;
+    this.requestedTransition = new Transition();
   }
 }
 
@@ -729,7 +728,7 @@ export class WaitingEntity extends Entity {
 
   _update(frameInfo: FrameInfo) {
     if (frameInfo.timeSinceStart >= this.wait) {
-      this.requestedTransition = true;
+      this.requestedTransition = new Transition();
     }
   }
 }
@@ -805,7 +804,7 @@ export class VideoEntity extends Entity {
   }
 
   _update(frameInfo: FrameInfo) {
-    if (this.videoElement.ended) this.requestedTransition = true;
+    if (this.videoElement.ended) this.requestedTransition = new Transition();
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
@@ -939,7 +938,7 @@ export class AnimatedSpriteEntity extends Entity {
   }
 
   _onAnimationComplete() {
-    this.requestedTransition = true;
+    this.requestedTransition = new Transition();
   }
 }
 
@@ -972,7 +971,7 @@ export class SkipButton extends Entity {
   }
 
   _onSkip() {
-    this.requestedTransition = true;
+    this.requestedTransition = new Transition("skip");
     this.emit("skip");
   }
 }
@@ -1028,7 +1027,7 @@ export class DeflatingCompositeEntity extends Entity {
     }
 
     if (this.autoTransition && this.entities.length == 0) {
-      this.requestedTransition = true;
+      this.requestedTransition = new Transition();
     }
   }
 
@@ -1073,7 +1072,7 @@ export class DeflatingCompositeEntity extends Entity {
  * Does not request a transition until done() is called with a given transition
  */
 export class Block extends Entity {
-  done(transition = true) {
+  done(transition = new Transition()) {
     this.requestedTransition = transition;
   }
 }
@@ -1082,7 +1081,7 @@ export class Block extends Entity {
  * Executes a function once and requests a transition equal to its value.
  */
 export class Decision extends Entity {
-  constructor(private f: () => boolean) {
+  constructor(private f: () => Transition | undefined) {
     super();
   }
 
@@ -1099,7 +1098,7 @@ export class WaitForEvent extends Entity {
   constructor(
     public emitter: PIXI.utils.EventEmitter,
     public eventName: string,
-    public handler: (...args: any) => boolean = _.constant(true)
+    public handler: (...args: any) => Transition = _.constant(new Transition())
   ) {
     super();
   }
@@ -1117,12 +1116,12 @@ export class WaitForEvent extends Entity {
  * A composite entity that requests a transition as soon as one of it's children requests one
  */
 export class Alternative extends Entity {
-  public entityPairs: { entity: Entity; transition: string }[];
+  public entityPairs: { entity: Entity; transition: Transition }[];
 
   // Takes an array of type: { entity, transition } or just entity
   // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
   constructor(
-    entityPairs: (Entity | { entity: Entity; transition: string })[] = []
+    entityPairs: (Entity | { entity: Entity; transition: Transition })[] = []
   ) {
     super();
 

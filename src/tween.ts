@@ -99,7 +99,7 @@ export class Tween extends entity.Entity implements TweenOptions {
     if (this.startTime === null) this.startTime = frameInfo.timeSinceStart;
 
     if (frameInfo.timeSinceStart - this.startTime >= this.duration) {
-      this.requestedTransition = true;
+      this.requestedTransition = new entity.Transition();
 
       // Snap to end
       this.value = this.to;
