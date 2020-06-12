@@ -13,9 +13,12 @@ export interface IEventListener {
 export interface TransitionResolvable {
   name: string;
   params: any;
-}
+};
 
-export type EntityConfig = { [k: string]: any };
+export type EntityConfig = {
+  container: PIXI.Container;
+  [k: string]: any;
+};
 
 export interface FrameInfo {
   playTime: number;
@@ -23,7 +26,7 @@ export interface FrameInfo {
   timeSinceLastFrame: number;
   timeScale: number;
   gameState: GameState;
-}
+};
 
 export function processEntityConfig(
   entityConfig: any,
@@ -34,7 +37,7 @@ export function processEntityConfig(
   return alteredConfig;
 }
 
-export function extendConfig(values: any[]): (entityConfig: any) => {} {
+export function extendConfig(values: any): (entityConfig: any) => {} {
   return (entityConfig) => _.extend({}, entityConfig, values);
 }
 
@@ -147,7 +150,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
     this.eventListeners = listenersToKeep;
   }
 
-  public _setup(frameInfo: FrameInfo, entityConfig: any) {}
+  public _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {}
   public _update(frameInfo: FrameInfo) {}
   public _teardown(frameInfo: FrameInfo) {}
   public _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {}

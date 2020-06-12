@@ -125,7 +125,7 @@ export function easeInCirc(t:number): number {
   return -1 * (Math.sqrt(1 - scaledTime * t) - 1);
 }
 
-// Start fast, decreasing velocity until stop
+// Grid fast, decreasing velocity until stop
 export function easeOutCirc(t:number): number {
   var t1 = t - 1;
   return Math.sqrt(1 - t1 * t1);
