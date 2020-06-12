@@ -1,7 +1,6 @@
 import * as util from "./util";
 import * as entity from "./entity";
 import _ from "underscore";
-import { FrameInfo } from "./entity";
 
 export const AUDIO_FILE_FORMATS = ["mp3"];
 
@@ -108,7 +107,7 @@ export class MusicEntity extends entity.Entity {
     super();
   }
 
-  _setup(frameInfo: FrameInfo, entityConfig: entity.EntityConfig) {
+  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     this.entityConfig.jukebox.changeMusic(this.trackName);
 
     this.requestedTransition = true;

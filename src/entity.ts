@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 
 import _ from "underscore";
 import * as util from "./util";
-import { Directives, GameState, PlayOptions } from "./booyah";
+import * as booyah from "./booyah";
 
 export interface IEventListener {
   emitter: PIXI.utils.EventEmitter;
@@ -25,7 +25,7 @@ export interface FrameInfo {
   timeSinceStart: number;
   timeSinceLastFrame: number;
   timeScale: number;
-  gameState: GameState;
+  gameState: booyah.GameState;
 }
 
 export function processEntityConfig(
