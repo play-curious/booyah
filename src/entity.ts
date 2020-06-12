@@ -13,7 +13,7 @@ export interface IEventListener {
 export interface TransitionResolvable {
   name: string;
   params: any;
-};
+}
 
 export type EntityConfig = {
   container: PIXI.Container;
@@ -26,7 +26,7 @@ export interface FrameInfo {
   timeSinceLastFrame: number;
   timeScale: number;
   gameState: GameState;
-};
+}
 
 export function processEntityConfig(
   entityConfig: any,

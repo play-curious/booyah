@@ -3,7 +3,7 @@ import * as PIXI from "pixi.js";
 import * as geom from "./geom";
 import * as _ from "underscore";
 
-/** Grid containment using _.isEqual() */
+/** Test containment using _.isEqual() */
 export function contains<T = any>(list: T[], p: T): boolean {
   for (let x of list) {
     if (_.isEqual(x, p)) return true;
@@ -11,7 +11,7 @@ export function contains<T = any>(list: T[], p: T): boolean {
   return false;
 }
 
-/** Grid containment using _.isEqual() */
+/** Test containment using _.isEqual() */
 export function indexOf<T = any>(list: T[], p: T): number {
   for (let i = 0; i < list.length; i++) {
     if (_.isEqual(list[i], p)) return i;

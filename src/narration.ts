@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js";
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
 import _ from "underscore";
+import { FrameInfo } from "./entity.js";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
@@ -250,7 +251,7 @@ export class SpeakerDisplay extends entity.Entity {
     super();
   }
 
-  _setup(entityConfig: entity.EntityConfig) {
+  _setup(frameInfo: FrameInfo, entityConfig: entity.EntityConfig) {
     this.container = new PIXI.Container();
     this.container.position = this.position;
 
@@ -371,7 +372,7 @@ export class VideoScene extends entity.ParallelEntity {
     });
   }
 
-  _setup(entityConfig: entity.EntityConfig) {
+  _setup(frameInfo: FrameInfo, entityConfig: entity.EntityConfig) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
       this.addEntity(this.narration);

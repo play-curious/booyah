@@ -1,7 +1,7 @@
 import * as util from "./util";
 import * as entity from "./entity";
 import _ from "underscore";
-import {FrameInfo} from "./entity";
+import { FrameInfo } from "./entity";
 
 export const AUDIO_FILE_FORMATS = ["mp3"];
 
