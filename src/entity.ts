@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 
 import _ from "underscore";
 import * as util from "./util";
-import { Directives, GameState, PlayOptions } from "./booyah";
+import * as booyah from "./booyah";
 
 export interface IEventListener {
   emitter: PIXI.utils.EventEmitter;
@@ -19,14 +19,17 @@ export function makeTransition(name = "default", params = {}) {
   return { name, params };
 }
 
-export type EntityConfig = { [k: string]: any };
+export type EntityConfig = {
+  container: PIXI.Container;
+  [k: string]: any;
+};
 
 export interface FrameInfo {
   playTime: number;
   timeSinceStart: number;
   timeSinceLastFrame: number;
   timeScale: number;
-  gameState: GameState;
+  gameState: booyah.GameState;
 }
 
 export function processEntityConfig(
@@ -38,7 +41,7 @@ export function processEntityConfig(
   return alteredConfig;
 }
 
-export function extendConfig(values: any[]): (entityConfig: any) => {} {
+export function extendConfig(values: any): (entityConfig: any) => {} {
   return (entityConfig) => _.extend({}, entityConfig, values);
 }
 
@@ -151,7 +154,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
     this.eventListeners = listenersToKeep;
   }
 
-  public _setup(frameInfo: FrameInfo, entityConfig: any) {}
+  public _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {}
   public _update(frameInfo: FrameInfo) {}
   public _teardown(frameInfo: FrameInfo) {}
   public _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {}

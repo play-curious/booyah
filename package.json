@@ -6,7 +6,7 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "jest test.js",
-    "prepublish": "tsc"
+    "prepublish": "tsc && prettier ./src --write"
   },
   "license": "MIT",
   "devDependencies": {

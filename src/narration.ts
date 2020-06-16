@@ -250,7 +250,7 @@ export class SpeakerDisplay extends entity.Entity {
     super();
   }
 
-  _setup(entityConfig: entity.EntityConfig) {
+  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     this.container = new PIXI.Container();
     this.container.position = this.position;
 
@@ -371,7 +371,7 @@ export class VideoScene extends entity.ParallelEntity {
     });
   }
 
-  _setup(entityConfig: entity.EntityConfig) {
+  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
       this.addEntity(this.narration);
