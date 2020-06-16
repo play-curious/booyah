@@ -24,25 +24,30 @@ export type EntityConfig = {
   [k: string]: any;
 };
 
+export type EntityConfigFactory = (config: EntityConfig) => EntityConfig;
+export type EntityConfigResolvable = EntityConfig | EntityConfigFactory;
+
+export function processEntityConfig(
+  entityConfig: EntityConfig,
+  alteredConfig: EntityConfigResolvable
+): EntityConfig {
+  if (!alteredConfig) return entityConfig;
+  if (typeof alteredConfig == "function") return alteredConfig(entityConfig);
+  return alteredConfig;
+}
+
+export function extendConfig(values: {}): (
+  entityConfig: EntityConfig
+) => EntityConfig {
+  return (entityConfig) => _.extend({}, entityConfig, values);
+}
+
 export interface FrameInfo {
   playTime: number;
   timeSinceStart: number;
   timeSinceLastFrame: number;
   timeScale: number;
   gameState: booyah.GameState;
-}
-
-export function processEntityConfig(
-  entityConfig: any,
-  alteredConfig: any
-): any {
-  if (!alteredConfig) return entityConfig;
-  if (typeof alteredConfig == "function") return alteredConfig(entityConfig);
-  return alteredConfig;
-}
-
-export function extendConfig(values: any): (entityConfig: any) => {} {
-  return (entityConfig) => _.extend({}, entityConfig, values);
 }
 
 /**
@@ -174,135 +179,170 @@ export class TransitoryEntity extends Entity {
   }
 }
 
-export interface ParallelEntityOptions {
-  autoTransition?: boolean;
+export type EntityFactory = (transition: Transition) => Entity;
+export type EntityResolvable = Entity | EntityFactory;
+
+/** Base class for entities that contain other entities */
+export abstract class CompositeEntity extends Entity {
+  protected childEntities: Entity[];
+
+  public update(frameInfo: FrameInfo): void {
+    super.update(frameInfo);
+
+    for (const childEntity of this.childEntities) {
+      childEntity.update(frameInfo);
+    }
+  }
+
+  public teardown(frameInfo: FrameInfo): void {
+    for (const childEntity of this.childEntities) {
+      this._deactivateEntity(childEntity);
+    }
+
+    this.childEntities = [];
+
+    super.teardown(frameInfo);
+  }
+
+  public onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
+    super.onSignal(frameInfo, signal, data);
+
+    for (const childEntity of this.childEntities) {
+      childEntity.onSignal(frameInfo, signal, data);
+    }
+  }
+
+  protected _activateEntity(
+    entityResolvable: EntityResolvable,
+    config?: EntityConfigResolvable,
+    transition?: Transition
+  ): Entity {
+    if (!this.isSetup) throw new Error("CompositeEntity is not yet active");
+
+    let entity;
+    if (_.isFunction(entityResolvable)) {
+      entity = entityResolvable(transition ?? makeTransition());
+    } else {
+      entity = entityResolvable;
+    }
+
+    this.childEntities.push(entity);
+
+    const childConfig = processEntityConfig(this.entityConfig, config);
+    entity.setup(this.lastFrameInfo, childConfig);
+    return entity;
+  }
+
+  protected _deactivateEntity(entity: Entity): void {
+    if (!this.isSetup) throw new Error("CompositeEntity is not yet active");
+
+    const index = this.childEntities.indexOf(entity);
+    if (index === -1) throw new Error("Cannot find entity to remove");
+
+    if (entity.isSetup) {
+      this._deactivateEntity(entity);
+    }
+
+    this.childEntities.splice(index, 1);
+
+    entity.teardown(this.lastFrameInfo);
+  }
+}
+
+export interface EntityContext {
+  entity: EntityResolvable;
+  config?: EntityConfigResolvable;
+}
+
+export interface ParallelEntityContext extends EntityContext {
+  activated?: boolean;
 }
 
 /**
  Allows a bunch of entities to execute in parallel.
  Updates child entities until they ask for a transition, at which point they are torn down.
- If autoTransition=true, requests a transition when all child entities have completed.
- */
-export class ParallelEntity extends Entity {
-  public entities: Entity[] = [];
-  public entityConfigs: EntityConfig[] = [];
-  public entityIsActive: boolean[] = [];
-  public autoTransition: boolean = false;
-  /**
-   @entities can be subclasses of entity.Entity or an object like { entity:, entityConfig: }
-   @options:
-   * autoTransition: Should the entity request a transition when all the child entities are done?  (defaults to false)
-   */
-  constructor(entities: any[] = [], options: ParallelEntityOptions = {}) {
+ Requests a transition when all child entities have completed.
+*/
+export class ParallelEntity extends CompositeEntity {
+  protected childEntityContexts: ParallelEntityContext[] = [];
+  protected contextToEntity = new Map<ParallelEntityContext, Entity>();
+
+  constructor(entityContexts: ParallelEntityContext[] = []) {
     super();
 
-    util.setupOptions(this, options, {
-      autoTransition: false,
-    });
+    this.childEntityContexts = entityContexts;
+  }
 
-    for (const currentEntity of entities) {
-      if (currentEntity instanceof Entity) {
-        this.addEntity(currentEntity);
-      } else {
-        this.addEntity(currentEntity.entity, currentEntity.entityConfig);
-      }
+  _setup() {
+    for (const entityContext of this.childEntityContexts) {
+      if (entityContext.activated)
+        this._activateEntity(entityContext.entity, entityContext.config);
     }
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: any) {
-    super.setup(frameInfo, entityConfig);
+  _update() {
+    if (!_.some(this.childEntities)) this.transition = makeTransition();
+  }
 
-    for (let i = 0; i < this.entities.length; i++) {
-      const entity = this.entities[i];
-      if (!entity.isSetup) {
-        const entityConfig = processEntityConfig(
-          this.entityConfig,
-          this.entityConfigs[i]
-        );
-        entity.setup(frameInfo, entityConfig);
-      }
+  addEntity(entityContext: ParallelEntityContext) {
+    const index = this.childEntityContexts.indexOf(entityContext);
+    if (index === -1) throw new Error("Entity context already added");
 
-      this.entityIsActive[i] = true;
+    this.childEntityContexts.push(entityContext);
+
+    // Automatically activate the child entity
+    if (this.isSetup && entityContext.activated) {
+      const entity = this._activateEntity(
+        entityContext.entity,
+        entityContext.config
+      );
+      this.contextToEntity.set(entityContext, entity);
     }
   }
 
-  update(frameInfo: FrameInfo) {
-    super.update(frameInfo);
+  removeEntity(entityContext: ParallelEntityContext): void {
+    const index = this.childEntityContexts.indexOf(entityContext);
+    if (index === -1) throw new Error("Cannot find entity context");
 
-    for (let i = 0; i < this.entities.length; i++) {
-      if (this.entityIsActive[i]) {
-        const entity = this.entities[i];
+    this.childEntityContexts.splice(index, 1);
 
-        entity.update(frameInfo);
-
-        if (entity.transition) {
-          entity.teardown(frameInfo);
-
-          this.entityIsActive[i] = false;
-        }
-      }
+    const entity = this.contextToEntity.get(entityContext);
+    if (entity) {
+      this._deactivateEntity(entity);
+      this.contextToEntity.delete(entityContext);
     }
-
-    if (this.autoTransition && !_.some(this.entityIsActive))
-      this.transition = makeTransition();
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    for (let i = 0; i < this.entities.length; i++) {
-      if (this.entityIsActive[i]) {
-        this.entities[i].teardown(frameInfo);
-        this.entityIsActive[i] = false;
-      }
-    }
-
-    super.teardown(frameInfo);
-  }
-
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    super.onSignal(frameInfo, signal, data);
-
-    for (let i = 0; i < this.entities.length; i++) {
-      if (this.entityIsActive[i])
-        this.entities[i].onSignal(frameInfo, signal, data);
-    }
-  }
-
-  // If entityConfig is provided, it will overload the entityConfig provided to this entity by setup()
-  addEntity(entity: Entity, entityConfig: any = null) {
-    this.entities.push(entity);
-    this.entityConfigs.push(entityConfig);
-    this.entityIsActive.push(true);
-
-    // If we have already been setup, setup this new entity
-    if (this.isSetup && !entity.isSetup) {
-      const newConfig = processEntityConfig(this.entityConfig, entityConfig);
-      entity.setup(this.lastFrameInfo, newConfig);
-    }
-  }
-
-  removeEntity(entity: Entity): void {
-    const index = this.entities.indexOf(entity);
-    if (index === -1) throw new Error("Cannot find entity to remove");
-
-    if (entity.isSetup) {
-      entity.teardown(this.lastFrameInfo);
-    }
-
-    this.entities.splice(index, 1);
-    this.entityConfigs.splice(index, 1);
-    this.entityIsActive.splice(index, 1);
   }
 
   removeAllEntities(): void {
-    for (const entity of this.entities) {
-      if (entity.isSetup) {
-        entity.teardown(this.lastFrameInfo);
-      }
-
-      this.entities = [];
-      this.entityConfigs = [];
-      this.entityIsActive = [];
+    for (const entityContext of this.childEntityContexts) {
+      this.removeEntity(entityContext);
     }
+  }
+
+  activateEntity(entityContext: ParallelEntityContext): void {
+    const index = this.childEntityContexts.indexOf(entityContext);
+    if (index === -1) throw new Error("Cannot find entity context");
+
+    if (this.contextToEntity.has(entityContext))
+      throw new Error("Entity is already activated");
+
+    const entity = this._activateEntity(
+      entityContext.entity,
+      entityContext.config
+    );
+    this.contextToEntity.set(entityContext, entity);
+    entityContext.activated = true;
+  }
+
+  deactivateEntity(entityContext: ParallelEntityContext): void {
+    const index = this.childEntityContexts.indexOf(entityContext);
+    if (index === -1) throw new Error("Cannot find entity context");
+
+    const entity = this.contextToEntity.get(entityContext);
+    if (!entity) throw new Error("Entity not yet activated");
+
+    this._deactivateEntity(entity);
+    this.contextToEntity.delete(entityContext);
   }
 }
 
@@ -310,116 +350,93 @@ export interface EntitySequenceOptions {
   loop?: boolean;
 }
 
+export interface ParallelEntityContext {
+  entity: EntityResolvable;
+  config?: EntityConfigResolvable;
+  activated?: boolean;
+}
+
 /**
   Runs one child entity after another. 
   When done, requestes the last transition demanded.
   Optionally can loop back to the first entity.
 */
-export class EntitySequence extends Entity implements EntitySequenceOptions {
-  public loop: boolean;
-  public currentEntityIndex = 0;
-  public currentEntity: Entity = null;
-  public lastRequestedTransition: any;
+export class EntitySequence extends CompositeEntity {
+  private currentEntityIndex = 0;
+  private currentEntity: Entity = null;
+  private lastTransition: Transition;
 
-  constructor(public entities: Entity[], options: EntitySequenceOptions = {}) {
+  constructor(
+    private entityContexts: EntityContext[],
+    private readonly options: EntitySequenceOptions = { loop: false }
+  ) {
     super();
-    this.loop = !!options.loop;
   }
 
   // Does not setup entity
-  addEntity(entity: Entity) {
-    if (this.transition) return;
-
-    this.entities.push(entity);
+  addEntity(entityContext: EntityContext) {
+    this.entityContexts.push(entityContext);
   }
 
   skip() {
-    if (this.transition) return;
-
-    this._advance({ name: "skip" });
+    this._advance(makeTransition("skip"));
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: any) {
-    super.setup(frameInfo, entityConfig);
+  private _switchEntity() {
+    if (this.currentEntity) {
+      this._deactivateEntity(this.currentEntity);
+      this.currentEntity = null;
+    }
 
+    if (this.currentEntityIndex < this.entityContexts.length) {
+      const entityContext = this.entityContexts[this.currentEntityIndex];
+      this.currentEntity = this._activateEntity(
+        entityContext.entity,
+        entityContext.config
+      );
+    }
+  }
+
+  _setup() {
     this.currentEntityIndex = 0;
     this.currentEntity = null;
 
-    this._activateEntity();
+    if (this.entityContexts.length === 0) {
+      // Empty sequence, stop immediately
+      this.transition = makeTransition();
+    } else {
+      // Start the sequence
+      this._switchEntity();
+    }
   }
 
-  update(frameInfo: FrameInfo) {
-    super.update(frameInfo);
-
-    if (this.lastRequestedTransition) return;
-
-    if (this.currentEntityIndex >= this.entities.length) return;
-
-    this.currentEntity.update(frameInfo);
+  _update() {
+    this.currentEntity.update(this.lastFrameInfo);
 
     const transition = this.currentEntity.transition;
     if (transition) this._advance(transition);
   }
 
-  teardown(frameInfo: FrameInfo) {
-    this._deactivateEntity();
-
-    super.teardown(frameInfo);
-  }
-
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (this.transition) return;
-
-    super.onSignal(frameInfo, signal, data);
-
-    this.currentEntity.onSignal(frameInfo, signal, data);
-
-    if (signal === "reset") this.restart();
+  _teardown() {
+    this.currentEntity = null;
   }
 
   restart() {
-    this._deactivateEntity();
-
     this.currentEntityIndex = 0;
-    this.transition = null;
-
-    this._activateEntity();
+    this._switchEntity();
   }
 
-  _activateEntity() {
-    const entityDescriptor = this.entities[this.currentEntityIndex];
-    if (_.isFunction(entityDescriptor)) {
-      this.currentEntity = entityDescriptor(this);
-    } else {
-      this.currentEntity = entityDescriptor;
-    }
+  _advance(transition: Transition) {
+    this.currentEntityIndex++;
+    this._switchEntity();
 
-    this.currentEntity.setup(this.lastFrameInfo, this.entityConfig);
-  }
-
-  _deactivateEntity() {
-    if (this.currentEntity && this.currentEntity.isSetup)
-      this.currentEntity.teardown(this.lastFrameInfo);
-  }
-
-  _advance(transition: any) {
-    if (this.currentEntityIndex < this.entities.length - 1) {
-      this._deactivateEntity();
-      this.currentEntityIndex = this.currentEntityIndex + 1;
-      this._activateEntity();
-    } else if (this.loop) {
-      this._deactivateEntity();
-      this.currentEntityIndex = 0;
-      this._activateEntity();
-    } else {
-      this._deactivateEntity();
+    // If we've reached the end of the sequence, stop
+    if (this.currentEntityIndex >= this.entityContexts.length) {
       this.transition = transition;
     }
   }
 }
 
-export type EntityFactory = (transition: Transition) => Entity;
-export type EntityResolvable = Entity | EntityFactory;
 export type StateTable = { [n: string]: EntityResolvable };
 
 export type TransitionFunction = (transition: Transition) => Transition;
@@ -951,7 +968,7 @@ export class SkipButton extends Entity {
   Similar in spirit to ParallelEntity, but does not hold onto entities that have completed. 
   Instead, entities that have completed are removed after teardown 
 */
-export class DeflatingCompositeEntity extends Entity {
+export class DeflatingEntity extends Entity {
   public entities: Entity[] = [];
   public autoTransition: boolean;
 
@@ -1084,7 +1101,7 @@ export class WaitForEvent extends Entity {
 }
 
 /**
- * A composite entity that requests a transition as soon as one of it's children requests one
+ *  entity that requests a transition as soon as one of it's children requests one
  */
 export class Alternative extends Entity {
   public entityPairs: { entity: Entity; transition: Transition }[];
@@ -1132,7 +1149,7 @@ export class Alternative extends Entity {
 }
 
 /**
- * A composite entity in which only entity is active at a time.
+ *  entity in which only entity is active at a time.
  * By default, the first entity is active
  */
 export class SwitchingEntity extends Entity {
