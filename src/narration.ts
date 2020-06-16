@@ -299,7 +299,7 @@ export class SingleNarration extends entity.Entity {
   }
 
   _onNarrationDone(key?: string) {
-    if (key === this.narrationKey) this.output = entity.makeEntityIO();
+    if (key === this.narrationKey) this.transition = entity.makeTransition();
   }
 
   _teardown() {
@@ -333,7 +333,7 @@ export class RandomNarration extends entity.Entity {
       frameInfo.timeSinceStart >=
       this.entityConfig.narrator.narrationDuration(this.currentKey)
     ) {
-      this.output = entity.makeEntityIO();
+      this.transition = entity.makeTransition();
     }
   }
 
@@ -394,8 +394,11 @@ export class VideoScene extends entity.ParallelEntity {
   }
 
   _update(frameInfo: entity.FrameInfo) {
-    if ((this.options.video && this.video.output) || this.skipButton.output) {
-      this.output = entity.makeEntityIO();
+    if (
+      (this.options.video && this.video.transition) ||
+      this.skipButton.transition
+    ) {
+      this.transition = entity.makeTransition();
     }
   }
 
@@ -493,7 +496,7 @@ export function breakDialogIntoLines(text: string) {
 
   const dialogLines = [];
   for (const textLine of text.split("--")) {
-    // speaker and start can both be undefined, and will be stripped from the output
+    // speaker and start can both be undefined, and will be stripped from the transition
     let [, speaker, start, dialog] = r.exec(textLine);
     //@ts-ignore
     if (start) start = parseInt(start);

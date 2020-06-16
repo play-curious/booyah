@@ -573,7 +573,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
   _update(frameInfo: entity.FrameInfo) {
     if (this.creditsEntity) {
-      if (this.creditsEntity.output) {
+      if (this.creditsEntity.transition) {
         this.removeEntity(this.creditsEntity);
         this.creditsEntity = null;
       }
@@ -720,7 +720,7 @@ export class CreditsEntity extends entity.ParallelEntity {
     this._on(
       closeButton,
       "pointertap",
-      () => (this.output = entity.makeEntityIO())
+      () => (this.transition = entity.makeTransition())
     );
     this.container.addChild(closeButton);
 
@@ -871,7 +871,11 @@ export class ReadyScene extends entity.ParallelEntity {
       this.entityConfig.app.screen.width / 2,
       (this.entityConfig.app.screen.height * 3) / 4
     );
-    this._on(button, "pointertap", () => (this.output = entity.makeEntityIO()));
+    this._on(
+      button,
+      "pointertap",
+      () => (this.transition = entity.makeTransition())
+    );
     button.interactive = true;
     this.container.addChild(button);
 
@@ -945,7 +949,11 @@ export class DoneScene extends entity.ParallelEntity {
       this.entityConfig.app.screen.width / 2,
       (this.entityConfig.app.screen.height * 3) / 4
     );
-    this._on(button, "pointertap", () => (this.output = entity.makeEntityIO()));
+    this._on(
+      button,
+      "pointertap",
+      () => (this.transition = entity.makeTransition())
+    );
     button.interactive = true;
     this.container.addChild(button);
 

@@ -10,12 +10,12 @@ export interface IEventListener {
   cb: () => any;
 }
 
-export interface EntityIO {
+export interface Transition {
   readonly name: string;
   readonly params: {};
 }
 
-export function makeEntityIO(name = "default", params = {}) {
+export function makeTransition(name = "default", params = {}) {
   return { name, params };
 }
 
@@ -54,7 +54,7 @@ export function extendConfig(values: any[]): (entityConfig: any) => {} {
  The typical entityConfig contains { app, preloader, narrator, jukebox, container }
  3. update() is called one or more times, with options.
  It could also never be called, in case the entity is torn down directly.
- If the entity wishes to be terminated, it should set this.output to a truthy value.
+ If the entity wishes to be terminated, it should set this.transition to a truthy value.
  Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
  For more complicated transitions, it can return an object like { name: "", params: {} }
  4. teardown() is called just once.
@@ -68,7 +68,7 @@ export function extendConfig(values: any[]): (entityConfig: any) => {} {
 export abstract class Entity extends PIXI.utils.EventEmitter {
   public isSetup = false;
   public eventListeners: IEventListener[] = [];
-  public output: EntityIO;
+  public transition: Transition;
   public entityConfig: EntityConfig;
   public lastFrameInfo: FrameInfo;
 
@@ -81,7 +81,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
     this.entityConfig = entityConfig;
     this.lastFrameInfo = frameInfo;
     this.isSetup = true;
-    this.output = null;
+    this.transition = null;
 
     this._setup(frameInfo, entityConfig);
   }
@@ -162,12 +162,12 @@ export class NullEntity extends Entity {}
 
 /** An entity that returns the requested transition immediately  */
 export class TransitoryEntity extends Entity {
-  constructor(readonly transition = makeEntityIO()) {
+  constructor(readonly requestTransition = makeTransition()) {
     super();
   }
 
   _setup() {
-    this.output = this.transition;
+    this.transition = this.requestTransition;
   }
 }
 
@@ -232,7 +232,7 @@ export class ParallelEntity extends Entity {
 
         entity.update(frameInfo);
 
-        if (entity.output) {
+        if (entity.transition) {
           entity.teardown(frameInfo);
 
           this.entityIsActive[i] = false;
@@ -241,7 +241,7 @@ export class ParallelEntity extends Entity {
     }
 
     if (this.autoTransition && !_.some(this.entityIsActive))
-      this.output = makeEntityIO();
+      this.transition = makeTransition();
   }
 
   teardown(frameInfo: FrameInfo) {
@@ -325,13 +325,13 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
 
   // Does not setup entity
   addEntity(entity: Entity) {
-    if (this.output) return;
+    if (this.transition) return;
 
     this.entities.push(entity);
   }
 
   skip() {
-    if (this.output) return;
+    if (this.transition) return;
 
     this._advance({ name: "skip" });
   }
@@ -354,7 +354,7 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
 
     this.currentEntity.update(frameInfo);
 
-    const transition = this.currentEntity.output;
+    const transition = this.currentEntity.transition;
     if (transition) this._advance(transition);
   }
 
@@ -365,7 +365,7 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
   }
 
   onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (this.output) return;
+    if (this.transition) return;
 
     super.onSignal(frameInfo, signal, data);
 
@@ -378,7 +378,7 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
     this._deactivateEntity();
 
     this.currentEntityIndex = 0;
-    this.output = null;
+    this.transition = null;
 
     this._activateEntity();
   }
@@ -410,17 +410,17 @@ export class EntitySequence extends Entity implements EntitySequenceOptions {
       this._activateEntity();
     } else {
       this._deactivateEntity();
-      this.output = transition;
+      this.transition = transition;
     }
   }
 }
 
-export type EntityFactory = (output: EntityIO) => Entity;
-export type StateDescriptor = Entity | EntityFactory;
-export type StateTable = { [n: string]: StateDescriptor };
+export type EntityFactory = (transition: Transition) => Entity;
+export type EntityResolvable = Entity | EntityFactory;
+export type StateTable = { [n: string]: EntityResolvable };
 
-export type TransitionFunction = (output: EntityIO) => EntityIO;
-export type TransitionDescriptor = EntityIO | TransitionFunction;
+export type TransitionFunction = (transition: Transition) => Transition;
+export type TransitionDescriptor = Transition | TransitionFunction;
 export type TransitionTable = { [name: string]: TransitionDescriptor };
 
 /** 
@@ -437,10 +437,10 @@ export type TransitionTable = { [name: string]: TransitionDescriptor };
 export class StateMachine extends Entity {
   public startingState: TransitionDescriptor;
   public startingProgress: {};
-  public visitedStates: EntityIO[];
+  public visitedStates: Transition[];
   public progress: {};
   public state: Entity;
-  public stateIO: EntityIO;
+  public stateIO: Transition;
   public endingStates: string[];
   public stateParams: {};
 
@@ -452,7 +452,7 @@ export class StateMachine extends Entity {
     super();
 
     util.setupOptions(this, options, {
-      startingState: makeEntityIO("start"),
+      startingState: makeTransition("start"),
       endingStates: ["end"],
       startingProgress: {},
     });
@@ -465,7 +465,7 @@ export class StateMachine extends Entity {
     this.progress = util.cloneData(this.startingProgress);
 
     const startingState = _.isFunction(this.startingState)
-      ? this.startingState(makeEntityIO())
+      ? this.startingState(makeTransition())
       : this.startingState;
     this._changeState(startingState);
   }
@@ -477,30 +477,32 @@ export class StateMachine extends Entity {
 
     this.state.update(frameInfo);
 
-    const output = this.state.output;
-    if (output) {
-      let nextStateDescriptor: EntityIO;
+    const transition = this.state.transition;
+    if (transition) {
+      let nextStateDescriptor: Transition;
       // The transition could directly be the name of another state
       if (!(this.stateIO.name in this.transitions)) {
-        if (output.name in this.states) {
-          nextStateDescriptor = output;
+        if (transition.name in this.states) {
+          nextStateDescriptor = transition;
         } else {
-          throw new Error(`Cannot find transition for state '${output.name}'`);
+          throw new Error(
+            `Cannot find transition for state '${transition.name}'`
+          );
         }
       } else {
-        const transitionDescriptor = this.transitions[output.name];
+        const transitionDescriptor = this.transitions[transition.name];
         if (_.isFunction(transitionDescriptor)) {
-          nextStateDescriptor = transitionDescriptor(output);
+          nextStateDescriptor = transitionDescriptor(transition);
         } else {
           nextStateDescriptor = transitionDescriptor;
         }
       }
 
       // Unpack the next state
-      let nextState: EntityIO;
+      let nextState: Transition;
       if (!nextStateDescriptor.params) {
         // By default, pass through the params in the requested transition
-        nextState = makeEntityIO(nextStateDescriptor.name, output.params);
+        nextState = makeTransition(nextStateDescriptor.name, transition.params);
       } else {
         nextState = nextStateDescriptor;
       }
@@ -525,10 +527,10 @@ export class StateMachine extends Entity {
     if (this.state) this.state.onSignal(frameInfo, signal, data);
   }
 
-  _changeState(nextState: EntityIO) {
+  _changeState(nextState: Transition) {
     // If reached an ending state, stop here. Teardown can happen later
     if (_.contains(this.endingStates, nextState.name)) {
-      this.output = nextState;
+      this.transition = nextState;
       this.visitedStates.push(nextState);
       return;
     }
@@ -650,7 +652,7 @@ export class FunctionalEntity extends ParallelEntity {
 
     if (this.functions.update) this.functions.update(frameInfo, this);
     if (this.functions.requestTransition) {
-      this.output = this.functions.requestTransition(frameInfo, this);
+      this.transition = this.functions.requestTransition(frameInfo, this);
     }
   }
 
@@ -681,7 +683,7 @@ export class FunctionCallEntity extends Entity {
   _setup() {
     this.f.call(this.that);
 
-    this.output = makeEntityIO();
+    this.transition = makeTransition();
   }
 }
 
@@ -694,7 +696,7 @@ export class WaitingEntity extends Entity {
 
   _update(frameInfo: FrameInfo) {
     if (frameInfo.timeSinceStart >= this.wait) {
-      this.output = makeEntityIO();
+      this.transition = makeTransition();
     }
   }
 }
@@ -770,7 +772,7 @@ export class VideoEntity extends Entity {
   }
 
   _update(frameInfo: FrameInfo) {
-    if (this.videoElement.ended) this.output = makeEntityIO();
+    if (this.videoElement.ended) this.transition = makeTransition();
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
@@ -904,7 +906,7 @@ export class AnimatedSpriteEntity extends Entity {
   }
 
   _onAnimationComplete() {
-    this.output = makeEntityIO();
+    this.transition = makeTransition();
   }
 }
 
@@ -937,7 +939,7 @@ export class SkipButton extends Entity {
   }
 
   _onSkip() {
-    this.output = makeEntityIO("skip");
+    this.transition = makeTransition("skip");
     this.emit("skip");
   }
 }
@@ -979,7 +981,7 @@ export class DeflatingCompositeEntity extends Entity {
       const entity = this.entities[i];
       entity.update(frameInfo);
 
-      if (entity.output) {
+      if (entity.transition) {
         console.debug("Cleanup up child entity", entity);
 
         if (entity.isSetup) {
@@ -993,7 +995,7 @@ export class DeflatingCompositeEntity extends Entity {
     }
 
     if (this.autoTransition && this.entities.length == 0) {
-      this.output = makeEntityIO();
+      this.transition = makeTransition();
     }
   }
 
@@ -1038,8 +1040,8 @@ export class DeflatingCompositeEntity extends Entity {
  * Does not request a transition until done() is called with a given transition
  */
 export class Block extends Entity {
-  done(transition = makeEntityIO()) {
-    this.output = transition;
+  done(transition = makeTransition()) {
+    this.transition = transition;
   }
 }
 
@@ -1047,12 +1049,12 @@ export class Block extends Entity {
  * Executes a function once and requests a transition equal to its value.
  */
 export class Decision extends Entity {
-  constructor(private f: () => EntityIO | undefined) {
+  constructor(private f: () => Transition | undefined) {
     super();
   }
 
   _setup() {
-    this.output = this.f();
+    this.transition = this.f();
   }
 }
 
@@ -1064,7 +1066,7 @@ export class WaitForEvent extends Entity {
   constructor(
     public emitter: PIXI.utils.EventEmitter,
     public eventName: string,
-    public handler: (...args: any) => EntityIO = _.constant(makeEntityIO())
+    public handler: (...args: any) => Transition = _.constant(makeTransition())
   ) {
     super();
   }
@@ -1074,7 +1076,7 @@ export class WaitForEvent extends Entity {
   }
 
   _handleEvent(...args: any) {
-    this.output = this.handler(...args);
+    this.transition = this.handler(...args);
   }
 }
 
@@ -1082,12 +1084,12 @@ export class WaitForEvent extends Entity {
  * A composite entity that requests a transition as soon as one of it's children requests one
  */
 export class Alternative extends Entity {
-  public entityPairs: { entity: Entity; transition: EntityIO }[];
+  public entityPairs: { entity: Entity; transition: Transition }[];
 
   // Takes an array of type: { entity, transition } or just entity
   // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
   constructor(
-    entityPairs: (Entity | { entity: Entity; transition: EntityIO })[] = []
+    entityPairs: (Entity | { entity: Entity; transition: Transition })[] = []
   ) {
     super();
 
@@ -1108,14 +1110,14 @@ export class Alternative extends Entity {
   _setup(frameInfo: FrameInfo) {
     for (const entityPair of this.entityPairs) {
       entityPair.entity.setup(frameInfo, this.entityConfig);
-      if (entityPair.entity.output) this.output = entityPair.transition;
+      if (entityPair.entity.transition) this.transition = entityPair.transition;
     }
   }
 
   _update(frameInfo: FrameInfo) {
     for (const entityPair of this.entityPairs) {
       entityPair.entity.update(frameInfo);
-      if (entityPair.entity.output) this.output = entityPair.transition;
+      if (entityPair.entity.transition) this.transition = entityPair.transition;
     }
   }
 
