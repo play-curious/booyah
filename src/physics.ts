@@ -37,7 +37,7 @@ export class Simulation extends entity.ParallelEntity {
     });
   }
 
-  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     this.world = new p2.World(this.worldOptions);
     this.oldConfig = entityConfig;
 

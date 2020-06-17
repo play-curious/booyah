@@ -437,7 +437,7 @@ export class EntitySequence extends CompositeEntity {
   }
 }
 
-export type StateTable = { [n: string]: EntityResolvable };
+export type StateTable = { [n: string]: EntityContext };
 
 export type TransitionFunction = (transition: Transition) => Transition;
 export type TransitionDescriptor = Transition | TransitionFunction;
@@ -451,18 +451,17 @@ export type TransitionTable = { [name: string]: TransitionDescriptor };
   By default, the state machine begins at the state called "start", and stops at "end".
 
   The transitions are not provided directly by the states (entities) by rather by a transition table provided in the constructor.
-  A transition is defined as either a name (string) or { name, params }. 
   To use have a transition table within a transition table, use the function makeTransitionTable()
 */
-export class StateMachine extends Entity {
+export class StateMachine extends CompositeEntity {
   public startingState: TransitionDescriptor;
   public startingProgress: {};
   public visitedStates: Transition[];
   public progress: {};
   public state: Entity;
-  public stateIO: Transition;
   public endingStates: string[];
   public stateParams: {};
+  private lastTransition: Transition;
 
   constructor(
     public states: StateTable,
@@ -490,18 +489,14 @@ export class StateMachine extends Entity {
     this._changeState(startingState);
   }
 
-  update(frameInfo: FrameInfo) {
-    super.update(frameInfo);
-
+  _update() {
     if (!this.state) return;
-
-    this.state.update(frameInfo);
 
     const transition = this.state.transition;
     if (transition) {
       let nextStateDescriptor: Transition;
       // The transition could directly be the name of another state
-      if (!(this.stateIO.name in this.transitions)) {
+      if (!(transition.name in this.transitions)) {
         if (transition.name in this.states) {
           nextStateDescriptor = transition;
         } else {
@@ -531,20 +526,9 @@ export class StateMachine extends Entity {
     }
   }
 
-  teardown(frameInfo: FrameInfo) {
-    if (this.state) {
-      this.state.teardown(frameInfo);
-      this.state = null;
-      this.stateIO = null;
-    }
-
-    super.teardown(frameInfo);
-  }
-
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    super.onSignal(frameInfo, signal, data);
-
-    if (this.state) this.state.onSignal(frameInfo, signal, data);
+  _teardown() {
+    this.state = null;
+    this.lastTransition = null;
   }
 
   _changeState(nextState: Transition) {
@@ -556,28 +540,26 @@ export class StateMachine extends Entity {
     }
 
     if (this.state) {
-      this.state.teardown(this.lastFrameInfo);
+      this._deactivateEntity(this.state);
+      this.state = null;
     }
 
     if (nextState.name in this.states) {
-      const nextStateDescriptor = this.states[nextState.name];
-      if (_.isFunction(nextStateDescriptor)) {
-        this.state = nextStateDescriptor(nextState);
-      } else {
-        this.state = nextStateDescriptor;
-      }
-
-      this.state.setup(this.lastFrameInfo, this.entityConfig);
+      const nextStateContext = this.states[nextState.name];
+      this.state = this._activateEntity(
+        nextStateContext.entity,
+        nextStateContext.config
+      );
     } else {
       throw new Error(`Cannot find state '${nextState.name}'`);
     }
 
-    const previousStateIO = this.stateIO;
-    this.stateIO = nextState;
+    const previousTransition = this.lastTransition;
+    this.lastTransition = nextState;
 
     this.visitedStates.push(nextState);
 
-    this.emit("stateChange", previousStateIO, nextState);
+    this.emit("stateChange", previousTransition, nextState);
   }
 }
 
@@ -592,27 +574,19 @@ export class StateMachine extends Entity {
     };
     `
 */
-export function makeTransitionTable(table: { [key: string]: string }) {
-  const f = function (
-    requestedTransitionName: string,
-    requestedTransitionParams: any,
-    previousStateName: string,
-    previousStateParams: any
-  ) {
-    if (requestedTransitionName in table) {
-      const transitionDescriptor = table[requestedTransitionName];
-      if (_.isFunction(transitionDescriptor)) {
-        return transitionDescriptor(
-          requestedTransitionName,
-          requestedTransitionParams,
-          previousStateName,
-          previousStateParams
-        );
+export function makeTransitionTable(table: {
+  [key: string]: string | TransitionFunction;
+}): TransitionFunction {
+  const f = function (transition: Transition): Transition {
+    if (transition.name in table) {
+      const transitionResolvable = table[transition.name];
+      if (_.isFunction(transitionResolvable)) {
+        return transitionResolvable(transition);
       } else {
-        return transitionDescriptor;
+        return makeTransition(transitionResolvable);
       }
     } else {
-      throw new Error(`Cannot find state ${requestedTransitionName}`);
+      throw new Error(`Cannot find state ${transition.name}`);
     }
   };
   f.table = table; // For debugging purposes
@@ -634,7 +608,7 @@ export function makeTransitionTable(table: { [key: string]: string }) {
 export class FunctionalEntity extends ParallelEntity {
   // @functions is an object, with keys: setup, update, teardown, onSignal
   constructor(
-    public functions: {
+    public readonly functions: {
       setup: (
         frameInfo: FrameInfo,
         entityConfig: any,
@@ -651,40 +625,34 @@ export class FunctionalEntity extends ParallelEntity {
       requestTransition: (
         frameInfo: FrameInfo,
         entity: FunctionalEntity
-      ) => any;
+      ) => Transition | undefined;
     },
-    childEntities: Entity[] = []
+    entityContexts: EntityContext[] = []
   ) {
-    super();
-
-    for (let childEntity of childEntities) this.addEntity(null, childEntity);
+    super(entityContexts);
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: any) {
-    super.setup(frameInfo, entityConfig);
-
+  _setup() {
     if (this.functions.setup)
-      this.functions.setup(frameInfo, entityConfig, this);
+      this.functions.setup(this.lastFrameInfo, this.entityConfig, this);
   }
 
-  update(frameInfo: FrameInfo) {
-    super.update(frameInfo);
-
-    if (this.functions.update) this.functions.update(frameInfo, this);
+  _update() {
+    if (this.functions.update) this.functions.update(this.lastFrameInfo, this);
     if (this.functions.requestTransition) {
-      this.transition = this.functions.requestTransition(frameInfo, this);
+      this.transition = this.functions.requestTransition(
+        this.lastFrameInfo,
+        this
+      );
     }
   }
 
-  teardown(frameInfo: FrameInfo) {
-    if (this.functions.teardown) this.functions.teardown(frameInfo, this);
-
-    super.teardown(frameInfo);
+  _teardown(frameInfo: FrameInfo) {
+    if (this.functions.teardown)
+      this.functions.teardown(this.lastFrameInfo, this);
   }
 
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    super.onSignal(frameInfo, signal, data);
-
+  _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
     if (this.functions.onSignal)
       this.functions.onSignal(frameInfo, signal, data, this);
   }
@@ -729,11 +697,11 @@ export class ContainerEntity extends ParallelEntity {
   public newConfig: any;
   public container: PIXI.Container;
 
-  constructor(entities: Entity[] = [], public name?: string) {
+  constructor(entities: ParallelEntityContext[] = [], public name?: string) {
     super(entities);
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: any) {
+  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
     this.oldConfig = entityConfig;
 
     this.container = new PIXI.Container();
@@ -1100,158 +1068,46 @@ export class WaitForEvent extends Entity {
   }
 }
 
-/**
- *  entity that requests a transition as soon as one of it's children requests one
- */
-export class Alternative extends Entity {
-  public entityPairs: { entity: Entity; transition: Transition }[];
-
-  // Takes an array of type: { entity, transition } or just entity
-  // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-  constructor(
-    entityPairs: (Entity | { entity: Entity; transition: Transition })[] = []
-  ) {
-    super();
-
-    this.entityPairs = _.map(entityPairs, (entityPair, key) => {
-      if (entityPair instanceof Entity)
-        return {
-          entity: entityPair,
-          transition: key.toString(),
-        };
-
-      // Assume an object of type { entity, transition }
-      return _.defaults({}, entityPair, {
-        transition: key.toString(),
-      });
-    });
-  }
-
-  _setup(frameInfo: FrameInfo) {
-    for (const entityPair of this.entityPairs) {
-      entityPair.entity.setup(frameInfo, this.entityConfig);
-      if (entityPair.entity.transition) this.transition = entityPair.transition;
-    }
-  }
-
-  _update(frameInfo: FrameInfo) {
-    for (const entityPair of this.entityPairs) {
-      entityPair.entity.update(frameInfo);
-      if (entityPair.entity.transition) this.transition = entityPair.transition;
-    }
-  }
-
-  _teardown(frameInfo: FrameInfo) {
-    for (const entityPair of this.entityPairs) {
-      entityPair.entity.teardown(frameInfo);
-    }
-  }
+export interface AlternativeEntityContext extends EntityContext {
+  transition?: Transition;
 }
 
 /**
- *  entity in which only entity is active at a time.
- * By default, the first entity is active
+ *  Entity that requests a transition as soon as one of it's children requests one
  */
-export class SwitchingEntity extends Entity {
-  public entities: Entity[] = [];
-  public entityConfigs: any[] = [];
-  public activeEntityIndex = -1;
+export class Alternative extends CompositeEntity {
+  private readonly entityContexts: AlternativeEntityContext[];
 
-  constructor() {
+  // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
+  constructor(entityContexts: AlternativeEntityContext[]) {
     super();
+
+    // Set default transition as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
+    this.entityContexts = _.map(entityContexts, (entityContext, key) =>
+      _.defaults({}, entityContext, {
+        transition: key.toString(),
+      })
+    );
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: any) {
-    super.setup(frameInfo, entityConfig);
-
-    if (this.entities && this.activeEntityIndex > 0) {
-      this.switchToIndex(this.activeEntityIndex);
-    }
-  }
-
-  update(frameInfo: FrameInfo) {
-    super.update(frameInfo);
-
-    if (this.activeEntityIndex >= 0) {
-      this.entities[this.activeEntityIndex].update(frameInfo);
-    }
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    this.switchToIndex(-1);
-
-    super.teardown(frameInfo);
-  }
-
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    super.onSignal(frameInfo, signal, data);
-
-    if (this.activeEntityIndex >= 0) {
-      this.entities[this.activeEntityIndex].onSignal(frameInfo, signal, data);
-    }
-  }
-
-  // If entityConfig is provided, it will overload the entityConfig provided to this entity by setup()
-  addEntity(entity: Entity, entityConfig?: any) {
-    this.entities.push(entity);
-    this.entityConfigs.push(entityConfig);
-  }
-
-  switchToIndex(index: number) {
-    if (this.activeEntityIndex >= 0) {
-      this.entities[this.activeEntityIndex].teardown(this.lastFrameInfo);
+  _setup(frameInfo: FrameInfo) {
+    for (const entityContext of this.entityContexts) {
+      this._activateEntity(entityContext.entity, entityContext.config);
     }
 
-    this.activeEntityIndex = index;
+    this._checkForTransition();
+  }
 
-    if (this.activeEntityIndex >= 0) {
-      const entityConfig = processEntityConfig(
-        this.entityConfig,
-        this.entityConfigs[this.activeEntityIndex]
-      );
+  _update(frameInfo: FrameInfo) {
+    this._checkForTransition();
+  }
 
-      this.entities[this.activeEntityIndex].setup(
-        this.lastFrameInfo,
-        entityConfig
-      );
+  private _checkForTransition(): void {
+    for (let i = 0; i < this.entityContexts.length; i++) {
+      if (this.childEntities[i].transition) {
+        this.transition = this.entityContexts[i].transition;
+        break;
+      }
     }
-  }
-
-  switchToEntity(entity: Entity) {
-    if (entity === null) {
-      this.switchToIndex(-1);
-    } else {
-      const index = this.entities.indexOf(entity);
-      if (index === -1) throw new Error("Cannot find entity");
-
-      this.switchToIndex(index);
-    }
-  }
-
-  activeEntity() {
-    if (this.activeEntityIndex >= 0)
-      return this.entities[this.activeEntityIndex];
-
-    return null;
-  }
-
-  removeEntity(entity: Entity) {
-    const index = this.entities.indexOf(entity);
-    if (index === -1) throw new Error("Cannot find entity");
-
-    if (index === this.activeEntityIndex) {
-      this.switchToIndex(-1);
-    }
-
-    this.entities.splice(index, 1);
-    this.entityConfigs.splice(index, 1);
-  }
-
-  removeAllEntities() {
-    this.switchToIndex(-1);
-
-    this.entities = [];
-    this.entityConfigs = [];
-    this.activeEntityIndex = -1;
   }
 }

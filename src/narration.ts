@@ -353,7 +353,7 @@ export interface VideoSceneOptions {
   Launches a complete video scene, complete with a video, narration, music, and skip button.
   Terminates when either the video completes, or the skip button is pressed. 
  */
-export class VideoScene extends entity.ParallelEntity {
+export class VideoScene extends entity.CompositeEntity {
   public options: VideoSceneOptions;
   public narration: SingleNarration;
   public video: entity.VideoEntity;
@@ -374,14 +374,14 @@ export class VideoScene extends entity.ParallelEntity {
   _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
-      this.addEntity(this.narration);
+      this._activateEntity(this.narration);
     }
 
     if (this.options.video) {
       this.video = new entity.VideoEntity(this.options.video, {
         loop: this.options.loopVideo,
       });
-      this.addEntity(this.video);
+      this._activateEntity(this.video);
     }
 
     if (this.options.music) {
@@ -390,7 +390,7 @@ export class VideoScene extends entity.ParallelEntity {
     }
 
     this.skipButton = new entity.SkipButton();
-    this.addEntity(this.skipButton);
+    this._activateEntity(this.skipButton);
   }
 
   _update(frameInfo: entity.FrameInfo) {
@@ -405,8 +405,6 @@ export class VideoScene extends entity.ParallelEntity {
   _teardown() {
     if (this.options.music)
       this.entityConfig.jukebox.changeMusic(this.previousMusic);
-
-    this.removeAllEntities();
   }
 }
 

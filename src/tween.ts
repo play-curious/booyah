@@ -25,7 +25,7 @@ export function make(
     );
     tweens.push(new Tween(tweenOptions));
   }
-  return new entity.ParallelEntity(tweens, { autoTransition: true });
+  return new entity.ParallelEntity(tweens);
 }
 
 export interface TweenOptions {
