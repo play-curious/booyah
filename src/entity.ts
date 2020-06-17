@@ -81,10 +81,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
   public lastFrameInfo: FrameInfo;
 
   public setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void {
-    if (this.isSetup) {
-      console.error("setup() called twice", this);
-      console.trace();
-    }
+    if (this.isSetup) throw new Error("setup() called twice");
 
     this.entityConfig = entityConfig;
     this.lastFrameInfo = frameInfo;
@@ -95,20 +92,16 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
   }
 
   public update(frameInfo: FrameInfo): void {
-    if (!this.isSetup) {
-      console.error("update() called before setup()", this);
-      console.trace();
-    }
+    if (!this.isSetup) throw new Error("update() called before setup()");
+    if (this.transition)
+      throw new Error("update() called despite requesting transition");
 
     this.lastFrameInfo = frameInfo;
     this._update(frameInfo);
   }
 
   public teardown(frameInfo: FrameInfo): void {
-    if (!this.isSetup) {
-      console.error("teardown() called before setup()", this);
-      console.trace();
-    }
+    if (!this.isSetup) throw new Error("teardown() called before setup()");
 
     this.lastFrameInfo = frameInfo;
     this._teardown(frameInfo);
@@ -120,9 +113,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
   }
 
   public onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
-    if (!this.entityConfig) {
-      console.error("onSignal() called before setup()", this);
-    }
+    if (!this.isSetup) throw new Error("onSignal() called before setup()");
 
     this.lastFrameInfo = frameInfo;
     this._onSignal(frameInfo, signal, data);
