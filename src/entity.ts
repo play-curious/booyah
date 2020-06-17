@@ -254,6 +254,13 @@ export interface EntityContext {
   config?: EntityConfigResolvable;
 }
 
+export function makeEntityContext(
+  entity: EntityResolvable,
+  config?: EntityConfigResolvable
+) {
+  return { entity, config };
+}
+
 export interface ParallelEntityContext extends EntityContext {
   activated?: boolean;
 }

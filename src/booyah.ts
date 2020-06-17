@@ -169,7 +169,7 @@ let variableAudioLoaderProgress = 0;
 // Only send updates on non-paused entties
 class FilterPauseEntity extends entity.ParallelEntity {
   update(frameInfo: entity.FrameInfo) {
-    if (frameInfo.gameState == "playing") super.update(frameInfo);
+    if (frameInfo.gameState === "playing") super.update(frameInfo);
   }
 }
 
@@ -233,7 +233,7 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
   }
 }
 
-export class MenuEntity extends entity.ParallelEntity {
+export class MenuEntity extends entity.CompositeEntity {
   public container: PIXI.Container;
   public menuLayer: PIXI.Container;
   public menuButtonLayer: PIXI.Container;
@@ -252,7 +252,7 @@ export class MenuEntity extends entity.ParallelEntity {
   public fxButton: entity.ToggleSwitch;
   public subtitlesButton: entity.ToggleSwitch;
 
-  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  _setup() {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
@@ -367,8 +367,7 @@ export class MenuEntity extends entity.ParallelEntity {
         "change",
         this._onChangeFullScreen as any
       );
-      this.fullScreenButton.setup(frameInfo, menuButtonLayerConfig);
-      this.addEntity(this.fullScreenButton);
+      this._activateEntity(this.fullScreenButton, menuButtonLayerConfig);
 
       // TODO: use event listener to check if full screen was exited manually with ESC key
     } else {
@@ -392,8 +391,7 @@ export class MenuEntity extends entity.ParallelEntity {
       position: new PIXI.Point(405, 230),
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
-    this.musicButton.setup(frameInfo, menuButtonLayerConfig);
-    this.addEntity(this.musicButton);
+    this._activateEntity(this.musicButton, menuButtonLayerConfig);
 
     // TODO prevent being able to turn both subtitles and sound off
 
@@ -408,8 +406,7 @@ export class MenuEntity extends entity.ParallelEntity {
       position: new PIXI.Point(630, 230),
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
-    this.fxButton.setup(frameInfo, menuButtonLayerConfig);
-    this.addEntity(this.fxButton);
+    this._activateEntity(this.fxButton, menuButtonLayerConfig);
 
     this.subtitlesButton = new entity.ToggleSwitch({
       onTexture: this.entityConfig.app.loader.resources[
@@ -426,8 +423,7 @@ export class MenuEntity extends entity.ParallelEntity {
       "change",
       this._onChangeShowSubtitles as any
     );
-    this.subtitlesButton.setup(frameInfo, menuButtonLayerConfig);
-    this.addEntity(this.subtitlesButton);
+    this._activateEntity(this.subtitlesButton, menuButtonLayerConfig);
 
     const creditLink = new PIXI.Text("Credits", {
       fontFamily: "Roboto Condensed",
@@ -574,7 +570,7 @@ export class MenuEntity extends entity.ParallelEntity {
   _update(frameInfo: entity.FrameInfo) {
     if (this.creditsEntity) {
       if (this.creditsEntity.transition) {
-        this.removeEntity(this.creditsEntity);
+        this._deactivateEntity(this.creditsEntity);
         this.creditsEntity = null;
       }
     }
@@ -633,7 +629,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
   _showCredits() {
     this.creditsEntity = new CreditsEntity();
-    this.addEntity(this.creditsEntity);
+    this._activateEntity(this.creditsEntity);
   }
 
   _onSwitchLanguage(language: string) {
@@ -666,7 +662,7 @@ export function installMenu(rootConfig: any, rootEntity: any) {
   rootEntity.addEntity(rootConfig.menu);
 }
 
-export class CreditsEntity extends entity.ParallelEntity {
+export class CreditsEntity extends entity.CompositeEntity {
   public container: PIXI.Container;
   public mask: PIXI.Graphics;
 
@@ -819,9 +815,9 @@ export class LoadingScene extends entity.ParallelEntity {
     this.entityConfig.container.addChild(this.container);
   }
 
-  _update(frameInfo: entity.FrameInfo) {
+  _update() {
     this.loadingCircle.rotation +=
-      LOADING_SCENE_SPIN_SPEED * frameInfo.timeScale;
+      LOADING_SCENE_SPIN_SPEED * this.lastFrameInfo.timeScale;
 
     if (this.shouldUpdateProgress) {
       const height = this.progress * 100; // Because the graphic happens to be 100px tall
@@ -1220,11 +1216,16 @@ function doneLoading() {
   );
 
   // Filter out the pause event for the game sequence
-  rootEntity.addEntity(
-    new FilterPauseEntity([
-      new entity.ContainerEntity([gameSequence], "gameSequence"),
-    ])
-  );
+  rootEntity.addEntity({
+    entity: new FilterPauseEntity([
+      {
+        entity: new entity.ContainerEntity(
+          [{ entity: gameSequence }],
+          "gameSequence"
+        ),
+      },
+    ]),
+  });
 
   for (const installer of rootConfig.directives.entityInstallers) {
     installer(rootConfig, rootEntity);
