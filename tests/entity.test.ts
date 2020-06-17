@@ -18,20 +18,32 @@ function makeFrameInfo(): entity.FrameInfo {
 }
 
 describe("Entity", () => {
-  test("allows normal execution", () => {
-    const e = new entity.NullEntity();
+  let e: entity.Entity;
 
+  beforeEach(() => {
+    e = new entity.NullEntity();
+    e._setup = jest.fn();
+    e._update = jest.fn();
+    e._teardown = jest.fn();
+    e._onSignal = jest.fn();
+  });
+
+  test("allows normal execution", () => {
     for (let i = 0; i < 5; i++) {
       e.setup(makeFrameInfo(), makeEntityConfig());
       e.update(makeFrameInfo());
       e.onSignal(makeFrameInfo(), "signal");
       e.teardown(makeFrameInfo());
     }
+
+    expect(e._setup).toBeCalledTimes(5);
+    expect(e._update).toBeCalledTimes(5);
+    expect(e._teardown).toBeCalledTimes(5);
+    expect(e._onSignal).toBeCalledTimes(5);
   });
 
   test("throws on multiple setup", () => {
     expect(() => {
-      const e = new entity.NullEntity();
       e.setup(makeFrameInfo(), makeEntityConfig());
       e.setup(makeFrameInfo(), makeEntityConfig());
     }).toThrow();
@@ -39,21 +51,18 @@ describe("Entity", () => {
 
   test("throws on update before setup", () => {
     expect(() => {
-      const e = new entity.NullEntity();
       e.update(makeFrameInfo());
     }).toThrow();
   });
 
   test("throws on teardown before setup", () => {
     expect(() => {
-      const e = new entity.NullEntity();
       e.teardown(makeFrameInfo());
     }).toThrow();
   });
 
   test("throws on onSignal before setup", () => {
     expect(() => {
-      const e = new entity.NullEntity();
       e.onSignal(makeFrameInfo(), "signal");
     }).toThrow();
   });
