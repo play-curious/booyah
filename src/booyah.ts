@@ -367,7 +367,7 @@ export class MenuEntity extends entity.CompositeEntity {
         "change",
         this._onChangeFullScreen as any
       );
-      this._activateEntity(this.fullScreenButton, menuButtonLayerConfig);
+      this._activateChildEntity(this.fullScreenButton, menuButtonLayerConfig);
 
       // TODO: use event listener to check if full screen was exited manually with ESC key
     } else {
@@ -391,7 +391,7 @@ export class MenuEntity extends entity.CompositeEntity {
       position: new PIXI.Point(405, 230),
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
-    this._activateEntity(this.musicButton, menuButtonLayerConfig);
+    this._activateChildEntity(this.musicButton, menuButtonLayerConfig);
 
     // TODO prevent being able to turn both subtitles and sound off
 
@@ -406,7 +406,7 @@ export class MenuEntity extends entity.CompositeEntity {
       position: new PIXI.Point(630, 230),
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
-    this._activateEntity(this.fxButton, menuButtonLayerConfig);
+    this._activateChildEntity(this.fxButton, menuButtonLayerConfig);
 
     this.subtitlesButton = new entity.ToggleSwitch({
       onTexture: this.entityConfig.app.loader.resources[
@@ -423,7 +423,7 @@ export class MenuEntity extends entity.CompositeEntity {
       "change",
       this._onChangeShowSubtitles as any
     );
-    this._activateEntity(this.subtitlesButton, menuButtonLayerConfig);
+    this._activateChildEntity(this.subtitlesButton, menuButtonLayerConfig);
 
     const creditLink = new PIXI.Text("Credits", {
       fontFamily: "Roboto Condensed",
@@ -570,7 +570,7 @@ export class MenuEntity extends entity.CompositeEntity {
   _update(frameInfo: entity.FrameInfo) {
     if (this.creditsEntity) {
       if (this.creditsEntity.transition) {
-        this._deactivateEntity(this.creditsEntity);
+        this._deactivateChildEntity(this.creditsEntity);
         this.creditsEntity = null;
       }
     }
@@ -629,7 +629,7 @@ export class MenuEntity extends entity.CompositeEntity {
 
   _showCredits() {
     this.creditsEntity = new CreditsEntity();
-    this._activateEntity(this.creditsEntity);
+    this._activateChildEntity(this.creditsEntity);
   }
 
   _onSwitchLanguage(language: string) {

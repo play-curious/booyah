@@ -374,14 +374,14 @@ export class VideoScene extends entity.CompositeEntity {
   _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     if (this.options.narration) {
       this.narration = new SingleNarration(this.options.narration);
-      this._activateEntity(this.narration);
+      this._activateChildEntity(this.narration);
     }
 
     if (this.options.video) {
       this.video = new entity.VideoEntity(this.options.video, {
         loop: this.options.loopVideo,
       });
-      this._activateEntity(this.video);
+      this._activateChildEntity(this.video);
     }
 
     if (this.options.music) {
@@ -390,7 +390,7 @@ export class VideoScene extends entity.CompositeEntity {
     }
 
     this.skipButton = new entity.SkipButton();
-    this._activateEntity(this.skipButton);
+    this._activateChildEntity(this.skipButton);
   }
 
   _update(frameInfo: entity.FrameInfo) {

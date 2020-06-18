@@ -175,22 +175,20 @@ export type EntityResolvable = Entity | EntityFactory;
 
 /** Base class for entities that contain other entities */
 export abstract class CompositeEntity extends Entity {
-  protected childEntities: Entity[];
+  protected childEntities: Entity[] = [];
 
+  /**
+   * By default, updates all child entities and remove those that have a transition
+   * Overload this method in subclasses to change the behavior
+   */
   public update(frameInfo: FrameInfo): void {
     super.update(frameInfo);
 
-    for (const childEntity of this.childEntities) {
-      childEntity.update(frameInfo);
-    }
+    this._updateChildEntities();
   }
 
   public teardown(frameInfo: FrameInfo): void {
-    for (const childEntity of this.childEntities) {
-      this._deactivateEntity(childEntity);
-    }
-
-    this.childEntities = [];
+    this._deactivateAllChildEntities();
 
     super.teardown(frameInfo);
   }
@@ -203,7 +201,7 @@ export abstract class CompositeEntity extends Entity {
     }
   }
 
-  protected _activateEntity(
+  protected _activateChildEntity(
     entityResolvable: EntityResolvable,
     config?: EntityConfigResolvable,
     transition?: Transition
@@ -224,19 +222,50 @@ export abstract class CompositeEntity extends Entity {
     return entity;
   }
 
-  protected _deactivateEntity(entity: Entity): void {
+  protected _deactivateChildEntity(entity: Entity): void {
     if (!this.isSetup) throw new Error("CompositeEntity is not yet active");
 
     const index = this.childEntities.indexOf(entity);
     if (index === -1) throw new Error("Cannot find entity to remove");
 
     if (entity.isSetup) {
-      this._deactivateEntity(entity);
+      entity.teardown(this.lastFrameInfo);
     }
 
     this.childEntities.splice(index, 1);
+  }
 
-    entity.teardown(this.lastFrameInfo);
+  /**
+   * Updates all child entities, and deactivates any that need a transition.
+   * Returns true if any have been deactivated.
+   */
+  protected _updateChildEntities(): boolean {
+    let needDeactivation = false;
+
+    for (let i = 0; i < this.childEntities.length; ) {
+      const childEntity = this.childEntities[i];
+
+      childEntity.update(this.lastFrameInfo);
+
+      if (childEntity.transition) {
+        childEntity.teardown(this.lastFrameInfo);
+        this.childEntities.splice(i, 1);
+
+        needDeactivation = true;
+      } else {
+        i++;
+      }
+    }
+
+    return needDeactivation;
+  }
+
+  protected _deactivateAllChildEntities() {
+    for (const childEntity of this.childEntities) {
+      childEntity.teardown(this.lastFrameInfo);
+    }
+
+    this.childEntities = [];
   }
 }
 
@@ -274,7 +303,7 @@ export class ParallelEntity extends CompositeEntity {
   _setup() {
     for (const entityContext of this.childEntityContexts) {
       if (entityContext.activated)
-        this._activateEntity(entityContext.entity, entityContext.config);
+        this._activateChildEntity(entityContext.entity, entityContext.config);
     }
   }
 
@@ -290,7 +319,7 @@ export class ParallelEntity extends CompositeEntity {
 
     // Automatically activate the child entity
     if (this.isSetup && entityContext.activated) {
-      const entity = this._activateEntity(
+      const entity = this._activateChildEntity(
         entityContext.entity,
         entityContext.config
       );
@@ -306,7 +335,7 @@ export class ParallelEntity extends CompositeEntity {
 
     const entity = this.contextToEntity.get(entityContext);
     if (entity) {
-      this._deactivateEntity(entity);
+      this._deactivateChildEntity(entity);
       this.contextToEntity.delete(entityContext);
     }
   }
@@ -324,7 +353,7 @@ export class ParallelEntity extends CompositeEntity {
     if (this.contextToEntity.has(entityContext))
       throw new Error("Entity is already activated");
 
-    const entity = this._activateEntity(
+    const entity = this._activateChildEntity(
       entityContext.entity,
       entityContext.config
     );
@@ -339,7 +368,7 @@ export class ParallelEntity extends CompositeEntity {
     const entity = this.contextToEntity.get(entityContext);
     if (!entity) throw new Error("Entity not yet activated");
 
-    this._deactivateEntity(entity);
+    this._deactivateChildEntity(entity);
     this.contextToEntity.delete(entityContext);
   }
 }
@@ -382,13 +411,13 @@ export class EntitySequence extends CompositeEntity {
 
   private _switchEntity() {
     if (this.currentEntity) {
-      this._deactivateEntity(this.currentEntity);
+      this._deactivateChildEntity(this.currentEntity);
       this.currentEntity = null;
     }
 
     if (this.currentEntityIndex < this.entityContexts.length) {
       const entityContext = this.entityContexts[this.currentEntityIndex];
-      this.currentEntity = this._activateEntity(
+      this.currentEntity = this._activateChildEntity(
         entityContext.entity,
         entityContext.config
       );
@@ -538,13 +567,13 @@ export class StateMachine extends CompositeEntity {
     }
 
     if (this.state) {
-      this._deactivateEntity(this.state);
+      this._deactivateChildEntity(this.state);
       this.state = null;
     }
 
     if (nextState.name in this.states) {
       const nextStateContext = this.states[nextState.name];
-      this.state = this._activateEntity(
+      this.state = this._activateChildEntity(
         nextStateContext.entity,
         nextStateContext.config
       );
@@ -1090,7 +1119,7 @@ export class Alternative extends CompositeEntity {
 
   _setup(frameInfo: FrameInfo) {
     for (const entityContext of this.entityContexts) {
-      this._activateEntity(entityContext.entity, entityContext.config);
+      this._activateChildEntity(entityContext.entity, entityContext.config);
     }
 
     this._checkForTransition();
