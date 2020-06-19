@@ -1216,16 +1216,11 @@ function doneLoading() {
   );
 
   // Filter out the pause event for the game sequence
-  rootEntity.addEntity({
-    entity: new FilterPauseEntity([
-      {
-        entity: new entity.ContainerEntity(
-          [{ entity: gameSequence }],
-          "gameSequence"
-        ),
-      },
-    ]),
-  });
+  rootEntity.addChildEntity(
+    new FilterPauseEntity([
+      new entity.ContainerEntity([gameSequence], "gameSequence"),
+    ])
+  );
 
   for (const installer of rootConfig.directives.entityInstallers) {
     installer(rootConfig, rootEntity);

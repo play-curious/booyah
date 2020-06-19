@@ -50,6 +50,21 @@ export interface FrameInfo {
   gameState: booyah.GameState;
 }
 
+export type EntityFactory = (transition: Transition) => Entity;
+
+export type EntityResolvable = Entity | EntityFactory;
+
+export interface EntityContext {
+  entity: EntityResolvable;
+  config?: EntityConfigResolvable;
+}
+
+export function isEntityResolvable(
+  e: EntityResolvable | EntityContext
+): e is EntityResolvable {
+  return typeof e === "function" || e instanceof Entity;
+}
+
 /**
  In Booyah, the game is structured as a tree of entities. This is the base class for all entities.
 
@@ -150,10 +165,14 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
     this.eventListeners = listenersToKeep;
   }
 
-  public _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {}
-  public _update(frameInfo: FrameInfo) {}
-  public _teardown(frameInfo: FrameInfo) {}
-  public _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {}
+  public get children(): Entity[] {
+    return [];
+  }
+
+  protected _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {}
+  protected _update(frameInfo: FrameInfo) {}
+  protected _teardown(frameInfo: FrameInfo) {}
+  protected _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {}
 }
 
 /** Empty class just to indicate an entity that does nothing and never requests a transition  */
@@ -169,9 +188,6 @@ export class TransitoryEntity extends Entity {
     this.transition = this.requestTransition;
   }
 }
-
-export type EntityFactory = (transition: Transition) => Entity;
-export type EntityResolvable = Entity | EntityFactory;
 
 /** Base class for entities that contain other entities */
 export abstract class CompositeEntity extends Entity {
@@ -199,6 +215,10 @@ export abstract class CompositeEntity extends Entity {
     for (const childEntity of this.childEntities) {
       childEntity.onSignal(frameInfo, signal, data);
     }
+  }
+
+  public get children(): Entity[] {
+    return this.childEntities;
   }
 
   protected _activateChildEntity(
@@ -269,18 +289,6 @@ export abstract class CompositeEntity extends Entity {
   }
 }
 
-export interface EntityContext {
-  entity: EntityResolvable;
-  config?: EntityConfigResolvable;
-}
-
-export function makeEntityContext(
-  entity: EntityResolvable,
-  config?: EntityConfigResolvable
-) {
-  return { entity, config };
-}
-
 export interface ParallelEntityContext extends EntityContext {
   activated?: boolean;
 }
@@ -294,26 +302,39 @@ export class ParallelEntity extends CompositeEntity {
   protected childEntityContexts: ParallelEntityContext[] = [];
   protected contextToEntity = new Map<ParallelEntityContext, Entity>();
 
-  constructor(entityContexts: ParallelEntityContext[] = []) {
+  constructor(
+    entityContexts: Array<EntityResolvable | ParallelEntityContext> = []
+  ) {
     super();
 
-    this.childEntityContexts = entityContexts;
+    for (const e of entityContexts) this.addChildEntity(e);
   }
 
-  _setup() {
+  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
+    super.setup(frameInfo, entityConfig);
+
     for (const entityContext of this.childEntityContexts) {
       if (entityContext.activated)
         this._activateChildEntity(entityContext.entity, entityContext.config);
     }
   }
 
-  _update() {
+  update(frameInfo: FrameInfo) {
+    super.update(frameInfo);
+
     if (!_.some(this.childEntities)) this.transition = makeTransition();
   }
 
-  addEntity(entityContext: ParallelEntityContext) {
-    const index = this.childEntityContexts.indexOf(entityContext);
-    if (index === -1) throw new Error("Entity context already added");
+  addChildEntity(entity: ParallelEntityContext | EntityResolvable) {
+    const index = this.indexOfChildEntityContext(entity);
+    if (index !== -1) throw new Error("Entity context already added");
+
+    let entityContext: ParallelEntityContext;
+    if (isEntityResolvable(entity)) {
+      entityContext = { entity, activated: true };
+    } else {
+      entityContext = entity;
+    }
 
     this.childEntityContexts.push(entityContext);
 
@@ -327,10 +348,11 @@ export class ParallelEntity extends CompositeEntity {
     }
   }
 
-  removeEntity(entityContext: ParallelEntityContext): void {
-    const index = this.childEntityContexts.indexOf(entityContext);
+  removeChildEntity(e: ParallelEntityContext | EntityResolvable): void {
+    const index = this.indexOfChildEntityContext(e);
     if (index === -1) throw new Error("Cannot find entity context");
 
+    const entityContext = this.childEntityContexts[index];
     this.childEntityContexts.splice(index, 1);
 
     const entity = this.contextToEntity.get(entityContext);
@@ -340,16 +362,27 @@ export class ParallelEntity extends CompositeEntity {
     }
   }
 
-  removeAllEntities(): void {
-    for (const entityContext of this.childEntityContexts) {
-      this.removeEntity(entityContext);
-    }
+  removeAllChildEntities(): void {
+    this._deactivateAllChildEntities();
+
+    this.childEntityContexts = [];
+    this.contextToEntity.clear();
   }
 
-  activateEntity(entityContext: ParallelEntityContext): void {
-    const index = this.childEntityContexts.indexOf(entityContext);
-    if (index === -1) throw new Error("Cannot find entity context");
+  activateChildEntity(
+    e: number | ParallelEntityContext | EntityResolvable
+  ): void {
+    let index: number;
+    if (typeof e === "number") {
+      index = e;
+      if (index < 0 || index >= this.childEntityContexts.length)
+        throw new Error("Invalid index");
+    } else {
+      index = this.indexOfChildEntityContext(e);
+      if (index === -1) throw new Error("Cannot find entity context");
+    }
 
+    const entityContext = this.childEntityContexts[index];
     if (this.contextToEntity.has(entityContext))
       throw new Error("Entity is already activated");
 
@@ -361,15 +394,36 @@ export class ParallelEntity extends CompositeEntity {
     entityContext.activated = true;
   }
 
-  deactivateEntity(entityContext: ParallelEntityContext): void {
-    const index = this.childEntityContexts.indexOf(entityContext);
-    if (index === -1) throw new Error("Cannot find entity context");
+  deactivateChildEntity(
+    e: ParallelEntityContext | EntityResolvable | number
+  ): void {
+    let index: number;
+    if (typeof e === "number") {
+      index = e;
+      if (index < 0 || index >= this.childEntityContexts.length)
+        throw new Error("Invalid index");
+    } else {
+      index = this.indexOfChildEntityContext(e);
+      if (index === -1) throw new Error("Cannot find entity context");
+    }
 
+    const entityContext = this.childEntityContexts[index];
     const entity = this.contextToEntity.get(entityContext);
     if (!entity) throw new Error("Entity not yet activated");
 
     this._deactivateChildEntity(entity);
+    entityContext.activated = false;
     this.contextToEntity.delete(entityContext);
+  }
+
+  indexOfChildEntityContext(
+    entity: ParallelEntityContext | EntityResolvable
+  ): number {
+    if (isEntityResolvable(entity)) {
+      return _.indexOf(this.childEntityContexts, { entity });
+    } else {
+      return this.childEntityContexts.indexOf(entity);
+    }
   }
 }
 
@@ -720,11 +774,14 @@ export class WaitingEntity extends Entity {
   An entity that creates a new PIXI container in the setup entityConfig for it's children, and manages the container. 
 */
 export class ContainerEntity extends ParallelEntity {
-  public oldConfig: any;
-  public newConfig: any;
+  public oldConfig: EntityConfig;
+  public newConfig: EntityConfig;
   public container: PIXI.Container;
 
-  constructor(entities: ParallelEntityContext[] = [], public name?: string) {
+  constructor(
+    entities: Array<ParallelEntityContext | EntityResolvable> = [],
+    public name?: string
+  ) {
     super(entities);
   }
 

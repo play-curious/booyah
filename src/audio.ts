@@ -85,7 +85,7 @@ export function installJukebox(
   rootEntity: entity.ParallelEntity
 ) {
   rootConfig.jukebox = new Jukebox();
-  rootEntity.addEntity(rootConfig.jukebox);
+  rootEntity.addChildEntity(rootConfig.jukebox);
 }
 
 export function makeInstallJukebox(options: JukeboxOptions) {
@@ -94,7 +94,7 @@ export function makeInstallJukebox(options: JukeboxOptions) {
     rootEntity: entity.ParallelEntity
   ) => {
     rootConfig.jukebox = new Jukebox(options);
-    rootEntity.addEntity(rootConfig.jukebox);
+    rootEntity.addChildEntity(rootConfig.jukebox);
   };
 }
 
