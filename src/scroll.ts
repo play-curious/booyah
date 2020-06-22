@@ -260,7 +260,7 @@ export class Scrollbox extends entity.ParallelEntity {
     }
   }
 
-  _onMove(e: PIXI.interaction.InteractionEvent) {
+  _onMove(e: PIXI.InteractionEvent) {
     if (!this.pointerDown) return;
 
     if (this.pointerDown.type === "scrollbar") this._scrollbarMove(e);
@@ -268,7 +268,7 @@ export class Scrollbox extends entity.ParallelEntity {
     else throw new Error("no such type");
   }
 
-  _onUp(e: PIXI.interaction.InteractionEvent) {
+  _onUp(e: PIXI.InteractionEvent) {
     if (!this.pointerDown) return;
 
     if (this.pointerDown.type === "scrollbar") this._scrollbarUp();
@@ -278,10 +278,10 @@ export class Scrollbox extends entity.ParallelEntity {
 
   /**
    * handle pointer down on scrollbar
-   * @param {PIXI.interaction.InteractionEvent} e
+   * @param {PIXI.InteractionEvent} e
    * @private
    */
-  _scrollbarDown(e: PIXI.interaction.InteractionEvent) {
+  _scrollbarDown(e: PIXI.InteractionEvent) {
     if (this.pointerDown) return;
 
     this.content.interactiveChildren = false;
@@ -339,10 +339,10 @@ export class Scrollbox extends entity.ParallelEntity {
 
   /**
    * handle pointer move on scrollbar
-   * @param {PIXI.interaction.InteractionEvent} e
+   * @param {PIXI.InteractionEvent} e
    * @private
    */
-  _scrollbarMove(e: PIXI.interaction.InteractionEvent) {
+  _scrollbarMove(e: PIXI.InteractionEvent) {
     if (this.pointerDown.direction === "horizontal") {
       const local = this.container.toLocal(e.data.global);
       const fraction =
@@ -376,10 +376,10 @@ export class Scrollbox extends entity.ParallelEntity {
 
   /**
    * handle pointer down on content
-   * @param {PIXI.interaction.InteractionEvent} e
+   * @param {PIXI.InteractionEvent} e
    * @private
    */
-  _dragDown(e: PIXI.interaction.InteractionEvent) {
+  _dragDown(e: PIXI.InteractionEvent) {
     if (this.pointerDown) return;
 
     const local = this.container.toLocal(e.data.global);
@@ -392,11 +392,11 @@ export class Scrollbox extends entity.ParallelEntity {
 
   /**
    * handle pointer move on content
-   * @param {PIXI.interaction.InteractionEvent} e
+   * @param {PIXI.InteractionEvent} e
    * @private
    */
 
-  _dragMove(e: PIXI.interaction.InteractionEvent) {
+  _dragMove(e: PIXI.InteractionEvent) {
     const local = this.container.toLocal(e.data.global) as PIXI.Point;
     if (
       geom.distance(local, this.pointerDown.last) <= this.options.dragThreshold

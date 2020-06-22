@@ -843,7 +843,7 @@ export class ToggleSwitch extends Entity {
   public container: PIXI.Container;
   public spriteOn: PIXI.Sprite;
   public spriteOff: PIXI.Sprite;
-  public position: PIXI.IPoint;
+  public position: PIXI.Point;
   public onTexture: PIXI.Texture;
   public offTexture: PIXI.Texture;
   public isOn: boolean;
