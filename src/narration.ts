@@ -1,8 +1,9 @@
 import * as PIXI from "pixi.js";
+import { Howl, Howler } from "howler";
+import _ from "underscore";
 
 import * as entity from "./entity.js";
 import * as audio from "./audio.js";
-import _ from "underscore";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
