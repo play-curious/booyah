@@ -138,7 +138,7 @@ export class ParallelEntity extends Entity {
     super();
 
     util.setupOptions(this, options, {
-      autoTransition: false
+      autoTransition: false,
     });
 
     this.entities = [];
@@ -293,7 +293,7 @@ export class EntitySequence extends Entity {
 
     const timeSinceChildStart = options.timeSinceStart - this.childStartedAt;
     const childOptions = _.extend({}, options, {
-      timeSinceStart: timeSinceChildStart
+      timeSinceStart: timeSinceChildStart,
     });
 
     this.lastUpdateOptions = options;
@@ -392,7 +392,7 @@ export class StateMachine extends Entity {
       startingState: "start",
       startingStateParams: {},
       endingStates: ["end"],
-      startingProgress: {}
+      startingProgress: {},
     });
   }
 
@@ -418,7 +418,7 @@ export class StateMachine extends Entity {
 
     const timeSinceStateStart = options.timeSinceStart - this.sceneStartedAt;
     const stateOptions = _.extend({}, options, {
-      timeSinceStart: timeSinceStateStart
+      timeSinceStart: timeSinceStateStart,
     });
     this.state.update(stateOptions);
 
@@ -437,8 +437,9 @@ export class StateMachine extends Entity {
       // The transition could directly be the name of another state
       if (
         _.isString(requestedTransitionName) &&
-        requestedTransitionName in this.states &&
-        !(this.stateName in this.transitions)
+        !(this.stateName in this.transitions) &&
+        (requestedTransitionName in this.states ||
+          _.contains(this.endingStates, requestedTransitionName))
       ) {
         nextStateDescriptor = requestedTransition;
       } else if (!(this.stateName in this.transitions)) {
@@ -557,7 +558,7 @@ export class StateMachine extends Entity {
     `
 */
 export function makeTransitionTable(table) {
-  const f = function(
+  const f = function (
     requestedTransitionName,
     requestedTransitionParams,
     previousStateName,
@@ -775,7 +776,7 @@ export class ContainerEntity extends ParallelEntity {
     this.oldConfig.container.addChild(this.container);
 
     this.newConfig = _.extend({}, config, {
-      container: this.container
+      container: this.container,
     });
 
     super.setup(this.newConfig);
@@ -798,7 +799,7 @@ export class VideoEntity extends Entity {
 
     this.videoName = videoName;
     util.setupOptions(this, options, {
-      loop: false
+      loop: false,
     });
   }
 
@@ -860,7 +861,7 @@ export class ToggleSwitch extends Entity {
       onTexture: util.REQUIRED_OPTION,
       offTexture: util.REQUIRED_OPTION,
       isOn: false,
-      position: new PIXI.Point()
+      position: new PIXI.Point(),
     });
   }
 
@@ -997,7 +998,7 @@ export class DeflatingCompositeEntity extends Entity {
     super();
 
     util.setupOptions(this, options, {
-      autoTransition: true
+      autoTransition: true,
     });
 
     this.entities = [];
@@ -1135,14 +1136,14 @@ export class Alternative extends Entity {
       if (entityPair instanceof Entity)
         return {
           entity: entityPair,
-          transition: key.toString()
+          transition: key.toString(),
         };
 
       if (!entityPair.entity) throw new Error("Missing entity");
 
       // Assume an object of type { entity, transition }
       return _.defaults({}, entityPair, {
-        transition: key.toString()
+        transition: key.toString(),
       });
     });
   }
@@ -1282,5 +1283,5 @@ export function processEntityConfig(config, alteredConfig) {
 }
 
 export function extendConfig(values) {
-  return config => _.extend({}, config, values);
+  return (config) => _.extend({}, config, values);
 }

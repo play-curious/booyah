@@ -35,7 +35,7 @@ export function difference(array) {
     Array.prototype,
     Array.prototype.slice.call(arguments, 1)
   );
-  return _.filter(array, value => !contains(rest, value));
+  return _.filter(array, (value) => !contains(rest, value));
 }
 
 /** Returns a new array with the given element excluded, tested using _.isEqual() */
@@ -157,7 +157,7 @@ export function startTiming(eventName) {
 export function endTiming(eventName, category = "loading") {
   const diff = Date.now() - eventTimings[eventName];
   console.debug("Timing for ", eventName, diff);
-  ga("send", "timing", category, eventName, diff);
+  // ga("send", "timing", category, eventName, diff);
 }
 
 /* Makes a video element plays easily on iOS. Requires muting */
@@ -269,7 +269,7 @@ export function setPropertyInTree(root, name, value) {
 }
 
 export function getFramesForSpriteSheet(resource) {
-  return _.map(resource.textures, value => value);
+  return _.map(resource.textures, (value) => value);
 }
 
 export function makeAnimatedSprite(resource) {
