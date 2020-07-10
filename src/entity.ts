@@ -126,7 +126,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
   protected _on(
     emitter: PIXI.utils.EventEmitter,
     event: string,
-    cb: () => void
+    cb: (...args: any) => void
   ): void {
     this.eventListeners.push({ emitter, event, cb });
     emitter.on(event, cb, this);
@@ -136,7 +136,7 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
   protected _off(
     emitter?: PIXI.utils.EventEmitter,
     event?: string,
-    cb?: () => void
+    cb?: (...args: any) => void
   ): void {
     const props: IEventListener = {
       emitter,
@@ -678,9 +678,9 @@ export class FunctionalEntity extends ParallelEntity {
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class FunctionCallEntity extends Entity {
-  constructor(public f: (arg: any) => any, public that: any) {
+  constructor(public f: (arg: any) => any, public that?: any) {
     super();
-    this.that = that && this;
+    this.that = that || this;
   }
 
   _setup() {
@@ -810,7 +810,7 @@ export class ToggleSwitch extends Entity {
   public container: PIXI.Container;
   public spriteOn: PIXI.Sprite;
   public spriteOff: PIXI.Sprite;
-  public position: PIXI.IPoint;
+  public position: PIXI.Point;
   public onTexture: PIXI.Texture;
   public offTexture: PIXI.Texture;
   public isOn: boolean;

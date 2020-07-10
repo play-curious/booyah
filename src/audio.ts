@@ -1,5 +1,6 @@
 import * as util from "./util";
 import * as entity from "./entity";
+import { Howl, Howler } from "howler";
 import _ from "underscore";
 
 export const AUDIO_FILE_FORMATS = ["mp3"];

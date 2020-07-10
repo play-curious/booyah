@@ -1042,9 +1042,8 @@ function loadFixedAssets() {
     _.values(rootConfig.directives.graphics),
     rootConfig.directives.graphicalAssets
   );
-  rootConfig.app.loader
-    .add(pixiLoaderResources)
-    .on("progress", pixiLoadProgressHandler);
+  rootConfig.app.loader.add(pixiLoaderResources);
+  rootConfig.app.loader.onProgress.add(pixiLoadProgressHandler);
 
   const fonts = ["Roboto Condensed", ...rootConfig.directives.fontAssets];
   const fontLoaderPromises = _.map(fonts, (name) => {
