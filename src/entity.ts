@@ -711,9 +711,9 @@ export class FunctionalEntity extends ParallelEntity {
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class FunctionCallEntity extends Entity {
-  constructor(public f: (arg: any) => any, public that: any) {
+  constructor(public f: (arg: any) => any, public that?: any) {
     super();
-    this.that = that && this;
+    this.that = that || this;
   }
 
   _setup() {

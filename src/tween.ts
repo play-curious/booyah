@@ -83,13 +83,13 @@ export class Tween extends entity.Entity implements TweenOptions {
   _setup() {
     this.currentObj = _.isFunction(this.obj) ? this.obj() : this.obj;
 
-    if (this.from) {
+    if (this.from === null) {
+      this.startValue = this._getValue();
+      this.value = this.startValue;
+    } else {
       this.startValue = this.from;
       this.value = this.startValue;
       this._updateValue();
-    } else {
-      this.startValue = this._getValue();
-      this.value = this.startValue;
     }
 
     this.startTime = null;
