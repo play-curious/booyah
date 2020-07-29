@@ -725,13 +725,21 @@ export class FunctionCallEntity extends Entity {
 
 // Waits until time is up, then requests transition
 export class WaitingEntity extends Entity {
+  private _accumulatedTime: number;
+
   /** @wait is in milliseconds */
-  constructor(public wait: number) {
+  constructor(public readonly wait: number) {
     super();
   }
 
+  _setup() {
+    this._accumulatedTime = 0;
+  }
+
   _update(frameInfo: FrameInfo) {
-    if (frameInfo.timeSinceStart >= this.wait) {
+    this._accumulatedTime += frameInfo.timeSinceLastFrame;
+
+    if (this._accumulatedTime >= this.wait) {
       this.requestedTransition = true;
     }
   }

@@ -1046,8 +1046,10 @@ function loadFixedAssets() {
         updateLoadingProgress();
       })
       .catch((e: any) => {
-        console.error("Cannot load font", name);
-        throw e;
+        console.warn("Cannot load font", name);
+
+        // On Firefox, this will randomly timeout although font was loaded correctly
+        // throw e;
       });
   });
 
