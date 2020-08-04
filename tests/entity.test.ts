@@ -1,5 +1,7 @@
-import * as entity from "../src/entity";
 import * as PIXI from "pixi.js";
+import * as _ from "underscore";
+
+import * as entity from "../src/entity";
 
 function makeEntityConfig(): entity.EntityConfig {
   return {
@@ -32,15 +34,6 @@ class MockEntity extends entity.Entity {
   public _teardown() {}
   public _onSignal() {}
 }
-
-// function new MockEntity(): entity.Entity {
-//   const e = new MockEntity();
-//   for (const prop of ["_setup"]) e._setup = jest.fn();
-//   e._update = jest.fn();
-//   e._teardown = jest.fn();
-//   e._onSignal = jest.fn();
-//   return e;
-// }
 
 describe("Entity", () => {
   let e: MockEntity;
@@ -204,5 +197,127 @@ describe("ParallelEntity", () => {
     expect(children[0]._update).toBeCalledTimes(3);
     expect(children[1]._update).toBeCalledTimes(2);
     expect(children[2]._update).toBeCalledTimes(2);
+  });
+});
+
+describe("EntitySequence", () => {
+  test("runs only one child at a time", () => {
+    const children = [new MockEntity(), new MockEntity(), new MockEntity()];
+    const parent = new entity.EntitySequence(children);
+
+    for (let i = 0; i < 5; i++) {
+      parent.setup(makeFrameInfo(), makeEntityConfig());
+      parent.update(makeFrameInfo());
+      parent.onSignal(makeFrameInfo(), "signal");
+      parent.teardown(makeFrameInfo());
+    }
+
+    // First child should be called
+    expect(children[0]._setup).toBeCalledTimes(5);
+    expect(children[0]._update).toBeCalledTimes(5);
+    expect(children[0]._onSignal).toBeCalledTimes(5);
+    expect(children[0]._teardown).toBeCalledTimes(5);
+
+    // The others not
+    for (const child of _.rest(children)) {
+      expect(child._setup).toBeCalledTimes(0);
+      expect(child._update).toBeCalledTimes(0);
+      expect(child._onSignal).toBeCalledTimes(0);
+      expect(child._teardown).toBeCalledTimes(0);
+    }
+  });
+
+  test("runs only one child after another", () => {
+    const children = [new MockEntity(), new MockEntity(), new MockEntity()];
+    const parent = new entity.EntitySequence(children);
+
+    parent.setup(makeFrameInfo(), makeEntityConfig());
+
+    // Run 1st child twice, then request transition
+    parent.update(makeFrameInfo());
+    parent.update(makeFrameInfo());
+    children[0].transition = entity.makeTransition();
+    parent.update(makeFrameInfo());
+
+    // Run 2nd child twice, then request transition
+    parent.update(makeFrameInfo());
+    parent.update(makeFrameInfo());
+    children[1].transition = entity.makeTransition();
+    parent.update(makeFrameInfo());
+
+    // Run 3rd child twice, then request transition
+    parent.update(makeFrameInfo());
+    parent.update(makeFrameInfo());
+    children[2].transition = entity.makeTransition("third");
+    parent.update(makeFrameInfo());
+
+    // Each child should be updated three times
+    for (const child of _.rest(children)) {
+      expect(child._setup).toBeCalledTimes(1);
+      expect(child._update).toBeCalledTimes(3);
+      expect(child._teardown).toBeCalledTimes(1);
+    }
+
+    // Final transition should be that of the 3rd child
+    expect(parent.transition.name).toBe("third");
+  });
+
+  test("loops", () => {
+    const children = [new MockEntity(), new MockEntity()];
+    const parent = new entity.EntitySequence(children, { loop: true });
+
+    parent.setup(makeFrameInfo(), makeEntityConfig());
+
+    // Run 1st child, then request transition
+    parent.update(makeFrameInfo());
+    children[0].transition = entity.makeTransition();
+    parent.update(makeFrameInfo());
+
+    // Run 2nd child, then request transition
+    parent.update(makeFrameInfo());
+    children[1].transition = entity.makeTransition();
+    parent.update(makeFrameInfo());
+
+    // Run 1st child again
+    parent.update(makeFrameInfo());
+
+    // The first child should be setup twice
+    expect(children[0]._setup).toBeCalledTimes(2);
+    expect(children[0]._update).toBeCalledTimes(3);
+    expect(children[0]._teardown).toBeCalledTimes(1);
+
+    // The second child should be setup once
+    expect(children[1]._setup).toBeCalledTimes(1);
+    expect(children[1]._update).toBeCalledTimes(2);
+    expect(children[1]._teardown).toBeCalledTimes(1);
+
+    // There should be no requested transition
+    expect(parent.transition).toBeFalsy();
+  });
+
+  test("skips", () => {
+    const children = [new MockEntity(), new MockEntity()];
+    const parent = new entity.EntitySequence(children);
+
+    parent.setup(makeFrameInfo(), makeEntityConfig());
+
+    // Run 1st child, then skip
+    parent.update(makeFrameInfo());
+    parent.skip();
+    parent.update(makeFrameInfo());
+    parent.skip();
+
+    // The first child should be setup and torn down
+    expect(children[0]._setup).toBeCalledTimes(1);
+    expect(children[0]._update).toBeCalledTimes(1);
+    expect(children[0]._teardown).toBeCalledTimes(1);
+
+    // The second child should be setup and torn down
+    expect(children[1]._setup).toBeCalledTimes(1);
+    expect(children[1]._update).toBeCalledTimes(1);
+    expect(children[0]._teardown).toBeCalledTimes(1);
+
+    // There should be a skipped transition
+    expect(parent.transition.name).toBe("skip");
   });
 });

@@ -289,10 +289,6 @@ export abstract class CompositeEntity extends Entity {
   }
 }
 
-export interface ParallelEntityContext extends EntityContext {
-  activated?: boolean;
-}
-
 /**
  Allows a bunch of entities to execute in parallel.
  Updates child entities until they ask for a transition, at which point they are torn down.
@@ -448,20 +444,25 @@ export interface ParallelEntityContext {
   Optionally can loop back to the first entity.
 */
 export class EntitySequence extends CompositeEntity {
+  private entityContexts: EntityContext[] = [];
   private currentEntityIndex = 0;
   private currentEntity: Entity = null;
-  private lastTransition: Transition;
 
   constructor(
-    private entityContexts: EntityContext[],
+    entityContexts: Array<EntityContext | EntityResolvable>,
     private readonly options: EntitySequenceOptions = { loop: false }
   ) {
     super();
+
+    for (const e of entityContexts) this.addChildEntity(e);
   }
 
-  // Does not setup entity
-  addEntity(entityContext: EntityContext) {
-    this.entityContexts.push(entityContext);
+  addChildEntity(entity: EntityContext | EntityResolvable) {
+    if (isEntityResolvable(entity)) {
+      this.entityContexts.push({ entity: entity });
+    } else {
+      this.entityContexts.push(entity);
+    }
   }
 
   skip() {
@@ -497,8 +498,6 @@ export class EntitySequence extends CompositeEntity {
   }
 
   _update() {
-    this.currentEntity.update(this.lastFrameInfo);
-
     const transition = this.currentEntity.transition;
     if (transition) this._advance(transition);
   }
@@ -516,9 +515,16 @@ export class EntitySequence extends CompositeEntity {
     this.currentEntityIndex++;
     this._switchEntity();
 
-    // If we've reached the end of the sequence, stop
+    // If we've reached the end of the sequence...
     if (this.currentEntityIndex >= this.entityContexts.length) {
-      this.transition = transition;
+      if (this.options.loop) {
+        // ... and we loop, go back to start
+        this.currentEntityIndex = 0;
+        this._switchEntity();
+      } else {
+        // otherwise request this transition
+        this.transition = transition;
+      }
     }
   }
 }
