@@ -321,3 +321,43 @@ describe("EntitySequence", () => {
     expect(parent.transition.name).toBe("skip");
   });
 });
+
+describe("StateMachine", () => {
+  test("runs start state", () => {
+    const states = { start: new MockEntity() };
+    const stateMachine = new entity.StateMachine(states);
+
+    for (let i = 0; i < 5; i++) {
+      stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+      stateMachine.update(makeFrameInfo());
+      stateMachine.onSignal(makeFrameInfo(), "signal");
+      stateMachine.teardown(makeFrameInfo());
+    }
+
+    // First child should be called 5 times
+    expect(states.start._setup).toBeCalledTimes(5);
+    expect(states.start._update).toBeCalledTimes(5);
+    expect(states.start._onSignal).toBeCalledTimes(5);
+    expect(states.start._teardown).toBeCalledTimes(5);
+  });
+
+  test("goes from start to end", () => {
+    const states = { start: new MockEntity() };
+    const stateMachine = new entity.StateMachine(states);
+
+    // Run more, then request transition
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.update(makeFrameInfo());
+    states.start.transition = entity.makeTransition("end");
+    stateMachine.update(makeFrameInfo());
+
+    expect(states.start._setup).toBeCalledTimes(1);
+    expect(states.start._update).toBeCalledTimes(2);
+    expect(states.start._teardown).toBeCalledTimes(1);
+
+    expect(stateMachine.transition.name).toBe("end");
+    expect(stateMachine.visitedStates).toContainEqual(
+      entity.makeTransition("start")
+    );
+  });
+});

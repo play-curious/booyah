@@ -546,6 +546,7 @@ export type TransitionTable = { [name: string]: TransitionDescriptor };
   To use have a transition table within a transition table, use the function makeTransitionTable()
 */
 export class StateMachine extends CompositeEntity {
+  public states: StateTable = {};
   public startingState: TransitionDescriptor;
   public startingProgress: {};
   public visitedStates: Transition[];
@@ -556,11 +557,20 @@ export class StateMachine extends CompositeEntity {
   private lastTransition: Transition;
 
   constructor(
-    public states: StateTable,
-    public transitions: TransitionTable,
+    states: { [n: string]: EntityContext | EntityResolvable },
+    public transitions: TransitionTable = {},
     options = {}
   ) {
     super();
+
+    for (const name in states) {
+      const state = states[name];
+      if (isEntityResolvable(state)) {
+        this.states[name] = { entity: state };
+      } else {
+        this.states[name] = state;
+      }
+    }
 
     util.setupOptions(this, options, {
       startingState: makeTransition("start"),
@@ -587,9 +597,12 @@ export class StateMachine extends CompositeEntity {
     const transition = this.state.transition;
     if (transition) {
       let nextStateDescriptor: Transition;
-      // The transition could directly be the name of another state
+      // The transition could directly be the name of another state, or ending state
       if (!(transition.name in this.transitions)) {
-        if (transition.name in this.states) {
+        if (
+          transition.name in this.states ||
+          _.contains(this.endingStates, transition.name)
+        ) {
           nextStateDescriptor = transition;
         } else {
           throw new Error(
