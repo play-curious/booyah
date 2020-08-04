@@ -637,16 +637,17 @@ export class StateMachine extends CompositeEntity {
   }
 
   _changeState(nextState: Transition) {
-    // If reached an ending state, stop here. Teardown can happen later
+    // Tear down current state
+    if (this.state) {
+      this._deactivateChildEntity(this.state);
+      this.state = null;
+    }
+
+    // If reached an ending state, stop here.
     if (_.contains(this.endingStates, nextState.name)) {
       this.transition = nextState;
       this.visitedStates.push(nextState);
       return;
-    }
-
-    if (this.state) {
-      this._deactivateChildEntity(this.state);
-      this.state = null;
     }
 
     if (nextState.name in this.states) {

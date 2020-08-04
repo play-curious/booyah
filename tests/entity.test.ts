@@ -352,7 +352,7 @@ describe("StateMachine", () => {
     stateMachine.update(makeFrameInfo());
 
     expect(states.start._setup).toBeCalledTimes(1);
-    expect(states.start._update).toBeCalledTimes(2);
+    expect(states.start._update).toBeCalledTimes(1);
     expect(states.start._teardown).toBeCalledTimes(1);
 
     expect(stateMachine.transition.name).toBe("end");
