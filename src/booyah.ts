@@ -1038,9 +1038,8 @@ function loadFixedAssets() {
     _.values(rootConfig.directives.graphics),
     rootConfig.directives.graphicalAssets
   );
-  rootConfig.app.loader
-    .add(pixiLoaderResources)
-    .on("progress", pixiLoadProgressHandler);
+  rootConfig.app.loader.add(pixiLoaderResources);
+  rootConfig.app.loader.onProgress.add(pixiLoadProgressHandler);
 
   const fonts = ["Roboto Condensed", ...rootConfig.directives.fontAssets];
   const fontLoaderPromises = _.map(fonts, (name) => {
@@ -1051,8 +1050,10 @@ function loadFixedAssets() {
         updateLoadingProgress();
       })
       .catch((e: any) => {
-        console.error("Cannot load font", name);
-        throw e;
+        console.warn("Cannot load font", name);
+
+        // On Firefox, this will randomly timeout although font was loaded correctly
+        // throw e;
       });
   });
 
