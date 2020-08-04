@@ -314,8 +314,7 @@ export class ParallelEntity extends CompositeEntity {
     super.setup(frameInfo, entityConfig);
 
     for (const entityContext of this.childEntityContexts) {
-      if (entityContext.activated)
-        this._activateChildEntity(entityContext.entity, entityContext.config);
+      if (entityContext.activated) this.activateChildEntity(entityContext);
     }
   }
 
@@ -424,6 +423,12 @@ export class ParallelEntity extends CompositeEntity {
     } else {
       return this.childEntityContexts.indexOf(entity);
     }
+  }
+
+  teardown(frameInfo: FrameInfo): void {
+    this.contextToEntity.clear();
+
+    super.teardown(frameInfo);
   }
 }
 
