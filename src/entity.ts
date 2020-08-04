@@ -949,7 +949,7 @@ export class AnimatedSpriteEntity extends Entity {
     this.entityConfig.container.removeChild(this.animatedSprite);
   }
 
-  _onAnimationComplete() {
+  private _onAnimationComplete() {
     this.requestedTransition = true;
   }
 }
