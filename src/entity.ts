@@ -2,7 +2,6 @@ import * as PIXI from "pixi.js";
 
 import _ from "underscore";
 import * as util from "./util";
-import * as booyah from "./booyah";
 
 export interface IEventListener {
   emitter: PIXI.utils.EventEmitter;
@@ -41,12 +40,20 @@ export function extendConfig(values: {}): (
   return (entityConfig) => _.extend({}, entityConfig, values);
 }
 
+export type GameState =
+  | "preloading"
+  | "loadingFixed"
+  | "ready"
+  | "playing"
+  | "paused"
+  | "done";
+
 export interface FrameInfo {
   playTime: number;
   timeSinceStart: number;
   timeSinceLastFrame: number;
   timeScale: number;
-  gameState: booyah.GameState;
+  gameState: GameState;
 }
 
 export type EntityFactory = (transition: Transition) => Entity;

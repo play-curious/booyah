@@ -45,14 +45,6 @@ export interface Directives {
   canvasId: string;
 }
 
-export type GameState =
-  | "preloading"
-  | "loadingFixed"
-  | "ready"
-  | "playing"
-  | "paused"
-  | "done";
-
 const DEFAULT_DIRECTIVES: any = {
   screenSize: new PIXI.Point(960, 540), // Screen size as PIXI Point
   canvasId: "pixi-canvas", // ID of element to use for PIXI
@@ -155,8 +147,8 @@ let rootEntity: entity.ParallelEntity;
 
 let lastFrameTime = 0;
 
-let previousGameState: GameState = null;
-let gameState: GameState = "preloading";
+let previousGameState: entity.GameState = null;
+let gameState: entity.GameState = "preloading";
 let playTime = 0;
 let timeSinceStart = 0;
 
@@ -1029,7 +1021,7 @@ function update(timeScale: number) {
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
-function changeGameState(newGameState: GameState) {
+function changeGameState(newGameState: entity.GameState) {
   console.log("switching from game state", gameState, "to", newGameState);
   gameState = newGameState;
 
@@ -1268,10 +1260,12 @@ export function go(directives: Partial<Directives> = {}) {
 
   rootConfig.gameStateMachine = new entity.StateMachine(
     rootConfig.directives.states,
-    rootConfig.directives.transitions,
     {
-      startingState: rootConfig.playOptions.options.scene,
-      startingStateParams: rootConfig.playOptions.options.sceneParams,
+      transitions: rootConfig.directives.transitions,
+      startingState: entity.makeTransition(
+        rootConfig.playOptions.options.scene,
+        rootConfig.playOptions.options.sceneParams
+      ),
       startingProgress: rootConfig.playOptions.options.startingProgress,
       endingStates: rootConfig.directives.endingScenes,
     }
