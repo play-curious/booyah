@@ -656,7 +656,15 @@ export class StateMachine extends CompositeEntity {
     this.lastTransition = null;
   }
 
-  private _changeState(nextState: Transition) {
+  changeState(nextState: string | Transition): void {
+    if (typeof nextState === "string") {
+      nextState = makeTransition(nextState);
+    }
+
+    this._changeState(nextState);
+  }
+
+  private _changeState(nextState: Transition): void {
     // Tear down current state
     if (this.state) {
       this._deactivateChildEntity(this.state);
