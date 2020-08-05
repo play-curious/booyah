@@ -2,7 +2,7 @@ import * as util from "./util";
 import * as entity from "./entity";
 import _ from "underscore";
 
-export class Keyboard extends entity.Entity {
+export class Keyboard extends entity.EntityBase {
   public keysDown: { [key: string]: number } = {};
   public keysJustDown: { [key: string]: boolean } = {};
   public keysJustUp: { [key: string]: boolean } = {};
@@ -80,7 +80,7 @@ export function countGamepads(): number {
   return _.filter(navigator.getGamepads(), _.identity).length;
 }
 
-export class Gamepad extends entity.Entity {
+export class Gamepad extends entity.EntityBase {
   public state: any;
   public buttonsDown: { [key: string]: number };
   public buttonsJustDown: { [key: string]: boolean };

@@ -59,10 +59,29 @@ export interface EntityContext {
   config?: EntityConfigResolvable;
 }
 
+export function isEntity(e: any): e is Entity {
+  return "isSetup" in e;
+}
+
 export function isEntityResolvable(
   e: EntityResolvable | EntityContext
 ): e is EntityResolvable {
-  return typeof e === "function" || e instanceof Entity;
+  return typeof e === "function" || isEntity(e);
+}
+
+/**
+ * In Booyah, the game is structured as a tree of entities. This is the interface for all entities.
+ * When creating a new entity, you most likely want to extend EntityBase or CompositeEntity,
+ * which both implement this interface and do the busywork for you.
+ **/
+export interface Entity extends PIXI.utils.EventEmitter {
+  readonly isSetup: boolean;
+  readonly transition: Transition;
+
+  setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void;
+  update(frameInfo: FrameInfo): void;
+  teardown(frameInfo: FrameInfo): void;
+  onSignal(frameInfo: FrameInfo, signal: string, data?: any): void;
 }
 
 /**
@@ -88,7 +107,8 @@ export function isEntityResolvable(
  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
-export abstract class Entity extends PIXI.utils.EventEmitter {
+export abstract class EntityBase extends PIXI.utils.EventEmitter
+  implements Entity {
   public isSetup = false;
   public eventListeners: IEventListener[] = [];
   public transition: Transition;
@@ -176,10 +196,10 @@ export abstract class Entity extends PIXI.utils.EventEmitter {
 }
 
 /** Empty class just to indicate an entity that does nothing and never requests a transition  */
-export class NullEntity extends Entity {}
+export class NullEntity extends EntityBase {}
 
 /** An entity that returns the requested transition immediately  */
-export class TransitoryEntity extends Entity {
+export class TransitoryEntity extends EntityBase {
   constructor(readonly requestTransition = makeTransition()) {
     super();
   }
@@ -190,7 +210,7 @@ export class TransitoryEntity extends Entity {
 }
 
 /** Base class for entities that contain other entities */
-export abstract class CompositeEntity extends Entity {
+export abstract class CompositeEntity extends EntityBase {
   protected childEntities: Entity[] = [];
 
   /**
@@ -796,7 +816,7 @@ export class FunctionalEntity extends ParallelEntity {
   An entity that calls a provided function just once (in setup), and immediately requests a transition.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
-export class FunctionCallEntity extends Entity {
+export class FunctionCallEntity extends EntityBase {
   constructor(public f: (arg: any) => any, public that?: any) {
     super();
     this.that = that || this;
@@ -810,7 +830,7 @@ export class FunctionCallEntity extends Entity {
 }
 
 // Waits until time is up, then requests transition
-export class WaitingEntity extends Entity {
+export class WaitingEntity extends EntityBase {
   private _accumulatedTime: number;
 
   /** @wait is in milliseconds */
@@ -871,7 +891,7 @@ export class ContainerEntity extends ParallelEntity {
   Manages a video asset. Can optionally loop the video.
   Asks for a transition when the video has ended.
 */
-export class VideoEntity extends Entity {
+export class VideoEntity extends EntityBase {
   public container: PIXI.Container;
   public videoElement: any;
   public videoSprite: any;
@@ -936,7 +956,7 @@ export class VideoEntity extends Entity {
 /** 
   Creates a toggle switch that has different textures in the "off" and "on" positions.
 */
-export class ToggleSwitch extends Entity {
+export class ToggleSwitch extends EntityBase {
   public container: PIXI.Container;
   public spriteOn: PIXI.Sprite;
   public spriteOff: PIXI.Sprite;
@@ -1013,7 +1033,7 @@ export class ToggleSwitch extends Entity {
 
   When the animation completes (if the animation is not set to loop, then this will request a transition)
 */
-export class AnimatedSpriteEntity extends Entity {
+export class AnimatedSpriteEntity extends EntityBase {
   constructor(public animatedSprite: PIXI.AnimatedSprite) {
     super();
   }
@@ -1043,7 +1063,7 @@ export class AnimatedSpriteEntity extends Entity {
   }
 }
 
-export class SkipButton extends Entity {
+export class SkipButton extends EntityBase {
   public sprite: PIXI.Sprite;
 
   setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
@@ -1081,7 +1101,7 @@ export class SkipButton extends Entity {
   Similar in spirit to ParallelEntity, but does not hold onto entities that have completed. 
   Instead, entities that have completed are removed after teardown 
 */
-export class DeflatingEntity extends Entity {
+export class DeflatingEntity extends EntityBase {
   public entities: Entity[] = [];
   public autoTransition: boolean;
 
@@ -1172,7 +1192,7 @@ export class DeflatingEntity extends Entity {
 /**
  * Does not request a transition until done() is called with a given transition
  */
-export class Block extends Entity {
+export class Block extends EntityBase {
   done(transition = makeTransition()) {
     this.transition = transition;
   }
@@ -1181,7 +1201,7 @@ export class Block extends Entity {
 /**
  * Executes a function once and requests a transition equal to its value.
  */
-export class Decision extends Entity {
+export class Decision extends EntityBase {
   constructor(private f: () => Transition | undefined) {
     super();
   }
@@ -1195,7 +1215,7 @@ export class Decision extends Entity {
  * Waits for an event to be delivered, and decides to request a transition depending on the event value.
  * @handler is a function of the event arguments, and should return a transition (or false if no transition)
  */
-export class WaitForEvent extends Entity {
+export class WaitForEvent extends EntityBase {
   constructor(
     public emitter: PIXI.utils.EventEmitter,
     public eventName: string,

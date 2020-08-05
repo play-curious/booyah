@@ -42,7 +42,7 @@ export interface TweenOptions {
  * Events:
  *  updatedValue(value)
  */
-export class Tween extends entity.Entity implements TweenOptions {
+export class Tween extends entity.EntityBase implements TweenOptions {
   currentObj: any;
   interpolate: any;
   property: string;

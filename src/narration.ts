@@ -10,7 +10,7 @@ const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 /**
  * @deprecated May not be up to date with other changes in Booyah
  */
-export class Narrator extends entity.Entity {
+export class Narrator extends entity.EntityBase {
   public container: PIXI.Container;
   public narratorSubtitle: PIXI.Text;
   public characterSubtitle: PIXI.Text;
@@ -239,7 +239,7 @@ export class Narrator extends entity.Entity {
   }
 }
 
-export class SpeakerDisplay extends entity.Entity {
+export class SpeakerDisplay extends entity.EntityBase {
   public container: PIXI.Container;
   public namesToSprites: { [name: string]: PIXI.Sprite };
   public currentSpeakerName: string;
@@ -289,7 +289,7 @@ export class SpeakerDisplay extends entity.Entity {
   }
 }
 
-export class SingleNarration extends entity.Entity {
+export class SingleNarration extends entity.EntityBase {
   constructor(public narrationKey: string, public priority = 0) {
     super();
   }
@@ -310,7 +310,7 @@ export class SingleNarration extends entity.Entity {
   }
 }
 
-export class RandomNarration extends entity.Entity {
+export class RandomNarration extends entity.EntityBase {
   public narrationPlaylist: any[] = [];
   public currentKey: string = null;
 

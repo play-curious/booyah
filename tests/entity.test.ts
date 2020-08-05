@@ -20,7 +20,7 @@ function makeFrameInfo(): entity.FrameInfo {
 }
 
 // For help mocking, the methods here are public and replaced with mocks
-class MockEntity extends entity.Entity {
+class MockEntity extends entity.EntityBase {
   constructor() {
     super();
     this._setup = jest.fn();

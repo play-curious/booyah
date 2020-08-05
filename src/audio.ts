@@ -13,7 +13,7 @@ export interface JukeboxOptions {
   A music player, that only plays one track at a time.
   By default the volume is lowered to not interere with sound effects.
 */
-export class Jukebox extends entity.Entity {
+export class Jukebox extends entity.EntityBase {
   public volume: number;
   public musicName: string;
   public musicPlaying: any;
@@ -103,7 +103,7 @@ export function makeInstallJukebox(options: JukeboxOptions) {
   Am entity that requests the music be changed upon setup.
   Optionally can stop the music on teardown.
 */
-export class MusicEntity extends entity.Entity {
+export class MusicEntity extends entity.EntityBase {
   constructor(public trackName: string, public stopOnTeardown = false) {
     super();
   }
@@ -124,7 +124,7 @@ export class MusicEntity extends entity.Entity {
 /** 
   Play sounds effects.
 */
-export class FxMachine extends entity.Entity {
+export class FxMachine extends entity.EntityBase {
   public volume: number;
 
   constructor(options: any = {}) {
