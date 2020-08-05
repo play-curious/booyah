@@ -94,9 +94,9 @@ export class BodyEntity extends entity.ParallelEntity {
   setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     super.setup(frameInfo, entityConfig);
 
-    this.entityConfig.world.addBody(this.body);
+    this._entityConfig.world.addBody(this.body);
 
-    if (this.display) this.entityConfig.container.addChild(this.display);
+    if (this.display) this._entityConfig.container.addChild(this.display);
   }
 
   update(frameInfo: entity.FrameInfo) {
@@ -112,9 +112,9 @@ export class BodyEntity extends entity.ParallelEntity {
   }
 
   teardown(frameInfo: entity.FrameInfo) {
-    this.entityConfig.world.removeBody(this.body);
+    this._entityConfig.world.removeBody(this.body);
 
-    if (this.display) this.entityConfig.container.removeChild(this.display);
+    if (this.display) this._entityConfig.container.removeChild(this.display);
 
     super.teardown(frameInfo);
   }

@@ -13,12 +13,12 @@ export class Keyboard extends entity.EntityBase {
   private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
   _setup() {
-    this.entityConfig.app.view.addEventListener(
+    this._entityConfig.app.view.addEventListener(
       "keydown",
       this._onKeyDownWrapper
     );
-    this.entityConfig.app.view.addEventListener("keyup", this._onKeyUpWrapper);
-    this.entityConfig.app.view.addEventListener(
+    this._entityConfig.app.view.addEventListener("keyup", this._onKeyUpWrapper);
+    this._entityConfig.app.view.addEventListener(
       "focusout",
       this._onFocusOutWrapper
     );
@@ -40,15 +40,15 @@ export class Keyboard extends entity.EntityBase {
   }
 
   teardown() {
-    this.entityConfig.app.view.removeEventListener(
+    this._entityConfig.app.view.removeEventListener(
       "keydown",
       this._onKeyDownWrapper
     );
-    this.entityConfig.app.view.removeEventListener(
+    this._entityConfig.app.view.removeEventListener(
       "keyup",
       this._onKeyUpWrapper
     );
-    this.entityConfig.app.view.removeEventListener(
+    this._entityConfig.app.view.removeEventListener(
       "focusout",
       this._onFocusOutWrapper
     );
@@ -58,7 +58,7 @@ export class Keyboard extends entity.EntityBase {
     event.preventDefault();
 
     // console.log("key down", event.code);
-    this.keysDown[event.code] = this.lastFrameInfo.timeSinceStart;
+    this.keysDown[event.code] = this._lastFrameInfo.timeSinceStart;
   }
 
   _onKeyUp(event: KeyboardEvent) {
@@ -131,7 +131,7 @@ export class Gamepad extends entity.EntityBase {
     for (let i = 0; i < this.state.buttons.length; i++) {
       if (this.state.buttons[i].pressed) {
         if (!this.buttonsDown[i])
-          this.buttonsDown[i] = this.lastFrameInfo.timeSinceStart;
+          this.buttonsDown[i] = this._lastFrameInfo.timeSinceStart;
       } else {
         delete this.buttonsDown[i];
       }

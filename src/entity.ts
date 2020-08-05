@@ -77,6 +77,7 @@ export function isEntityResolvable(
 export interface Entity extends PIXI.utils.EventEmitter {
   readonly isSetup: boolean;
   readonly transition: Transition;
+  readonly children: Entity[];
 
   setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void;
   update(frameInfo: FrameInfo): void;
@@ -96,7 +97,7 @@ export interface Entity extends PIXI.utils.EventEmitter {
  The typical entityConfig contains { app, preloader, narrator, jukebox, container }
  3. update() is called one or more times, with options.
  It could also never be called, in case the entity is torn down directly.
- If the entity wishes to be terminated, it should set this.transition to a truthy value.
+ If the entity wishes to be terminated, it should set this._transition to a truthy value.
  Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
  For more complicated transitions, it can return an object like { name: "", params: {} }
  4. teardown() is called just once.
@@ -109,48 +110,48 @@ export interface Entity extends PIXI.utils.EventEmitter {
  */
 export abstract class EntityBase extends PIXI.utils.EventEmitter
   implements Entity {
-  public isSetup = false;
-  public eventListeners: IEventListener[] = [];
-  public transition: Transition;
-  public entityConfig: EntityConfig;
-  public lastFrameInfo: FrameInfo;
+  protected _eventListeners: IEventListener[] = [];
+  protected _transition: Transition;
+  protected _entityConfig: EntityConfig;
+  protected _lastFrameInfo: FrameInfo;
+  protected _isSetup = false;
 
   public setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void {
-    if (this.isSetup) throw new Error("setup() called twice");
+    if (this._isSetup) throw new Error("setup() called twice");
 
-    this.entityConfig = entityConfig;
-    this.lastFrameInfo = frameInfo;
-    this.isSetup = true;
-    this.transition = null;
+    this._entityConfig = entityConfig;
+    this._lastFrameInfo = frameInfo;
+    this._isSetup = true;
+    this._transition = null;
 
     this._setup(frameInfo, entityConfig);
   }
 
   public update(frameInfo: FrameInfo): void {
-    if (!this.isSetup) throw new Error("update() called before setup()");
-    if (this.transition)
+    if (!this._isSetup) throw new Error("update() called before setup()");
+    if (this._transition)
       throw new Error("update() called despite requesting transition");
 
-    this.lastFrameInfo = frameInfo;
+    this._lastFrameInfo = frameInfo;
     this._update(frameInfo);
   }
 
   public teardown(frameInfo: FrameInfo): void {
-    if (!this.isSetup) throw new Error("teardown() called before setup()");
+    if (!this._isSetup) throw new Error("teardown() called before setup()");
 
-    this.lastFrameInfo = frameInfo;
+    this._lastFrameInfo = frameInfo;
     this._teardown(frameInfo);
 
     this._off(); // Remove all event listeners
 
-    this.entityConfig = null;
-    this.isSetup = false;
+    this._entityConfig = null;
+    this._isSetup = false;
   }
 
   public onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
-    if (!this.isSetup) throw new Error("onSignal() called before setup()");
+    if (!this._isSetup) throw new Error("onSignal() called before setup()");
 
-    this.lastFrameInfo = frameInfo;
+    this._lastFrameInfo = frameInfo;
     this._onSignal(frameInfo, signal, data);
   }
 
@@ -159,7 +160,7 @@ export abstract class EntityBase extends PIXI.utils.EventEmitter
     event: string,
     cb: (...args: any) => void
   ): void {
-    this.eventListeners.push({ emitter, event, cb });
+    this._eventListeners.push({ emitter, event, cb });
     emitter.on(event, cb, this);
   }
 
@@ -176,17 +177,23 @@ export abstract class EntityBase extends PIXI.utils.EventEmitter
     };
 
     const [listenersToRemove, listenersToKeep] = _.partition(
-      this.eventListeners,
+      this._eventListeners,
       props as any
     );
     for (const listener of listenersToRemove)
       listener.emitter.off(listener.event, listener.cb, this);
 
-    this.eventListeners = listenersToKeep;
+    this._eventListeners = listenersToKeep;
   }
 
   public get children(): Entity[] {
     return [];
+  }
+  public get transition(): Transition {
+    return this._transition;
+  }
+  public get isSetup(): boolean {
+    return this._isSetup;
   }
 
   protected _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {}
@@ -205,7 +212,7 @@ export class TransitoryEntity extends EntityBase {
   }
 
   _setup() {
-    this.transition = this.requestTransition;
+    this._transition = this.requestTransition;
   }
 }
 
@@ -257,8 +264,8 @@ export abstract class CompositeEntity extends EntityBase {
 
     this.childEntities.push(entity);
 
-    const childConfig = processEntityConfig(this.entityConfig, config);
-    entity.setup(this.lastFrameInfo, childConfig);
+    const childConfig = processEntityConfig(this._entityConfig, config);
+    entity.setup(this._lastFrameInfo, childConfig);
     return entity;
   }
 
@@ -269,7 +276,7 @@ export abstract class CompositeEntity extends EntityBase {
     if (index === -1) throw new Error("Cannot find entity to remove");
 
     if (entity.isSetup) {
-      entity.teardown(this.lastFrameInfo);
+      entity.teardown(this._lastFrameInfo);
     }
 
     this.childEntities.splice(index, 1);
@@ -285,10 +292,10 @@ export abstract class CompositeEntity extends EntityBase {
     for (let i = 0; i < this.childEntities.length; ) {
       const childEntity = this.childEntities[i];
 
-      childEntity.update(this.lastFrameInfo);
+      childEntity.update(this._lastFrameInfo);
 
       if (childEntity.transition) {
-        childEntity.teardown(this.lastFrameInfo);
+        childEntity.teardown(this._lastFrameInfo);
         this.childEntities.splice(i, 1);
 
         needDeactivation = true;
@@ -302,7 +309,7 @@ export abstract class CompositeEntity extends EntityBase {
 
   protected _deactivateAllChildEntities() {
     for (const childEntity of this.childEntities) {
-      childEntity.teardown(this.lastFrameInfo);
+      childEntity.teardown(this._lastFrameInfo);
     }
 
     this.childEntities = [];
@@ -337,7 +344,7 @@ export class ParallelEntity extends CompositeEntity {
   update(frameInfo: FrameInfo) {
     super.update(frameInfo);
 
-    if (!_.some(this.childEntities)) this.transition = makeTransition();
+    if (!_.some(this.childEntities)) this._transition = makeTransition();
   }
 
   addChildEntity(entity: ParallelEntityContext | EntityResolvable) {
@@ -510,7 +517,7 @@ export class EntitySequence extends CompositeEntity {
 
     if (this.entityContexts.length === 0) {
       // Empty sequence, stop immediately
-      this.transition = makeTransition();
+      this._transition = makeTransition();
     } else {
       // Start the sequence
       this._switchEntity();
@@ -543,7 +550,7 @@ export class EntitySequence extends CompositeEntity {
         this._switchEntity();
       } else {
         // otherwise request this transition
-        this.transition = transition;
+        this._transition = transition;
       }
     }
   }
@@ -693,7 +700,7 @@ export class StateMachine extends CompositeEntity {
 
     // If reached an ending state, stop here.
     if (_.contains(this.options.endingStates, nextState.name)) {
-      this.transition = nextState;
+      this._transition = nextState;
       this.visitedStates.push(nextState);
       return;
     }
@@ -788,14 +795,14 @@ export class FunctionalEntity extends ParallelEntity {
 
   _setup() {
     if (this.functions.setup)
-      this.functions.setup(this.lastFrameInfo, this.entityConfig, this);
+      this.functions.setup(this._lastFrameInfo, this._entityConfig, this);
   }
 
   _update() {
-    if (this.functions.update) this.functions.update(this.lastFrameInfo, this);
+    if (this.functions.update) this.functions.update(this._lastFrameInfo, this);
     if (this.functions.requestTransition) {
-      this.transition = this.functions.requestTransition(
-        this.lastFrameInfo,
+      this._transition = this.functions.requestTransition(
+        this._lastFrameInfo,
         this
       );
     }
@@ -803,7 +810,7 @@ export class FunctionalEntity extends ParallelEntity {
 
   _teardown(frameInfo: FrameInfo) {
     if (this.functions.teardown)
-      this.functions.teardown(this.lastFrameInfo, this);
+      this.functions.teardown(this._lastFrameInfo, this);
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
@@ -825,7 +832,7 @@ export class FunctionCallEntity extends EntityBase {
   _setup() {
     this.f.call(this.that);
 
-    this.transition = makeTransition();
+    this._transition = makeTransition();
   }
 }
 
@@ -846,7 +853,7 @@ export class WaitingEntity extends EntityBase {
     this._accumulatedTime += frameInfo.timeSinceLastFrame;
 
     if (this._accumulatedTime >= this.wait) {
-      this.transition = makeTransition();
+      this._transition = makeTransition();
     }
   }
 }
@@ -909,9 +916,9 @@ export class VideoEntity extends EntityBase {
     // This container is used so that the video is inserted in the right place,
     // even if the sprite isn't added until later.
     this.container = new PIXI.Container();
-    this.entityConfig.container.addChild(this.container);
+    this._entityConfig.container.addChild(this.container);
 
-    this.videoElement = this.entityConfig.videoAssets[this.videoName];
+    this.videoElement = this._entityConfig.videoAssets[this.videoName];
     this.videoElement.loop = this.loop;
     this.videoElement.currentTime = 0;
 
@@ -925,7 +932,7 @@ export class VideoEntity extends EntityBase {
   }
 
   _update(frameInfo: FrameInfo) {
-    if (this.videoElement.ended) this.transition = makeTransition();
+    if (this.videoElement.ended) this._transition = makeTransition();
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
@@ -939,7 +946,7 @@ export class VideoEntity extends EntityBase {
   teardown(frameInfo: FrameInfo) {
     this.videoElement.pause();
     this.videoSprite = null;
-    this.entityConfig.container.removeChild(this.container);
+    this._entityConfig.container.removeChild(this.container);
     this.container = null;
 
     super.teardown(frameInfo);
@@ -994,11 +1001,11 @@ export class ToggleSwitch extends EntityBase {
 
     this._updateVisibility();
 
-    this.entityConfig.container.addChild(this.container);
+    this._entityConfig.container.addChild(this.container);
   }
 
   teardown(frameInfo: FrameInfo) {
-    this.entityConfig.container.removeChild(this.container);
+    this._entityConfig.container.removeChild(this.container);
 
     super.teardown(frameInfo);
   }
@@ -1043,7 +1050,7 @@ export class AnimatedSpriteEntity extends EntityBase {
       console.warn("Warning: overwriting this.animatedSprite.onComplete");
     this.animatedSprite.onComplete = this._onAnimationComplete.bind(this);
 
-    this.entityConfig.container.addChild(this.animatedSprite);
+    this._entityConfig.container.addChild(this.animatedSprite);
     this.animatedSprite.gotoAndPlay(0);
   }
 
@@ -1055,11 +1062,11 @@ export class AnimatedSpriteEntity extends EntityBase {
   _teardown(frameInfo: FrameInfo) {
     this.animatedSprite.stop();
     this.animatedSprite.onComplete = null;
-    this.entityConfig.container.removeChild(this.animatedSprite);
+    this._entityConfig.container.removeChild(this.animatedSprite);
   }
 
   private _onAnimationComplete() {
-    this.transition = makeTransition();
+    this._transition = makeTransition();
   }
 }
 
@@ -1070,29 +1077,29 @@ export class SkipButton extends EntityBase {
     super.setup(frameInfo, entityConfig);
 
     this.sprite = new PIXI.Sprite(
-      this.entityConfig.app.loader.resources[
-        this.entityConfig.directives.graphics.skip as number
+      this._entityConfig.app.loader.resources[
+        this._entityConfig.directives.graphics.skip as number
       ].texture
     );
     this.sprite.anchor.set(0.5);
     this.sprite.position.set(
-      this.entityConfig.app.screen.width - 50,
-      this.entityConfig.app.screen.height - 50
+      this._entityConfig.app.screen.width - 50,
+      this._entityConfig.app.screen.height - 50
     );
     this.sprite.interactive = true;
     this._on(this.sprite, "pointertap", this._onSkip);
 
-    this.entityConfig.container.addChild(this.sprite);
+    this._entityConfig.container.addChild(this.sprite);
   }
 
   teardown(frameInfo: FrameInfo) {
-    this.entityConfig.container.removeChild(this.sprite);
+    this._entityConfig.container.removeChild(this.sprite);
 
     super.teardown(frameInfo);
   }
 
   _onSkip() {
-    this.transition = makeTransition("skip");
+    this._transition = makeTransition("skip");
     this.emit("skip");
   }
 }
@@ -1148,7 +1155,7 @@ export class DeflatingEntity extends EntityBase {
     }
 
     if (this.autoTransition && this.entities.length == 0) {
-      this.transition = makeTransition();
+      this._transition = makeTransition();
     }
   }
 
@@ -1171,7 +1178,7 @@ export class DeflatingEntity extends EntityBase {
   addEntity(entity: Entity) {
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
-      entity.setup(this.lastFrameInfo, this.entityConfig);
+      entity.setup(this._lastFrameInfo, this._entityConfig);
     }
 
     this.entities.push(entity);
@@ -1182,7 +1189,7 @@ export class DeflatingEntity extends EntityBase {
     if (index === -1) throw new Error("Cannot find entity to remove");
 
     if (entity.isSetup) {
-      entity.teardown(this.lastFrameInfo);
+      entity.teardown(this._lastFrameInfo);
     }
 
     this.entities.splice(index, 1);
@@ -1194,7 +1201,7 @@ export class DeflatingEntity extends EntityBase {
  */
 export class Block extends EntityBase {
   done(transition = makeTransition()) {
-    this.transition = transition;
+    this._transition = transition;
   }
 }
 
@@ -1207,7 +1214,7 @@ export class Decision extends EntityBase {
   }
 
   _setup() {
-    this.transition = this.f();
+    this._transition = this.f();
   }
 }
 
@@ -1229,7 +1236,7 @@ export class WaitForEvent extends EntityBase {
   }
 
   _handleEvent(...args: any) {
-    this.transition = this.handler(...args);
+    this._transition = this.handler(...args);
   }
 }
 
@@ -1270,7 +1277,7 @@ export class Alternative extends CompositeEntity {
   private _checkForTransition(): void {
     for (let i = 0; i < this.entityContexts.length; i++) {
       if (this.childEntities[i].transition) {
-        this.transition = this.entityContexts[i].transition;
+        this._transition = this.entityContexts[i].transition;
         break;
       }
     }

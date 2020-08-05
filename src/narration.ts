@@ -44,12 +44,12 @@ export class Narrator extends entity.EntityBase {
       strokeThickness: 4,
       align: "center",
       wordWrap: true,
-      wordWrapWidth: this.entityConfig.app.screen.width - 150,
+      wordWrapWidth: this._entityConfig.app.screen.width - 150,
     });
     this.narratorSubtitle.anchor.set(0.5, 0.5);
     this.narratorSubtitle.position.set(
-      this.entityConfig.app.screen.width / 2,
-      this.entityConfig.app.screen.height - 75
+      this._entityConfig.app.screen.width / 2,
+      this._entityConfig.app.screen.height - 75
     );
     this.container.addChild(this.narratorSubtitle);
 
@@ -60,16 +60,16 @@ export class Narrator extends entity.EntityBase {
       strokeThickness: 4,
       align: "left",
       wordWrap: true,
-      wordWrapWidth: this.entityConfig.app.screen.width - 350,
+      wordWrapWidth: this._entityConfig.app.screen.width - 350,
     });
     this.characterSubtitle.anchor.set(0, 0.5);
     this.characterSubtitle.position.set(
       300,
-      this.entityConfig.app.screen.height - 75
+      this._entityConfig.app.screen.height - 75
     );
     this.container.addChild(this.characterSubtitle);
 
-    this.entityConfig.container.addChild(this.container);
+    this._entityConfig.container.addChild(this.container);
 
     this.key = null;
     this.isPlaying = false;
@@ -79,9 +79,9 @@ export class Narrator extends entity.EntityBase {
     this.currentHowl = null;
     this.currentSoundId = null;
 
-    this._on(this.entityConfig.playOptions, "fxOn", () => this._updateMuted);
+    this._on(this._entityConfig.playOptions, "fxOn", () => this._updateMuted);
     this._on(
-      this.entityConfig.playOptions,
+      this._entityConfig.playOptions,
       "showSubtitles",
       () => this._updateShowSubtitles
     );
@@ -125,7 +125,7 @@ export class Narrator extends entity.EntityBase {
   }
 
   _teardown() {
-    this.entityConfig.container.removeChild(this.container);
+    this._entityConfig.container.removeChild(this.container);
   }
 
   // @priority < 0 means to skip the narration if other narration is in progress
@@ -230,12 +230,12 @@ export class Narrator extends entity.EntityBase {
   }
 
   _updateMuted() {
-    const muted = !this.entityConfig.playOptions.options.fxOn;
+    const muted = !this._entityConfig.playOptions.options.fxOn;
     for (let howl of this.filesToHowl.values()) howl.mute(muted);
   }
 
   _updateShowSubtitles() {
-    this.container.visible = this.entityConfig.playOptions.options.showSubtitles;
+    this.container.visible = this._entityConfig.playOptions.options.showSubtitles;
   }
 }
 
@@ -258,7 +258,7 @@ export class SpeakerDisplay extends entity.EntityBase {
     // Make a hidden sprite for each texture, add it to the container
     this.namesToSprites = _.mapObject(this.namesToImages, (image) => {
       const sprite = new PIXI.Sprite(
-        this.entityConfig.app.loader.resources[image].texture
+        this._entityConfig.app.loader.resources[image].texture
       );
       sprite.anchor.set(0, 1); // lower-left
       sprite.visible = false;
@@ -269,16 +269,16 @@ export class SpeakerDisplay extends entity.EntityBase {
     this.currentSpeakerName = null;
 
     this._on(
-      this.entityConfig.narrator,
+      this._entityConfig.narrator,
       "changeSpeaker",
       this._onChangeSpeaker
     );
 
-    this.entityConfig.container.addChild(this.container);
+    this._entityConfig.container.addChild(this.container);
   }
 
   _teardown() {
-    this.entityConfig.container.removeChild(this.container);
+    this._entityConfig.container.removeChild(this.container);
   }
 
   _onChangeSpeaker(speaker?: any) {
@@ -295,17 +295,17 @@ export class SingleNarration extends entity.EntityBase {
   }
 
   _setup() {
-    this.entityConfig.narrator.changeKey(this.narrationKey, this.priority);
-    this._on(this.entityConfig.narrator, "done", this._onNarrationDone);
+    this._entityConfig.narrator.changeKey(this.narrationKey, this.priority);
+    this._on(this._entityConfig.narrator, "done", this._onNarrationDone);
   }
 
   _onNarrationDone(key?: string) {
-    if (key === this.narrationKey) this.transition = entity.makeTransition();
+    if (key === this.narrationKey) this._transition = entity.makeTransition();
   }
 
   _teardown() {
     /* TODO: make <Narrator>.stopNarration method
-      this.entityConfig.narrator.stopNarration(this.narrationKey);
+      this._entityConfig.narrator.stopNarration(this.narrationKey);
     */
   }
 }
@@ -326,15 +326,15 @@ export class RandomNarration extends entity.EntityBase {
 
     // Pick the next key in the list
     this.currentKey = this.narrationPlaylist.shift();
-    this.entityConfig.narrator.changeKey(this.currentKey, this.priority);
+    this._entityConfig.narrator.changeKey(this.currentKey, this.priority);
   }
 
   _update(frameInfo: entity.FrameInfo) {
     if (
       frameInfo.timeSinceStart >=
-      this.entityConfig.narrator.narrationDuration(this.currentKey)
+      this._entityConfig.narrator.narrationDuration(this.currentKey)
     ) {
-      this.transition = entity.makeTransition();
+      this._transition = entity.makeTransition();
     }
   }
 
@@ -386,8 +386,8 @@ export class VideoScene extends entity.CompositeEntity {
     }
 
     if (this.options.music) {
-      this.previousMusic = this.entityConfig.jukebox.musicName;
-      this.entityConfig.jukebox.changeMusic(this.options.music);
+      this.previousMusic = this._entityConfig.jukebox.musicName;
+      this._entityConfig.jukebox.changeMusic(this.options.music);
     }
 
     this.skipButton = new entity.SkipButton();
@@ -399,13 +399,13 @@ export class VideoScene extends entity.CompositeEntity {
       (this.options.video && this.video.transition) ||
       this.skipButton.transition
     ) {
-      this.transition = entity.makeTransition();
+      this._transition = entity.makeTransition();
     }
   }
 
   _teardown() {
     if (this.options.music)
-      this.entityConfig.jukebox.changeMusic(this.previousMusic);
+      this._entityConfig.jukebox.changeMusic(this.previousMusic);
   }
 }
 

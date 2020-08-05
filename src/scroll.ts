@@ -82,7 +82,7 @@ export class Scrollbox extends entity.ParallelEntity {
     this._on(this.container, "pointerup", this._onUp as any);
     this._on(this.container, "pointercancel", this._onUp as any);
     this._on(this.container, "pointerupoutside", this._onUp as any);
-    this.entityConfig.container.addChild(this.container);
+    this._entityConfig.container.addChild(this.container);
 
     if (this.options.dragScroll) {
       const dragBackground = new PIXI.Graphics();
@@ -114,17 +114,20 @@ export class Scrollbox extends entity.ParallelEntity {
 
     if (this.options.wheelScroll) {
       this.onWheelHandler = this._onWheel.bind(this);
-      this.entityConfig.app.view.addEventListener("wheel", this.onWheelHandler);
+      this._entityConfig.app.view.addEventListener(
+        "wheel",
+        this.onWheelHandler
+      );
     }
 
     this.refresh();
   }
 
   _teardown() {
-    this.entityConfig.container.removeChild(this.container);
+    this._entityConfig.container.removeChild(this.container);
 
     if (this.options.wheelScroll) {
-      this.entityConfig.app.view.removeEventListener(
+      this._entityConfig.app.view.removeEventListener(
         "wheel",
         this.onWheelHandler
       );
@@ -437,13 +440,13 @@ export class Scrollbox extends entity.ParallelEntity {
 
     // Get coordinates of point and test if we touch this container
     const globalPoint = new PIXI.Point();
-    this.entityConfig.app.renderer.plugins.interaction.mapPositionToPoint(
+    this._entityConfig.app.renderer.plugins.interaction.mapPositionToPoint(
       globalPoint,
       e.clientX,
       e.clientY
     );
     if (
-      !this.entityConfig.app.renderer.plugins.interaction.hitTest(
+      !this._entityConfig.app.renderer.plugins.interaction.hitTest(
         globalPoint,
         this.container
       )

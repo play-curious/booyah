@@ -31,15 +31,15 @@ export class Jukebox extends entity.EntityBase {
     this.musicName = null;
     this.musicPlaying = null;
 
-    _.each(this.entityConfig.musicAudio, (howl: Howl) => {
+    _.each(this._entityConfig.musicAudio, (howl: Howl) => {
       howl.volume(this.volume);
       howl.loop(true);
     });
 
-    this.muted = this.entityConfig.muted;
+    this.muted = this._entityConfig.muted;
     this._updateMuted();
 
-    this._on(this.entityConfig.playOptions, "musicOn", this._updateMuted);
+    this._on(this._entityConfig.playOptions, "musicOn", this._updateMuted);
   }
 
   _teardown() {
@@ -65,7 +65,7 @@ export class Jukebox extends entity.EntityBase {
 
     if (name) {
       this.musicName = name;
-      this.musicPlaying = this.entityConfig.musicAudio[name];
+      this.musicPlaying = this._entityConfig.musicAudio[name];
       this.musicPlaying.play();
     }
   }
@@ -76,8 +76,8 @@ export class Jukebox extends entity.EntityBase {
   }
 
   _updateMuted() {
-    const muted = !this.entityConfig.playOptions.options.musicOn;
-    _.each(this.entityConfig.musicAudio, (howl: Howl) => howl.mute(muted));
+    const muted = !this._entityConfig.playOptions.options.musicOn;
+    _.each(this._entityConfig.musicAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 
@@ -109,14 +109,14 @@ export class MusicEntity extends entity.EntityBase {
   }
 
   _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
-    this.entityConfig.jukebox.changeMusic(this.trackName);
+    this._entityConfig.jukebox.changeMusic(this.trackName);
 
-    this.transition = entity.makeTransition();
+    this._transition = entity.makeTransition();
   }
 
   _teardown() {
     if (this.stopOnTeardown) {
-      this.entityConfig.jukebox.changeMusic();
+      this._entityConfig.jukebox.changeMusic();
     }
   }
 }
@@ -136,14 +136,16 @@ export class FxMachine extends entity.EntityBase {
   }
 
   _setup() {
-    _.each(this.entityConfig.fxAudio, (howl: Howl) => howl.volume(this.volume));
+    _.each(this._entityConfig.fxAudio, (howl: Howl) =>
+      howl.volume(this.volume)
+    );
     this._updateMuted();
 
-    this._on(this.entityConfig.playOptions, "fxOn", this._updateMuted);
+    this._on(this._entityConfig.playOptions, "fxOn", this._updateMuted);
   }
 
   play(name: string) {
-    this.entityConfig.fxAudio[name].play();
+    this._entityConfig.fxAudio[name].play();
   }
 
   // TODO: stop playing effects when paused or on teardown
@@ -156,8 +158,8 @@ export class FxMachine extends entity.EntityBase {
   // }
 
   _updateMuted() {
-    const muted = !this.entityConfig.playOptions.options.fxOn;
-    _.each(this.entityConfig.fxAudio, (howl: Howl) => howl.mute(muted));
+    const muted = !this._entityConfig.playOptions.options.fxOn;
+    _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 

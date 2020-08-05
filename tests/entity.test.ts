@@ -29,6 +29,16 @@ class MockEntity extends entity.EntityBase {
     this._onSignal = jest.fn();
   }
 
+  // Allow the tests to set the transition directly
+  // Need to rewrite the getter as well to make TypeScript happy
+  public get transition(): entity.Transition {
+    return this._transition;
+  }
+  public set transition(transition: entity.Transition) {
+    this._transition = transition;
+  }
+
+  // Make the methods public so that they can be tested with the mock
   public _setup() {}
   public _update() {}
   public _teardown() {}
