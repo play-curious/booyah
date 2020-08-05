@@ -407,12 +407,52 @@ describe("StateMachine", () => {
     expect(states.b._teardown).toBeCalledTimes(1);
   });
 
-  // TODO: test implicit state table
+  test("manual transitions", () => {
+    const states = { a: new MockEntity(), b: new MockEntity() };
+    const stateMachine = new entity.StateMachine(states, {
+      startingState: entity.makeTransition("a"),
+    });
 
-  // TODO: test explicit state table
-  // TODO: test transition functions
+    // Run once, then request transition
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.update(makeFrameInfo());
 
-  // TODO: test changing state from outside
+    stateMachine.changeState("b");
 
-  // TODO: test params
+    stateMachine.update(makeFrameInfo());
+
+    expect(states.a._setup).toBeCalledTimes(1);
+    expect(states.a._update).toBeCalledTimes(1);
+    expect(states.a._teardown).toBeCalledTimes(1);
+
+    expect(states.b._setup).toBeCalledTimes(1);
+  });
+
+  test("transitions with functions", () => {
+    const states = { a: new MockEntity(), b: new MockEntity() };
+    const stateMachine = new entity.StateMachine(states, {
+      startingState: entity.makeTransition("a"),
+      transitions: {
+        a: jest.fn(() => entity.makeTransition("b")),
+      },
+    });
+
+    // Run once, then request transition
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.update(makeFrameInfo());
+
+    const transition = entity.makeTransition("done", { x: "y" });
+    states.a.transition = transition;
+
+    stateMachine.update(makeFrameInfo());
+
+    expect(states.a._setup).toBeCalledTimes(1);
+    expect(states.a._update).toBeCalledTimes(1);
+    expect(states.a._teardown).toBeCalledTimes(1);
+
+    expect(states.b._setup).toBeCalledTimes(1);
+
+    expect(stateMachine.options.transitions.a).toBeCalledTimes(1);
+    expect(stateMachine.options.transitions.a).toBeCalledWith(transition);
+  });
 });
