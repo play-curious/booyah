@@ -345,7 +345,7 @@ describe("StateMachine", () => {
     const states = { start: new MockEntity() };
     const stateMachine = new entity.StateMachine(states);
 
-    // Run more, then request transition
+    // Run once, then request transition
     stateMachine.setup(makeFrameInfo(), makeEntityConfig());
     stateMachine.update(makeFrameInfo());
     states.start.transition = entity.makeTransition("end");
@@ -360,4 +360,59 @@ describe("StateMachine", () => {
       entity.makeTransition("start")
     );
   });
+
+  test("transitions without state table", () => {
+    const states = { a: new MockEntity(), b: new MockEntity() };
+    const stateMachine = new entity.StateMachine(states, {
+      startingState: entity.makeTransition("a"),
+    });
+
+    // Run once, then request transition
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.update(makeFrameInfo());
+    states.a.transition = entity.makeTransition("b");
+    stateMachine.update(makeFrameInfo());
+
+    expect(states.a._setup).toBeCalledTimes(1);
+    expect(states.a._update).toBeCalledTimes(1);
+    expect(states.a._teardown).toBeCalledTimes(1);
+
+    expect(states.b._setup).toBeCalledTimes(1);
+  });
+
+  test("transitions with state table", () => {
+    const states = { a: new MockEntity(), b: new MockEntity() };
+    const stateMachine = new entity.StateMachine(states, {
+      startingState: entity.makeTransition("a"),
+      transitions: {
+        a: "b",
+        b: "a",
+      },
+    });
+
+    // Run once, then request transition
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.update(makeFrameInfo());
+    states.a.transition = entity.makeTransition();
+    stateMachine.update(makeFrameInfo());
+
+    // Transition back again
+    states.b.transition = entity.makeTransition();
+    stateMachine.update(makeFrameInfo());
+
+    expect(states.a._setup).toBeCalledTimes(2);
+    expect(states.a._teardown).toBeCalledTimes(1);
+
+    expect(states.b._setup).toBeCalledTimes(1);
+    expect(states.b._teardown).toBeCalledTimes(1);
+  });
+
+  // TODO: test implicit state table
+
+  // TODO: test explicit state table
+  // TODO: test transition functions
+
+  // TODO: test changing state from outside
+
+  // TODO: test params
 });

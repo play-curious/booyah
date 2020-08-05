@@ -535,6 +535,13 @@ export type TransitionFunction = (transition: Transition) => Transition;
 export type TransitionDescriptor = Transition | TransitionFunction;
 export type TransitionTable = { [name: string]: TransitionDescriptor };
 
+export class StateMachineOptions {
+  startingState: Transition | string = "start";
+  transitions: { [n: string]: TransitionDescriptor | string };
+  endingStates: string[] = ["end"];
+  startingProgress: {} = {};
+}
+
 /** 
   Represents a state machine, where each state has a name, and is represented by an entity.
   Only one state is active at a time. 
@@ -546,23 +553,24 @@ export type TransitionTable = { [name: string]: TransitionDescriptor };
   To use have a transition table within a transition table, use the function makeTransitionTable()
 */
 export class StateMachine extends CompositeEntity {
+  public readonly options: StateMachineOptions;
+
   public states: StateTable = {};
+  public transitions: TransitionTable = {};
   public startingState: TransitionDescriptor;
-  public startingProgress: {};
   public visitedStates: Transition[];
   public progress: {};
   public state: Entity;
-  public endingStates: string[];
   public stateParams: {};
   private lastTransition: Transition;
 
   constructor(
     states: { [n: string]: EntityContext | EntityResolvable },
-    public transitions: TransitionTable = {},
-    options = {}
+    options?: Partial<StateMachineOptions>
   ) {
     super();
 
+    // Create state table
     for (const name in states) {
       const state = states[name];
       if (isEntityResolvable(state)) {
@@ -572,18 +580,28 @@ export class StateMachine extends CompositeEntity {
       }
     }
 
-    util.setupOptions(this, options, {
-      startingState: makeTransition("start"),
-      endingStates: ["end"],
-      startingProgress: {},
-    });
+    this.options = util.fillInOptions(options, new StateMachineOptions());
+
+    // Ensure all transitions are of the correct type
+    if (typeof this.options.startingState === "string")
+      this.startingState = makeTransition(this.options.startingState);
+    else this.startingState = this.options.startingState;
+
+    for (const key in this.options.transitions) {
+      const value = this.options.transitions[key];
+      if (typeof value === "string") {
+        this.transitions[key] = makeTransition(value);
+      } else {
+        this.transitions[key] = value;
+      }
+    }
   }
 
   setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
     super.setup(frameInfo, entityConfig);
 
     this.visitedStates = [];
-    this.progress = util.cloneData(this.startingProgress);
+    this.progress = util.cloneData(this.options.startingProgress);
 
     const startingState = _.isFunction(this.startingState)
       ? this.startingState(makeTransition())
@@ -598,10 +616,10 @@ export class StateMachine extends CompositeEntity {
     if (transition) {
       let nextStateDescriptor: Transition;
       // The transition could directly be the name of another state, or ending state
-      if (!(transition.name in this.transitions)) {
+      if (!(this.lastTransition.name in this.transitions)) {
         if (
           transition.name in this.states ||
-          _.contains(this.endingStates, transition.name)
+          _.contains(this.options.endingStates, transition.name)
         ) {
           nextStateDescriptor = transition;
         } else {
@@ -610,7 +628,9 @@ export class StateMachine extends CompositeEntity {
           );
         }
       } else {
-        const transitionDescriptor = this.transitions[transition.name];
+        const transitionDescriptor: TransitionDescriptor = this.transitions[
+          this.lastTransition.name
+        ];
         if (_.isFunction(transitionDescriptor)) {
           nextStateDescriptor = transitionDescriptor(transition);
         } else {
@@ -636,7 +656,7 @@ export class StateMachine extends CompositeEntity {
     this.lastTransition = null;
   }
 
-  _changeState(nextState: Transition) {
+  private _changeState(nextState: Transition) {
     // Tear down current state
     if (this.state) {
       this._deactivateChildEntity(this.state);
@@ -644,7 +664,7 @@ export class StateMachine extends CompositeEntity {
     }
 
     // If reached an ending state, stop here.
-    if (_.contains(this.endingStates, nextState.name)) {
+    if (_.contains(this.options.endingStates, nextState.name)) {
       this.transition = nextState;
       this.visitedStates.push(nextState);
       return;

@@ -228,6 +228,19 @@ export function setupOptions(obj: {}, options: {}, defaults: {}) {
   );
 }
 
+/**
+ * Fills in the mising options from the provided defaults
+ * @param options Options provided by the caller
+ * @param defaults Defaults provided by the author
+ */
+export function fillInOptions<T extends {}>(
+  options: Partial<T>,
+  defaults: T
+): T {
+  if (options) return { ...defaults, ...options };
+  else return defaults;
+}
+
 export function loadJson(fileName: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
