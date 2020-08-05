@@ -4,9 +4,7 @@ import * as _ from "underscore";
 import * as entity from "../src/entity";
 
 function makeEntityConfig(): entity.EntityConfig {
-  return {
-    container: new PIXI.Container(),
-  };
+  return {};
 }
 
 function makeFrameInfo(): entity.FrameInfo {

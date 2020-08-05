@@ -20,7 +20,6 @@ export function makeTransition(name = "default", params = {}) {
 }
 
 export type EntityConfig = {
-  container: PIXI.Container;
   [k: string]: any;
 };
 
