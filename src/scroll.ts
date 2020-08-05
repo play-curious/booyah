@@ -11,7 +11,7 @@ import * as util from "./util";
  *  moved ({ reason })
  *  refreshed
  **/
-export class Scrollbox extends entity.ParallelEntity {
+export class Scrollbox extends entity.EntityBase {
   public pointerDown: any;
   public container: PIXI.Container;
   public content: PIXI.Container;

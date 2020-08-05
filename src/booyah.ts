@@ -36,9 +36,9 @@ export interface Directives {
   extraLoaders: ((entityConfig: entity.EntityConfig) => Promise<any>)[];
   entityInstallers: ((
     entityConfig: entity.EntityConfig,
-    entity: entity.Entity
-  ) => any)[];
-  states: entity.StateTable;
+    entity: entity.ParallelEntity
+  ) => void)[];
+  states: entity.StateTableDescriptor;
   transitions: entity.TransitionTable;
   endingScenes: string[];
   screenSize: PIXI.IPoint;
@@ -143,7 +143,12 @@ const rootConfig: entity.EntityConfig = {
 };
 
 let loadingScene: LoadingScene;
-let rootEntity: entity.ParallelEntity;
+let loadingErrorScene: LoadingErrorScene;
+let gameEntity: entity.ParallelEntity;
+
+function getRootEntity(): entity.Entity {
+  return loadingScene || loadingErrorScene || gameEntity;
+}
 
 let lastFrameTime = 0;
 
@@ -756,7 +761,7 @@ export class CreditsEntity extends entity.CompositeEntity {
   }
 }
 
-export class LoadingScene extends entity.ParallelEntity {
+export class LoadingScene extends entity.EntityBase {
   progress: number;
   shouldUpdateProgress: boolean;
   container: PIXI.Container;
@@ -843,7 +848,7 @@ export class LoadingScene extends entity.ParallelEntity {
   }
 }
 
-export class ReadyScene extends entity.ParallelEntity {
+export class ReadyScene extends entity.EntityBase {
   container: PIXI.Container;
 
   _setup() {
@@ -885,7 +890,7 @@ export class ReadyScene extends entity.ParallelEntity {
   }
 }
 
-export class LoadingErrorScene extends entity.ParallelEntity {
+export class LoadingErrorScene extends entity.EntityBase {
   container: PIXI.Container;
 
   _setup() {
@@ -921,7 +926,7 @@ export class LoadingErrorScene extends entity.ParallelEntity {
   }
 }
 
-export class DoneScene extends entity.ParallelEntity {
+export class DoneScene extends entity.EntityBase {
   container: PIXI.Container;
 
   _setup() {
@@ -1008,15 +1013,15 @@ function update(timeScale: number) {
 
   if (previousGameState !== gameState) {
     if (previousGameState == "playing" && gameState == "paused") {
-      rootEntity.onSignal(frameInfo, "pause");
+      getRootEntity().onSignal(frameInfo, "pause");
     } else if (previousGameState == "paused" && gameState == "playing") {
-      rootEntity.onSignal(frameInfo, "play");
+      getRootEntity().onSignal(frameInfo, "play");
     }
 
     previousGameState = gameState;
   }
 
-  rootEntity.update(frameInfo);
+  getRootEntity().update(frameInfo);
 
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
@@ -1207,10 +1212,9 @@ function doneLoading() {
   // Remove loading screen
   loadingScene.teardown(frameInfo);
   loadingScene = null;
-  rootEntity = null;
 
   // The new rootEntity will contain all the sub entities
-  rootEntity = new entity.ParallelEntity();
+  gameEntity = new entity.ParallelEntity();
 
   // gameSequence will have the ready and done scenes
   const gameSequence = new entity.EntitySequence(
@@ -1219,26 +1223,26 @@ function doneLoading() {
   );
 
   // Filter out the pause event for the game sequence
-  rootEntity.addChildEntity(
+  gameEntity.addChildEntity(
     new FilterPauseEntity([
       new entity.ContainerEntity([gameSequence], "gameSequence"),
     ])
   );
 
   for (const installer of rootConfig.directives.entityInstallers) {
-    installer(rootConfig, rootEntity);
+    installer(rootConfig, gameEntity);
   }
 
   if (rootConfig.menu) {
     rootConfig.menu.on("pause", () => changeGameState("paused"));
     rootConfig.menu.on("play", () => changeGameState("playing"));
     rootConfig.menu.on("reset", () => {
-      rootEntity.onSignal(rootConfig.menu.lastFrameInfo, "reset");
+      gameEntity.onSignal(rootConfig.menu.lastFrameInfo, "reset");
       changeGameState("playing");
     });
   }
 
-  rootEntity.setup(frameInfo, rootConfig);
+  gameEntity.setup(frameInfo, rootConfig);
 }
 
 export function makePreloader(additionalAssets: string[]) {
@@ -1306,7 +1310,6 @@ export function go(directives: Partial<Directives> = {}) {
     .then(() => {
       // Show loading screen as soon as preloader is done
       loadingScene = new LoadingScene();
-      rootEntity = loadingScene;
 
       // The loading scene doesn't get the full entityConfig
       loadingScene.setup(frameInfo, rootConfig);
@@ -1322,15 +1325,15 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene.teardown(frameInfo);
       loadingScene = null;
 
-      rootEntity = new LoadingErrorScene();
-      rootEntity.setup(frameInfo, rootConfig);
+      loadingErrorScene = new LoadingErrorScene();
+      getRootEntity().setup(frameInfo, rootConfig);
 
       throw err;
     });
 
   return {
     rootConfig,
-    rootEntity,
+    rootEntity: getRootEntity(),
     loadingPromise,
   };
 }

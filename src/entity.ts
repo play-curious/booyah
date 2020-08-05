@@ -263,7 +263,11 @@ export abstract class CompositeEntity extends EntityBase {
 
     let entity;
     if (_.isFunction(entityResolvable)) {
-      entity = entityResolvable(transition ?? makeTransition());
+      entity = entityResolvable(
+        transition !== null && transition !== undefined
+          ? transition
+          : makeTransition()
+      );
     } else {
       entity = entityResolvable;
     }
@@ -322,19 +326,34 @@ export abstract class CompositeEntity extends EntityBase {
   }
 }
 
+export class ParallelEntityOptions {
+  transitionOnCompletion: boolean = true;
+}
+
+export interface ParallelEntityContext {
+  entity: EntityResolvable;
+  config?: EntityConfigResolvable;
+  activated?: boolean;
+}
+
 /**
  Allows a bunch of entities to execute in parallel.
  Updates child entities until they ask for a transition, at which point they are torn down.
  Requests a transition when all child entities have completed.
 */
 export class ParallelEntity extends CompositeEntity {
+  public readonly options: ParallelEntityOptions;
+
   protected childEntityContexts: ParallelEntityContext[] = [];
   protected contextToEntity = new Map<ParallelEntityContext, Entity>();
 
   constructor(
-    entityContexts: Array<EntityResolvable | ParallelEntityContext> = []
+    entityContexts: Array<EntityResolvable | ParallelEntityContext> = [],
+    options?: Partial<ParallelEntityOptions>
   ) {
     super();
+
+    this.options = util.fillInOptions(options, new ParallelEntityOptions());
 
     for (const e of entityContexts) this.addChildEntity(e);
   }
@@ -350,7 +369,8 @@ export class ParallelEntity extends CompositeEntity {
   update(frameInfo: FrameInfo) {
     super.update(frameInfo);
 
-    if (!_.some(this.childEntities)) this._transition = makeTransition();
+    if (this.options.transitionOnCompletion && !_.some(this.childEntities))
+      this._transition = makeTransition();
   }
 
   addChildEntity(entity: ParallelEntityContext | EntityResolvable) {
@@ -461,14 +481,9 @@ export class ParallelEntity extends CompositeEntity {
   }
 }
 
-export interface EntitySequenceOptions {
-  loop?: boolean;
-}
-
-export interface ParallelEntityContext {
-  entity: EntityResolvable;
-  config?: EntityConfigResolvable;
-  activated?: boolean;
+export class EntitySequenceOptions {
+  loop = false;
+  transitionOnCompletion = false;
 }
 
 /**
@@ -477,15 +492,19 @@ export interface ParallelEntityContext {
   Optionally can loop back to the first entity.
 */
 export class EntitySequence extends CompositeEntity {
+  public readonly options: EntitySequenceOptions;
+
   private entityContexts: EntityContext[] = [];
   private currentEntityIndex = 0;
   private currentEntity: Entity = null;
 
   constructor(
     entityContexts: Array<EntityContext | EntityResolvable>,
-    private readonly options: EntitySequenceOptions = { loop: false }
+    options?: Partial<EntitySequenceOptions>
   ) {
     super();
+
+    this.options = util.fillInOptions(options, new EntitySequenceOptions());
 
     for (const e of entityContexts) this.addChildEntity(e);
   }
@@ -554,7 +573,7 @@ export class EntitySequence extends CompositeEntity {
         // ... and we loop, go back to start
         this.currentEntityIndex = 0;
         this._switchEntity();
-      } else {
+      } else if (this.options.transitionOnCompletion) {
         // otherwise request this transition
         this._transition = transition;
       }
@@ -563,6 +582,9 @@ export class EntitySequence extends CompositeEntity {
 }
 
 export type StateTable = { [n: string]: EntityContext };
+export type StateTableDescriptor = {
+  [n: string]: EntityContext | EntityResolvable;
+};
 
 export type TransitionFunction = (transition: Transition) => Transition;
 export type TransitionDescriptor = Transition | TransitionFunction;
@@ -598,7 +620,7 @@ export class StateMachine extends CompositeEntity {
   private lastTransition: Transition;
 
   constructor(
-    states: { [n: string]: EntityContext | EntityResolvable },
+    states: StateTableDescriptor,
     options?: Partial<StateMachineOptions>
   ) {
     super();

@@ -16,7 +16,7 @@ export interface JukeboxOptions {
 export class Jukebox extends entity.EntityBase {
   public volume: number;
   public musicName: string;
-  public musicPlaying: any;
+  public musicPlaying: Howl;
   public muted: boolean;
 
   constructor(options: JukeboxOptions = {}) {
