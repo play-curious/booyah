@@ -135,6 +135,7 @@ describe("CompositeEntity", () => {
     // Run again, this time have middle child request transition
     requestTransition = true;
     parent.update(makeFrameInfo());
+    parent.update(makeFrameInfo());
 
     expect(children[1]._setup).toBeCalledTimes(1);
     expect(children[1]._teardown).toBeCalledTimes(1);
@@ -142,7 +143,7 @@ describe("CompositeEntity", () => {
 
     expect(children[2]._setup).toBeCalledTimes(1);
     expect(children[2]._teardown).toBeCalledTimes(0);
-    expect(children[2]._update).toBeCalledTimes(2);
+    expect(children[2]._update).toBeCalledTimes(3);
   });
 });
 

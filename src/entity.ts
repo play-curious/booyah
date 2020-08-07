@@ -150,7 +150,6 @@ export abstract class EntityBase extends PIXI.utils.EventEmitter
 
     this._off(); // Remove all event listeners
 
-    this._entityConfig = null;
     this._isSetup = false;
   }
 
@@ -302,14 +301,14 @@ export abstract class CompositeEntity extends EntityBase {
     for (let i = 0; i < this.childEntities.length; ) {
       const childEntity = this.childEntities[i];
 
-      childEntity.update(this._lastFrameInfo);
-
       if (childEntity.transition) {
         childEntity.teardown(this._lastFrameInfo);
         this.childEntities.splice(i, 1);
 
         needDeactivation = true;
       } else {
+        childEntity.update(this._lastFrameInfo);
+
         i++;
       }
     }
@@ -483,7 +482,7 @@ export class ParallelEntity extends CompositeEntity {
 
 export class EntitySequenceOptions {
   loop = false;
-  transitionOnCompletion = false;
+  transitionOnCompletion = true;
 }
 
 /**
@@ -522,8 +521,11 @@ export class EntitySequence extends CompositeEntity {
   }
 
   private _switchEntity() {
+    // Stop current entity
     if (this.currentEntity) {
-      this._deactivateChildEntity(this.currentEntity);
+      // The current entity may have already been deactivated, if it requested a transition
+      if (this.childEntities.length > 0)
+        this._deactivateChildEntity(this.currentEntity);
       this.currentEntity = null;
     }
 
@@ -542,7 +544,8 @@ export class EntitySequence extends CompositeEntity {
 
     if (this.entityContexts.length === 0) {
       // Empty sequence, stop immediately
-      this._transition = makeTransition();
+      if (this.options.transitionOnCompletion)
+        this._transition = makeTransition();
     } else {
       // Start the sequence
       this._switchEntity();
@@ -550,6 +553,8 @@ export class EntitySequence extends CompositeEntity {
   }
 
   _update() {
+    if (!this.currentEntity) return;
+
     const transition = this.currentEntity.transition;
     if (transition) this._advance(transition);
   }
@@ -563,7 +568,7 @@ export class EntitySequence extends CompositeEntity {
     this._switchEntity();
   }
 
-  _advance(transition: Transition) {
+  private _advance(transition: Transition) {
     this.currentEntityIndex++;
     this._switchEntity();
 
@@ -720,9 +725,11 @@ export class StateMachine extends CompositeEntity {
   }
 
   private _changeState(nextState: Transition): void {
-    // Tear down current state
+    // Stop current state
     if (this.state) {
-      this._deactivateChildEntity(this.state);
+      // The state may have already been deactivated, if it requested a transition
+      if (this.childEntities.length > 0)
+        this._deactivateChildEntity(this.state);
       this.state = null;
     }
 
