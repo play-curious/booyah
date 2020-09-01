@@ -357,13 +357,30 @@ export function determineLanguage(
   return defaultLanguage;
 }
 
-export function reverseString(string: string): string {
-  return [...string].reverse().join("")
+export function reverseString(s: string): string {
+  return s.split("").reverse().join("");
 }
 
-
-export function subarray<T>(array: T[], index: number, size: number): T[] {
-  if(size === 0) return []
-  const result = size > 0 ? array.slice(index, index + size) : array.slice(index + 1 + size, index + 1)
-  return result
+/**
+ * Returns a copy of a part of an array, going forwards or backwards
+ * @param a Array
+ * @param startAt Index to start at
+ * @param length Positive or negative
+ */
+export function subarray<T>(
+  a: Array<T>,
+  startAt: number,
+  length: number
+): Array<T> {
+  const result: Array<T> = [];
+  if (length > 0) {
+    for (let i = 0; i < length; i++) {
+      result.push(a[startAt + i]);
+    }
+  } else {
+    for (let i = 0; i < -length; i++) {
+      result.push(a[startAt - i]);
+    }
+  }
+  return result;
 }
