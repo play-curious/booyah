@@ -976,13 +976,13 @@ function updateLoadingProgress() {
       variableAudioLoaderProgress +
       videoLoaderProgress) /
     5;
-  console.debug("loading progress", progress, {
-    pixiLoaderProgress,
-    fontLoaderProgress,
-    fixedAudioLoaderProgress,
-    variableAudioLoaderProgress,
-    videoLoaderProgress,
-  });
+  // console.debug("loading progress", progress, {
+  //   pixiLoaderProgress,
+  //   fontLoaderProgress,
+  //   fixedAudioLoaderProgress,
+  //   variableAudioLoaderProgress,
+  //   videoLoaderProgress,
+  // });
 
   if (loadingScene) loadingScene.updateProgress(progress);
 }

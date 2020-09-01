@@ -356,3 +356,31 @@ export function determineLanguage(
   // Use default
   return defaultLanguage;
 }
+
+export function reverseString(s: string): string {
+  return s.split("").reverse().join("");
+}
+
+/**
+ * Returns a copy of a part of an array, going forwards or backwards
+ * @param a Array
+ * @param startAt Index to start at
+ * @param length Positive or negative
+ */
+export function subarray<T>(
+  a: Array<T>,
+  startAt: number,
+  length: number
+): Array<T> {
+  const result: Array<T> = [];
+  if (length > 0) {
+    for (let i = 0; i < length; i++) {
+      result.push(a[startAt + i]);
+    }
+  } else {
+    for (let i = 0; i < -length; i++) {
+      result.push(a[startAt - i]);
+    }
+  }
+  return result;
+}
