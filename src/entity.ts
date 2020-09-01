@@ -14,7 +14,7 @@ export interface Transition {
   readonly params: {};
 }
 
-export function makeTransition(name = "default", params = {}) {
+export function makeTransition(name = "default", params = {}): Transition {
   return { name, params };
 }
 

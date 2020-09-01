@@ -356,3 +356,14 @@ export function determineLanguage(
   // Use default
   return defaultLanguage;
 }
+
+export function reverseString(string: string): string {
+  return [...string].reverse().join("")
+}
+
+
+export function subarray<T>(array: T[], index: number, size: number): T[] {
+  if(size === 0) return []
+  const result = size > 0 ? array.slice(index, index + size) : array.slice(index + 1 + size, index + 1)
+  return result
+}
