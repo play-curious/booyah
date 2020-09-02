@@ -257,6 +257,16 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 
   _setup() {
+    // original row stops over 960 width: [50, 170, 405, 630]
+    const xStops = [0.05, 0.17, 0.42, 0.65].map(
+      (x) => x * this._entityConfig.app.renderer.width
+    );
+
+    // original columns stops over 540 height: [50, 130, 200, 230, 330, 420, 450, 492]
+    const yStops = [0.092, 0.24, 0.37, 0.42, 0.61, 0.77, 0.83, 0.91].map(
+      (y) => y * this._entityConfig.app.renderer.height
+    );
+
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
@@ -319,7 +329,7 @@ export class MenuEntity extends entity.CompositeEntity {
           this._entityConfig.directives.gameLogo
         ].texture
       );
-      gameLogo.position.set(170, 200);
+      gameLogo.position.set(xStops[1], yStops[2]);
       gameLogo.anchor.set(0.5, 0.5);
       this.menuButtonLayer.addChild(gameLogo);
     }
@@ -330,7 +340,7 @@ export class MenuEntity extends entity.CompositeEntity {
       ].texture
     );
     pcLogo.anchor.set(0.5, 1);
-    pcLogo.position.set(170, 450);
+    pcLogo.position.set(xStops[1], yStops[6]);
     this.menuButtonLayer.addChild(pcLogo);
 
     if (this._entityConfig.directives.extraLogos) {
@@ -351,7 +361,7 @@ export class MenuEntity extends entity.CompositeEntity {
         logoSprite.anchor.set(0.5, 1);
         logoSprite.position.set(
           this._entityConfig.app.renderer.width - 160 - spacePerLogo * i,
-          420
+          yStops[6]
         );
         this.menuButtonLayer.addChild(logoSprite);
       }
@@ -366,7 +376,7 @@ export class MenuEntity extends entity.CompositeEntity {
           "booyah/images/fullscreen-off.png"
         ].texture,
         isOn: false,
-        position: new PIXI.Point(405, 130),
+        position: new PIXI.Point(xStops[2], yStops[1]),
       });
       this._on(
         this.fullScreenButton,
@@ -394,7 +404,7 @@ export class MenuEntity extends entity.CompositeEntity {
         "booyah/images/music-off.png"
       ].texture,
       isOn: this._entityConfig.playOptions.options.musicOn,
-      position: new PIXI.Point(405, 230),
+      position: new PIXI.Point(xStops[2], yStops[3]),
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
     this._activateChildEntity(this.musicButton, menuButtonLayerConfig);
@@ -409,7 +419,7 @@ export class MenuEntity extends entity.CompositeEntity {
         "booyah/images/voices-off.png"
       ].texture,
       isOn: this._entityConfig.playOptions.options.fxOn,
-      position: new PIXI.Point(630, 230),
+      position: new PIXI.Point(xStops[3], yStops[3]),
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
     this._activateChildEntity(this.fxButton, menuButtonLayerConfig);
@@ -422,7 +432,7 @@ export class MenuEntity extends entity.CompositeEntity {
         "booyah/images/subtitles-off.png"
       ].texture,
       isOn: this._entityConfig.playOptions.options.showSubtitles,
-      position: new PIXI.Point(630, 130),
+      position: new PIXI.Point(xStops[3], yStops[1]),
     });
     this._on(
       this.subtitlesButton,
@@ -440,7 +450,7 @@ export class MenuEntity extends entity.CompositeEntity {
     creditLink.anchor.set(0.5, 0.5);
     creditLink.position.set(
       this._entityConfig.app.renderer.width / 2 - 10,
-      492
+      yStops[7]
     );
     creditLink.interactive = true;
     this._on(creditLink, "pointertap", this._showCredits);
@@ -460,7 +470,7 @@ export class MenuEntity extends entity.CompositeEntity {
             `booyah/images/lang-${language}-${isSelected ? "off" : "on"}.png`
           ].texture
         );
-        sprite.position.set(405 + i * 100, 330);
+        sprite.position.set(xStops[2] + i * 100, yStops[4]);
 
         if (!isSelected) {
           sprite.interactive = true;
