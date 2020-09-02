@@ -666,7 +666,7 @@ export class MenuEntity extends entity.CompositeEntity {
 
 export function installMenu(rootConfig: any, rootEntity: any) {
   rootConfig.menu = new MenuEntity();
-  rootEntity.addEntity(rootConfig.menu);
+  rootEntity.addChildEntity(rootConfig.menu);
 }
 
 export class CreditsEntity extends entity.CompositeEntity {

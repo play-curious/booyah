@@ -165,7 +165,7 @@ export class FxMachine extends entity.EntityBase {
 
 export function installFxMachine(rootConfig: any, rootEntity: any) {
   rootConfig.fxMachine = new FxMachine();
-  rootEntity.addEntity(rootConfig.fxMachine);
+  rootEntity.addChildEntity(rootConfig.fxMachine);
 }
 
 /** Creates a Promise from the Howl callbacks used for loading */
