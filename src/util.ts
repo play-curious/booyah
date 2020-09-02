@@ -38,7 +38,7 @@ export function difference<T = any>(array: T[]): T[] {
     Array.prototype,
     Array.prototype.slice.call(arguments, 1)
   );
-  return _.filter<T>(array, (value) => !contains(rest, value));
+  return _.filter(array, (value) => !contains(rest, value));
 }
 
 /** Returns a new array with the given element excluded, tested using _.isEqual() */
