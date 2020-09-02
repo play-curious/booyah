@@ -13,6 +13,6 @@
     "moduleResolution": "Node",
     "outDir": "dist",
     "pretty": true,
-    "target": "es2020"
+    "target": "es2019"
   }
 }

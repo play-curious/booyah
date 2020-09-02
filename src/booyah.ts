@@ -19,14 +19,11 @@ export interface Directives {
   startingSceneParams: any;
   startingScene: any;
   startingProgress: any;
-  menuButtonPosition: PIXI.IPoint;
   gameLogo: string;
   extraLogos: string[];
   videoAssets: string[];
   supportedLanguages: string[];
   language: string;
-  credits: { [k: string]: string };
-  creditsTextSize: number;
   splashScreen: string;
   graphicalAssets: string[];
   fontAssets: string[];
@@ -69,10 +66,6 @@ const DEFAULT_DIRECTIVES: any = {
   speakers: {},
   speakerPosition: new PIXI.Point(50, 540),
 
-  // Credits
-  credits: {}, // @credits like { "Game Design": ["JC", "Jesse"], }
-  creditsTextSize: 32,
-
   // Appearance. These assets are automatically added to "graphicalAssets"
   splashScreen: null, // Splash screen should be the size of the game
   gameLogo: null, // Will be displayed in the menu
@@ -84,8 +77,6 @@ const DEFAULT_DIRECTIVES: any = {
 
   language: null,
   supportedLanguages: [], // If included, will show language switching buttons
-
-  menuButtonPosition: null, // Overrides default menu button position
 
   // Standard icons. They will be added to "graphicalAssets"
   graphics: {
@@ -230,7 +221,17 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
   }
 }
 
+export class MenuEntityOptions {
+  menuButtonPosition: PIXI.Point = null;
+
+  // @credits like { "Game Design": ["JC", "Jesse"], }
+  credits: { [k: string]: string } = {};
+  creditsTextSize = 32;
+}
+
 export class MenuEntity extends entity.CompositeEntity {
+  public readonly options: MenuEntityOptions;
+
   public container: PIXI.Container;
   public menuLayer: PIXI.Container;
   public menuButtonLayer: PIXI.Container;
@@ -249,6 +250,12 @@ export class MenuEntity extends entity.CompositeEntity {
   public fxButton: entity.ToggleSwitch;
   public subtitlesButton: entity.ToggleSwitch;
 
+  constructor(options?: Partial<MenuEntityOptions>) {
+    super();
+
+    this.options = util.fillInOptions(options, new MenuEntityOptions());
+  }
+
   _setup() {
     this.container = new PIXI.Container();
     this.container.name = "menu";
@@ -261,14 +268,9 @@ export class MenuEntity extends entity.CompositeEntity {
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
-    if (this._entityConfig.directives.menuButtonPosition) {
-      this.pauseButton.position = this._entityConfig.directives.menuButtonPosition;
-    } else {
-      this.pauseButton.position.set(
-        this._entityConfig.app.renderer.width - 50,
-        50
-      );
-    }
+    this.pauseButton.position =
+      this.options.menuButtonPosition ??
+      new PIXI.Point(this._entityConfig.app.renderer.width - 50, 50);
     this.pauseButton.interactive = true;
     this._on(this.pauseButton, "pointertap", this._onPause);
     this.container.addChild(this.pauseButton);
@@ -635,7 +637,7 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 
   _showCredits() {
-    this.creditsEntity = new CreditsEntity();
+    this.creditsEntity = new CreditsEntity(this.options);
     this._activateChildEntity(this.creditsEntity);
   }
 
@@ -664,6 +666,13 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 }
 
+export function makeInstallMenu(options?: Partial<MenuEntityOptions>) {
+  return (rootConfig: any, rootEntity: any) => {
+    rootConfig.menu = new MenuEntity(options);
+    rootEntity.addChildEntity(rootConfig.menu);
+  };
+}
+
 export function installMenu(rootConfig: any, rootEntity: any) {
   rootConfig.menu = new MenuEntity();
   rootEntity.addChildEntity(rootConfig.menu);
@@ -673,13 +682,17 @@ export class CreditsEntity extends entity.CompositeEntity {
   public container: PIXI.Container;
   public mask: PIXI.Graphics;
 
+  constructor(public readonly options: MenuEntityOptions) {
+    super();
+  }
+
   _setup(entityConfig: any) {
     this.container = new PIXI.Container();
 
     let rolesText = "";
     let peopleText = "";
     let didFirstLine = false;
-    for (let role in this._entityConfig.directives.credits) {
+    for (let role in this.options.credits) {
       if (didFirstLine) {
         rolesText += "\n";
         peopleText += "\n";
@@ -690,9 +703,9 @@ export class CreditsEntity extends entity.CompositeEntity {
       rolesText += role;
 
       // Their could be one person credited (string), or an array
-      const people = _.isArray(this._entityConfig.directives.credits[role])
-        ? this._entityConfig.directives.credits[role]
-        : [this._entityConfig.directives.credits[role]];
+      const people = _.isArray(this._entityConfig.options.credits[role])
+        ? this._entityConfig.options.credits[role]
+        : [this._entityConfig.options.credits[role]];
       for (let person of people) {
         rolesText += "\n";
         peopleText += person + "\n";
@@ -729,7 +742,7 @@ export class CreditsEntity extends entity.CompositeEntity {
 
     const roles = new PIXI.Text(rolesText, {
       fontFamily: "Roboto Condensed",
-      fontSize: this._entityConfig.directives.creditsTextSize,
+      fontSize: this.options.creditsTextSize,
       fill: "white",
       align: "right",
     });
@@ -742,7 +755,7 @@ export class CreditsEntity extends entity.CompositeEntity {
 
     const people = new PIXI.Text(peopleText, {
       fontFamily: "Roboto Condensed",
-      fontSize: this._entityConfig.directives.creditsTextSize,
+      fontSize: this.options.creditsTextSize,
       fill: "white",
       align: "left",
     });
