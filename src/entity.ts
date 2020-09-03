@@ -169,21 +169,34 @@ export abstract class EntityBase extends PIXI.utils.EventEmitter
     emitter.on(event, cb, this);
   }
 
+  protected _once(
+    emitter: PIXI.utils.EventEmitter,
+    event: string,
+    cb: (...args: any) => void
+  ): void {
+    this._eventListeners.push({ emitter, event, cb });
+    emitter.once(event, cb, this);
+  }
+
   // if @cb is null, will remove all event listeners for the given emitter and event
   protected _off(
     emitter?: PIXI.utils.EventEmitter,
     event?: string,
     cb?: (...args: any) => void
   ): void {
-    const props: IEventListener = {
-      emitter,
-      event,
-      cb,
-    };
+    // props should only contain defined arguments
+    const props = _.pick(
+      {
+        emitter,
+        event,
+        cb,
+      },
+      (v) => !!v
+    );
 
     const [listenersToRemove, listenersToKeep] = _.partition(
       this._eventListeners,
-      props as any
+      props
     );
     for (const listener of listenersToRemove)
       listener.emitter.off(listener.event, listener.cb, this);

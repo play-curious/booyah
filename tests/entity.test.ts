@@ -88,6 +88,44 @@ describe("Entity", () => {
       e.onSignal(makeFrameInfo(), "signal");
     }).toThrow();
   });
+
+  test("receives events", () => {
+    const sender = new MockEntity();
+    const receiver = new (class extends entity.EntityBase {
+      constructor() {
+        super();
+
+        this.receiveA = jest.fn();
+        this.receiveB = jest.fn();
+      }
+
+      _setup() {
+        this._on(sender, "a", this.receiveA);
+        this._once(sender, "b", this.receiveB);
+      }
+
+      receiveA() {}
+      receiveB() {}
+    })();
+
+    // Setup the receiver and send one event
+    receiver.setup(makeFrameInfo(), makeEntityConfig());
+    sender.emit("a", 1, 2, 3);
+    sender.emit("a", 1, 2, 3);
+    sender.emit("b", 1, 2, 3);
+    sender.emit("b", 1, 2, 3);
+
+    expect(receiver.receiveA).toBeCalledWith(1, 2, 3);
+    expect(receiver.receiveB).toBeCalledWith(1, 2, 3);
+
+    // Teardown the receiver and send more events that should not be recieved
+    receiver.teardown(makeFrameInfo());
+    sender.emit("a");
+    sender.emit("b");
+
+    expect(receiver.receiveA).toBeCalledTimes(2);
+    expect(receiver.receiveB).toBeCalledTimes(1);
+  });
 });
 
 describe("CompositeEntity", () => {
