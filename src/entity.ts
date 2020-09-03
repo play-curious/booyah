@@ -19,7 +19,6 @@ export function makeTransition(name = "default", params = {}) {
 }
 
 export type EntityConfig = {
-  container: PIXI.Container;
   [k: string]: any;
 };
 
@@ -115,8 +114,7 @@ export interface Entity extends PIXI.utils.EventEmitter {
  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
-export abstract class EntityBase
-  extends PIXI.utils.EventEmitter
+export abstract class EntityBase extends PIXI.utils.EventEmitter
   implements Entity {
   protected _eventListeners: IEventListener[] = [];
   protected _transition: Transition;
@@ -223,7 +221,12 @@ export class TransitoryEntity extends EntityBase {
   }
 }
 
-/** Base class for entities that contain other entities */
+/** Base class for entities that contain other entities
+ *
+ * Events:
+ * - activatedChildEntity(entity: Entity, config: EntityConfig, transition: Transition)
+ * - deactivatedChildEntity(entity: Entity)
+ */
 export abstract class CompositeEntity extends EntityBase {
   protected childEntities: Entity[] = [];
 
@@ -277,6 +280,9 @@ export abstract class CompositeEntity extends EntityBase {
 
     const childConfig = processEntityConfig(this._entityConfig, config);
     entity.setup(this._lastFrameInfo, childConfig);
+
+    this.emit("activatedChildEntity", entity, childConfig, transition);
+
     return entity;
   }
 
@@ -291,6 +297,8 @@ export abstract class CompositeEntity extends EntityBase {
     }
 
     this.childEntities.splice(index, 1);
+
+    this.emit("deactivatedChildEntity", entity);
   }
 
   /**
@@ -306,6 +314,7 @@ export abstract class CompositeEntity extends EntityBase {
       if (childEntity.transition) {
         childEntity.teardown(this._lastFrameInfo);
         this.childEntities.splice(i, 1);
+        this.emit("deactivatedChildEntity", childEntity);
 
         needDeactivation = true;
       } else {
@@ -321,6 +330,7 @@ export abstract class CompositeEntity extends EntityBase {
   protected _deactivateAllChildEntities() {
     for (const childEntity of this.childEntities) {
       childEntity.teardown(this._lastFrameInfo);
+      this.emit("deactivatedChildEntity", childEntity);
     }
 
     this.childEntities = [];

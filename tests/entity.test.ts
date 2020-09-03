@@ -145,6 +145,30 @@ describe("CompositeEntity", () => {
     expect(children[2]._teardown).toBeCalledTimes(0);
     expect(children[2]._update).toBeCalledTimes(3);
   });
+
+  test("send activation events", () => {
+    const deactivatedCallback = jest.fn();
+    parent.on("deactivatedChildEntity", deactivatedCallback);
+
+    // Run once
+    parent.setup(makeFrameInfo(), makeEntityConfig());
+    children[1].transition = entity.makeTransition();
+    parent.update(makeFrameInfo());
+
+    expect(deactivatedCallback).toBeCalledTimes(1);
+
+    // Teardown and setup again
+    parent.teardown(makeFrameInfo());
+
+    expect(deactivatedCallback).toBeCalledTimes(3);
+
+    const activatedCallback = jest.fn();
+    parent.on("activatedChildEntity", activatedCallback);
+
+    parent.setup(makeFrameInfo(), makeEntityConfig());
+
+    expect(activatedCallback).toBeCalledTimes(3);
+  });
 });
 
 describe("ParallelEntity", () => {
