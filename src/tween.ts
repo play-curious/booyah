@@ -36,6 +36,7 @@ export interface TweenOptions {
   duration?: number;
   easing?: (t: number) => number;
   interpolate?: any;
+  onUpdate?: (value: number) => any;
 }
 
 /**
@@ -54,6 +55,7 @@ export class Tween extends entity.EntityBase implements TweenOptions {
   startTime: number;
   duration: number;
   easing: (t: number) => number;
+  onUpdate?: (value: number) => any;
 
   /**
    * Takes the following options:
@@ -78,6 +80,10 @@ export class Tween extends entity.EntityBase implements TweenOptions {
       easing: easing.linear,
       interpolate: interpolation.scalar,
     });
+
+    if(this.onUpdate) {
+      this._on(this, "updatedValue", this.onUpdate)
+    }
   }
 
   _setup() {
