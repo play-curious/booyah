@@ -32,7 +32,7 @@ export interface TweenOptions {
   obj?: any;
   property?: string;
   from?: any;
-  to: any;
+  to?: any;
   duration?: number;
   easing?: (t: number) => number;
   interpolate?: any;
