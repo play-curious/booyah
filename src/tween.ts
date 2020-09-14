@@ -28,6 +28,27 @@ export function make(
   return new entity.ParallelEntity(tweens);
 }
 
+/**
+ * Ghom's light tween method adaptation
+ */
+export function tweeny(
+  options: {
+    from?: number;
+    to?: number;
+    duration?: number;
+    easing?: (t: number) => number;
+    onUpdate?: (value: number) => any;
+    onTeardown?: () => any;
+  }
+) {
+  options.from = options.from ?? 0;
+  options.to = options.to ?? 1;
+  options.duration = options.duration ?? 1000;
+  options.easing = options.easing ?? easing.linear;
+
+  return new Tween(options)
+}
+
 export interface TweenOptions {
   obj?: any;
   property?: string;
@@ -37,6 +58,7 @@ export interface TweenOptions {
   easing?: (t: number) => number;
   interpolate?: any;
   onUpdate?: (value: number) => any;
+  onTeardown?: () => any;
 }
 
 /**
@@ -56,6 +78,7 @@ export class Tween extends entity.EntityBase implements TweenOptions {
   duration: number;
   easing: (t: number) => number;
   onUpdate?: (value: number) => any;
+  onTeardown?: () => any;
 
   /**
    * Takes the following options:
@@ -116,6 +139,12 @@ export class Tween extends entity.EntityBase implements TweenOptions {
       );
       this.value = this.interpolate(this.startValue, this.to, easedProgress);
       this._updateValue();
+    }
+  }
+
+  _teardown() {
+    if(this.onTeardown){
+      this.onTeardown()
     }
   }
 
