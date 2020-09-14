@@ -102,6 +102,8 @@ export class Tween extends entity.EntityBase implements TweenOptions {
       duration: 1000,
       easing: easing.linear,
       interpolate: interpolation.scalar,
+      onUpdate: null,
+      onTeardown: null,
     });
 
     if(this.onUpdate) {
