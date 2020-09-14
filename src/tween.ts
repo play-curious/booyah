@@ -13,8 +13,8 @@ import * as _ from "underscore";
  */
 export function make(
   obj: any,
-  props: any,
-  options: any
+  props: { [prop: string]: TweenOptions },
+  options: TweenOptions
 ): entity.ParallelEntity {
   const tweens: any[] = [];
   for (const key in props) {
