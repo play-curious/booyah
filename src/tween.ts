@@ -28,27 +28,6 @@ export function make(
   return new entity.ParallelEntity(tweens);
 }
 
-/**
- * Ghom's light tween method adaptation
- */
-export function tweeny(
-  options: {
-    from?: number;
-    to?: number;
-    duration?: number;
-    easing?: (t: number) => number;
-    onUpdate?: (value: number) => any;
-    onTeardown?: () => any;
-  }
-) {
-  options.from = options.from ?? 0;
-  options.to = options.to ?? 1;
-  options.duration = options.duration ?? 1000;
-  options.easing = options.easing ?? easing.linear;
-
-  return new Tween(options)
-}
-
 export interface TweenOptions {
   obj?: any;
   property?: string;
