@@ -1101,7 +1101,7 @@ export class ToggleSwitch extends EntityBase {
   When the animation completes (if the animation is not set to loop, then this will request a transition)
 */
 export class AnimatedSpriteEntity extends EntityBase {
-  constructor(public sprite: PIXI.AnimatedSprite) {
+  constructor(public readonly sprite: PIXI.AnimatedSprite, private resetFrame: boolean = true) {
     super();
   }
 
@@ -1114,7 +1114,9 @@ export class AnimatedSpriteEntity extends EntityBase {
     this.sprite.onComplete = this._onAnimationComplete.bind(this);
 
     this._entityConfig.container.addChild(this.sprite);
-    this.sprite.gotoAndPlay(0);
+
+    if(this.resetFrame) this.sprite.gotoAndPlay(0);
+    else this.sprite.play()
   }
 
   _update(frameInfo: FrameInfo) {

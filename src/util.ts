@@ -321,10 +321,11 @@ export function getFramesForSpriteSheet(
 }
 
 export function makeAnimatedSprite(
-  resource: PIXI.LoaderResource
+  resource: PIXI.LoaderResource,
+  resetFrame: boolean = true
 ): entity.AnimatedSpriteEntity {
   return new entity.AnimatedSpriteEntity(
-    new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource))
+    new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource)), resetFrame
   )
 }
 
