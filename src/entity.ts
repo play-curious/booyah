@@ -1101,32 +1101,54 @@ export class ToggleSwitch extends EntityBase {
   When the animation completes (if the animation is not set to loop, then this will request a transition)
 */
 export class AnimatedSpriteEntity extends EntityBase {
-  constructor(public animatedSprite: PIXI.AnimatedSprite) {
+  constructor(public sprite: PIXI.AnimatedSprite) {
     super();
   }
 
   _setup() {
-    if (this.animatedSprite.onComplete)
+    if (this.sprite.autoUpdate)
+      console.warn("Warning: overwriting this.animatedSprite.autoUpdate. value:", false);
+    this.sprite.autoUpdate = false;
+    if (this.sprite.onComplete)
       console.warn("Warning: overwriting this.animatedSprite.onComplete");
-    this.animatedSprite.onComplete = this._onAnimationComplete.bind(this);
+    this.sprite.onComplete = this._onAnimationComplete.bind(this);
 
-    this._entityConfig.container.addChild(this.animatedSprite);
-    this.animatedSprite.gotoAndPlay(0);
+    this._entityConfig.container.addChild(this.sprite);
+    this.sprite.gotoAndPlay(0);
+  }
+
+  _update(frameInfo: FrameInfo) {
+    this.sprite.update(frameInfo.timeScale)
   }
 
   onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (signal == "pause") this.animatedSprite.stop();
-    else if (signal == "play") this.animatedSprite.play();
+    if (signal == "pause") this.sprite.stop();
+    else if (signal == "play") this.sprite.play();
   }
 
   _teardown(frameInfo: FrameInfo) {
-    this.animatedSprite.stop();
-    this.animatedSprite.onComplete = null;
-    this._entityConfig.container.removeChild(this.animatedSprite);
+    this.sprite.stop();
+    this.sprite.onComplete = null;
+    this._entityConfig.container.removeChild(this.sprite);
   }
 
   private _onAnimationComplete() {
     this._transition = makeTransition();
+  }
+}
+
+
+export class SpriteEntity extends EntityBase {
+  constructor(public sprite: PIXI.Sprite) {
+    super();
+  }
+
+  _setup() {
+    this._entityConfig.container.addChild(this.sprite);
+  }
+
+  _teardown() {
+    this._entityConfig.container.removeChild(this.sprite);
   }
 }
 
