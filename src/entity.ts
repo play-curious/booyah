@@ -1099,21 +1099,29 @@ export class ToggleSwitch extends EntityBase {
   Manages an animated sprite in PIXI, pausing the sprite during pauses.
 
   When the animation completes (if the animation is not set to loop, then this will request a transition)
+
+ Emits:
+ - beforeTearDown
 */
 export class AnimatedSpriteEntity extends EntityBase {
-  constructor(public readonly sprite: PIXI.AnimatedSprite, private resetFrame: boolean = true) {
+  constructor(
+    public readonly sprite: PIXI.AnimatedSprite,
+    private readonly resetFrame: boolean = true
+  ) {
     super();
   }
 
   _setup() {
     if (this.sprite.autoUpdate)
-      console.warn("Warning: overwriting this.animatedSprite.autoUpdate. value:", false);
+      console.warn("Warning: overwriting this.sprite.autoUpdate. value:", false);
     this.sprite.autoUpdate = false;
+
     if (this.sprite.onComplete)
-      console.warn("Warning: overwriting this.animatedSprite.onComplete");
+      console.warn("Warning: overwriting this.sprite.onComplete value:", this._onAnimationComplete.bind(this));
     this.sprite.onComplete = this._onAnimationComplete.bind(this);
 
-    this._entityConfig.container.addChild(this.sprite);
+    if(!this._entityConfig.container.children.includes(this.sprite))
+      this._entityConfig.container.addChild(this.sprite);
 
     if(this.resetFrame) this.sprite.gotoAndPlay(0);
     else this.sprite.play()
@@ -1124,14 +1132,20 @@ export class AnimatedSpriteEntity extends EntityBase {
   }
 
   onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (signal == "pause") this.sprite.stop();
-    else if (signal == "play") this.sprite.play();
+    switch (signal) {
+      case "pause":
+        this.sprite.stop();
+        break;
+      case "play":
+        this.sprite.play();
+        break;
+    }
   }
 
   _teardown(frameInfo: FrameInfo) {
     this.sprite.stop();
     this.sprite.onComplete = null;
-    this._entityConfig.container.removeChild(this.sprite);
+    if(this.resetFrame) this._entityConfig.container.removeChild(this.sprite);
   }
 
   private _onAnimationComplete() {
