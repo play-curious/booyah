@@ -224,7 +224,7 @@ export function easeOutElastic(t: number): number {
   var s = (p / (2 * Math.PI)) * Math.asin(1);
   return (
     Math.pow(2, -10 * scaledTime) *
-      Math.sin(((scaledTime - s) * (2 * Math.PI)) / p) +
+    Math.sin(((scaledTime - s) * (2 * Math.PI)) / p) +
     1
   );
 }
@@ -255,8 +255,8 @@ export function easeInOutElastic(t: number): number {
 
   return (
     Math.pow(2, -10 * scaledTime1) *
-      Math.sin(((scaledTime1 - s) * (2 * Math.PI)) / p) *
-      0.5 +
+    Math.sin(((scaledTime1 - s) * (2 * Math.PI)) / p) *
+    0.5 +
     1
   );
 }
