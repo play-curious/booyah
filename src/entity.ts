@@ -1113,22 +1113,28 @@ export class AnimatedSpriteEntity extends EntityBase {
 
   _setup() {
     if (this.sprite.autoUpdate)
-      console.warn("Warning: overwriting this.sprite.autoUpdate. value:", false);
+      console.warn(
+        "Warning: overwriting this.sprite.autoUpdate. value:",
+        false
+      );
     this.sprite.autoUpdate = false;
 
     if (this.sprite.onComplete)
-      console.warn("Warning: overwriting this.sprite.onComplete value:", this._onAnimationComplete.bind(this));
+      console.warn(
+        "Warning: overwriting this.sprite.onComplete value:",
+        this._onAnimationComplete.bind(this)
+      );
     this.sprite.onComplete = this._onAnimationComplete.bind(this);
 
-    if(!this._entityConfig.container.children.includes(this.sprite))
+    if (!this._entityConfig.container.children.includes(this.sprite))
       this._entityConfig.container.addChild(this.sprite);
 
-    if(this.resetFrame) this.sprite.gotoAndPlay(0);
-    else this.sprite.play()
+    if (this.resetFrame) this.sprite.gotoAndPlay(0);
+    else this.sprite.play();
   }
 
   _update(frameInfo: FrameInfo) {
-    this.sprite.update(frameInfo.timeScale)
+    this.sprite.update(frameInfo.timeScale);
   }
 
   onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
@@ -1145,7 +1151,7 @@ export class AnimatedSpriteEntity extends EntityBase {
   _teardown(frameInfo: FrameInfo) {
     this.sprite.stop();
     this.sprite.onComplete = null;
-    if(this.resetFrame) this._entityConfig.container.removeChild(this.sprite);
+    if (this.resetFrame) this._entityConfig.container.removeChild(this.sprite);
   }
 
   private _onAnimationComplete() {
@@ -1153,18 +1159,17 @@ export class AnimatedSpriteEntity extends EntityBase {
   }
 }
 
-
-export class SpriteEntity extends EntityBase {
-  constructor(public sprite: PIXI.Sprite) {
+export class DisplayObjectEntity extends EntityBase {
+  constructor(public readonly displayObject: PIXI.Sprite) {
     super();
   }
 
   _setup() {
-    this._entityConfig.container.addChild(this.sprite);
+    this._entityConfig.container.addChild(this.displayObject);
   }
 
   _teardown() {
-    this._entityConfig.container.removeChild(this.sprite);
+    this._entityConfig.container.removeChild(this.displayObject);
   }
 }
 
