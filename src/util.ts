@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 
 import * as geom from "./geom";
+import * as entity from "./entity";
 import * as _ from "underscore";
 
 /** Test containment using _.isEqual() */
@@ -320,9 +321,12 @@ export function getFramesForSpriteSheet(
 }
 
 export function makeAnimatedSprite(
-  resource: PIXI.LoaderResource
-): PIXI.AnimatedSprite {
-  return new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource));
+  resource: PIXI.LoaderResource,
+  resetFrame: boolean = true
+): entity.AnimatedSpriteEntity {
+  return new entity.AnimatedSpriteEntity(
+    new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource)), resetFrame
+  )
 }
 
 /**

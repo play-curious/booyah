@@ -1099,34 +1099,72 @@ export class ToggleSwitch extends EntityBase {
   Manages an animated sprite in PIXI, pausing the sprite during pauses.
 
   When the animation completes (if the animation is not set to loop, then this will request a transition)
+
+ Emits:
+ - beforeTearDown
 */
 export class AnimatedSpriteEntity extends EntityBase {
-  constructor(public animatedSprite: PIXI.AnimatedSprite) {
+  constructor(
+    public readonly sprite: PIXI.AnimatedSprite,
+    private readonly resetFrame: boolean = true
+  ) {
     super();
   }
 
   _setup() {
-    if (this.animatedSprite.onComplete)
-      console.warn("Warning: overwriting this.animatedSprite.onComplete");
-    this.animatedSprite.onComplete = this._onAnimationComplete.bind(this);
+    if (this.sprite.autoUpdate)
+      console.warn("Warning: overwriting this.sprite.autoUpdate. value:", false);
+    this.sprite.autoUpdate = false;
 
-    this._entityConfig.container.addChild(this.animatedSprite);
-    this.animatedSprite.gotoAndPlay(0);
+    if (this.sprite.onComplete)
+      console.warn("Warning: overwriting this.sprite.onComplete value:", this._onAnimationComplete.bind(this));
+    this.sprite.onComplete = this._onAnimationComplete.bind(this);
+
+    if(!this._entityConfig.container.children.includes(this.sprite))
+      this._entityConfig.container.addChild(this.sprite);
+
+    if(this.resetFrame) this.sprite.gotoAndPlay(0);
+    else this.sprite.play()
+  }
+
+  _update(frameInfo: FrameInfo) {
+    this.sprite.update(frameInfo.timeScale)
   }
 
   onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (signal == "pause") this.animatedSprite.stop();
-    else if (signal == "play") this.animatedSprite.play();
+    switch (signal) {
+      case "pause":
+        this.sprite.stop();
+        break;
+      case "play":
+        this.sprite.play();
+        break;
+    }
   }
 
   _teardown(frameInfo: FrameInfo) {
-    this.animatedSprite.stop();
-    this.animatedSprite.onComplete = null;
-    this._entityConfig.container.removeChild(this.animatedSprite);
+    this.sprite.stop();
+    this.sprite.onComplete = null;
+    if(this.resetFrame) this._entityConfig.container.removeChild(this.sprite);
   }
 
   private _onAnimationComplete() {
     this._transition = makeTransition();
+  }
+}
+
+
+export class SpriteEntity extends EntityBase {
+  constructor(public sprite: PIXI.Sprite) {
+    super();
+  }
+
+  _setup() {
+    this._entityConfig.container.addChild(this.sprite);
+  }
+
+  _teardown() {
+    this._entityConfig.container.removeChild(this.sprite);
   }
 }
 
