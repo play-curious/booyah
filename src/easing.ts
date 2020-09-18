@@ -1,6 +1,6 @@
 // Based on https://github.com/AndrewRayCode/easing-utils
 
-export type Easing = (t: number) => number
+export type EasingFunction = (t: number) => number;
 
 // No easing, no acceleration
 export function linear(t: number): number {

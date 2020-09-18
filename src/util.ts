@@ -384,3 +384,8 @@ export function subarray<T>(
   }
   return result;
 }
+
+/** Returns true if x is null or undefined */
+export function isNullish(x: any): boolean {
+  return x == void 0;
+}
