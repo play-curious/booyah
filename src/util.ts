@@ -325,8 +325,9 @@ export function makeAnimatedSprite(
   resetFrame: boolean = true
 ): entity.AnimatedSpriteEntity {
   return new entity.AnimatedSpriteEntity(
-    new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource)), resetFrame
-  )
+    new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource)),
+    resetFrame
+  );
 }
 
 /**

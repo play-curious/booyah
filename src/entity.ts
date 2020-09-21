@@ -741,6 +741,14 @@ export class StateMachine extends CompositeEntity {
     this.lastTransition = null;
   }
 
+  _onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
+    if (signal === "reset") {
+      const entityConfig = this._entityConfig;
+      this.teardown(frameInfo);
+      this.setup(frameInfo, entityConfig);
+    }
+  }
+
   changeState(nextState: string | Transition): void {
     if (typeof nextState === "string") {
       nextState = makeTransition(nextState);
@@ -1159,8 +1167,10 @@ export class AnimatedSpriteEntity extends EntityBase {
   }
 }
 
-export class DisplayObjectEntity extends EntityBase {
-  constructor(public readonly displayObject: PIXI.Sprite) {
+export class DisplayObjectEntity<
+  Type extends PIXI.DisplayObject = PIXI.DisplayObject
+> extends EntityBase {
+  constructor(public readonly displayObject: Type) {
     super();
   }
 

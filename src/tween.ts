@@ -28,19 +28,19 @@ export function make(
   return new entity.ParallelEntity(tweens);
 }
 
-  /**
-   * Tween takes the following options:
-   * @obj - an actual object, a function that returns an object, or null (in which case the value is internal only)
-   * @property - a string property name, or null if no @obj is set
-   * @from - defaults to current value
-   * @to - required
-   * @duration - Time in ms. Defaults to 1000
-   * @easing - Function of t in [0, 1]. Defaults to easing.linear
-   * @interpolate - Function to use for setting a new value.
-   *  Depends on data type, such as color, vector, angle, ...
-   **/
+/**
+ * Tween takes the following options:
+ * @obj - an actual object, a function that returns an object, or null (in which case the value is internal only)
+ * @property - a string property name, or null if no @obj is set
+ * @from - defaults to current value
+ * @to - required
+ * @duration - Time in ms. Defaults to 1000
+ * @easing - Function of t in [0, 1]. Defaults to easing.linear
+ * @interpolate - Function to use for setting a new value.
+ *  Depends on data type, such as color, vector, angle, ...
+ **/
 export class TweenOptions {
-  obj?: {[k: string]: any};
+  obj?: { [k: string]: any };
   property?: string;
   from?: any;
   to: any;
@@ -59,9 +59,9 @@ export class TweenOptions {
  *  updatedValue(value)
  */
 export class Tween extends entity.EntityBase {
-  public readonly options : TweenOptions;
+  public readonly options: TweenOptions;
 
-  private _currentObj: {[k: string]: any};
+  private _currentObj: { [k: string]: any };
   private _startValue: any;
   private _value: any;
   private _startTime: number;
@@ -71,13 +71,15 @@ export class Tween extends entity.EntityBase {
 
     this.options = util.fillInOptions(options, new TweenOptions());
 
-    if(this.options.onUpdate) {
-      this._on(this, "updatedValue", this.options.onUpdate)
+    if (this.options.onUpdate) {
+      this._on(this, "updatedValue", this.options.onUpdate);
     }
   }
 
   _setup() {
-    this._currentObj = _.isFunction(this.options.obj) ? this.options.obj : this.options.obj;
+    this._currentObj = _.isFunction(this.options.obj)
+      ? this.options.obj
+      : this.options.obj;
 
     if (util.isNullish(this.options.from)) {
       this._startValue = this._getValue();
@@ -90,13 +92,16 @@ export class Tween extends entity.EntityBase {
 
     this._startTime = this._lastFrameInfo.timeSinceStart;
 
-    if(this.options.onSetup) {
+    if (this.options.onSetup) {
       this.options.onSetup();
     }
   }
 
   _update() {
-    if (this._lastFrameInfo.timeSinceStart - this._startTime >= this.options.duration) {
+    if (
+      this._lastFrameInfo.timeSinceStart - this._startTime >=
+      this.options.duration
+    ) {
       this._transition = entity.makeTransition();
 
       // Snap to end
@@ -104,20 +109,25 @@ export class Tween extends entity.EntityBase {
       this._updateValue();
     } else {
       const easedProgress = this.options.easing(
-        (this._lastFrameInfo.timeSinceStart - this._startTime) / this.options.duration
+        (this._lastFrameInfo.timeSinceStart - this._startTime) /
+          this.options.duration
       );
-      this._value = this.options.interpolate(this._startValue, this.options.to, easedProgress);
+      this._value = this.options.interpolate(
+        this._startValue,
+        this.options.to,
+        easedProgress
+      );
       this._updateValue();
     }
   }
 
   _teardown() {
-    if(this.options.onTeardown){
-      this.options.onTeardown()
+    if (this.options.onTeardown) {
+      this.options.onTeardown();
     }
   }
 
-  _getValue() : any {
+  _getValue(): any {
     return this._currentObj[this.options.property];
   }
 

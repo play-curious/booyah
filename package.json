@@ -6,7 +6,8 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "jest",
-    "prepublish": "tsc && prettier ./src --write"
+    "prettier": "npx prettier ./src --write",
+    "prepublish": "yarn build && yarn prettier"
   },
   "license": "MIT",
   "devDependencies": {
