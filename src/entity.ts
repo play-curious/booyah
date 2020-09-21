@@ -1168,7 +1168,7 @@ export class AnimatedSpriteEntity extends EntityBase {
 }
 
 export class DisplayObjectEntity<
-  Type extends PIXI.DisplayObject
+  Type extends PIXI.DisplayObject = PIXI.DisplayObject
 > extends EntityBase {
   constructor(public readonly displayObject: Type) {
     super();
