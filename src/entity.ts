@@ -1397,7 +1397,7 @@ export class AlternativeEntity extends CompositeEntity {
   }
 }
 
-export class ShakerEntity<
+export class ShakingEntity<
   T extends PIXI.DisplayObject = PIXI.DisplayObject
 > extends DisplayObjectEntity<T> {
   private _container = new PIXI.Container();
@@ -1424,6 +1424,51 @@ export class ShakerEntity<
         (typeof this.amount == "number" ? this.amount : this.amount[axe]) *
           Math[axe === "x" ? "cos" : "sin"](angle);
     });
+  }
+
+  _teardown() {
+    this.displayObject.position.copyFrom(this._basePosition);
+    this._container.removeChild(this.displayObject);
+    this._entityConfig.container.removeChild(this._container);
+    this._entityConfig.container.addChild(this.displayObject);
+  }
+
+  stop() {
+    this._transition = makeTransition();
+  }
+}
+
+export class FloatingEntity<
+  T extends PIXI.DisplayObject = PIXI.DisplayObject
+  > extends DisplayObjectEntity<T> {
+  private _container = new PIXI.Container();
+  private _basePosition = new PIXI.Point();
+
+  constructor(
+    public displayObject: T,
+    public speed = 0.0005,
+    public amplitude = 0.06,
+    public shift = Math.random() * 10
+  ) {
+    super(displayObject);
+    this._basePosition.copyFrom(displayObject.position);
+    displayObject.position.set(0, 0);
+  }
+
+  _setup() {
+    this._container.position.copyFrom(this._basePosition);
+    this._entityConfig.container.removeChild(this.displayObject);
+    this._entityConfig.container.addChild(this._container);
+    this._container.addChild(this.displayObject);
+  }
+
+  _update(frameInfo: FrameInfo) {
+    const cos = Math.cos(
+      this.shift +
+      frameInfo.timeSinceStart * this.speed
+    );
+    const add = cos * this.amplitude;
+    this._container.x = this._basePosition.x + add * 200;
   }
 
   _teardown() {
