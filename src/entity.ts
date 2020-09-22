@@ -1440,7 +1440,7 @@ export class ShakingEntity<
 
 export class FloatingEntity<
   T extends PIXI.DisplayObject = PIXI.DisplayObject
-  > extends DisplayObjectEntity<T> {
+> extends DisplayObjectEntity<T> {
   private _container = new PIXI.Container();
   private _basePosition = new PIXI.Point();
 
@@ -1463,10 +1463,7 @@ export class FloatingEntity<
   }
 
   _update(frameInfo: FrameInfo) {
-    const cos = Math.cos(
-      this.shift +
-      frameInfo.timeSinceStart * this.speed
-    );
+    const cos = Math.cos(this.shift + frameInfo.timeSinceStart * this.speed);
     const add = cos * this.amplitude;
     this._container.x = this._basePosition.x + add * 200;
   }
