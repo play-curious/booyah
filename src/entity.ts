@@ -1360,7 +1360,7 @@ export interface AlternativeEntityContext extends EntityContext {
 /**
  *  Entity that requests a transition as soon as one of it's children requests one
  */
-export class Alternative extends CompositeEntity {
+export class AlternativeEntity extends CompositeEntity {
   private readonly entityContexts: AlternativeEntityContext[];
 
   // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
@@ -1394,5 +1394,43 @@ export class Alternative extends CompositeEntity {
         break;
       }
     }
+  }
+}
+
+export class ShakerEntity<T extends PIXI.DisplayObject = PIXI.DisplayObject> extends DisplayObjectEntity<T> {
+  private _container = new PIXI.Container();
+  private _basePosition = new PIXI.Point();
+
+  constructor(public displayObject: T, public amount: number | PIXI.Point) {
+    super(displayObject);
+    this._basePosition.copyFrom(displayObject.position);
+    displayObject.position.set(0,0);
+  }
+
+  _setup() {
+    this._container.position.copyFrom(this._basePosition);
+    this._entityConfig.container.removeChild(this.displayObject);
+    this._entityConfig.container.addChild(this._container);
+    this._container.addChild(this.displayObject);
+  }
+
+  _update() {
+    const angle = Math.random() * 2 * Math.PI;
+    ["x","y"].forEach((axe: 'x' | 'y') => {
+      this._container.position[axe] = this._basePosition[axe] +
+        (typeof this.amount == "number" ? this.amount : this.amount[axe]) *
+        Math[axe === "x" ? "cos" : "sin"](angle);
+    })
+  }
+
+  _teardown() {
+    this.displayObject.position.copyFrom(this._basePosition);
+    this._container.removeChild(this.displayObject);
+    this._entityConfig.container.removeChild(this._container);
+    this._entityConfig.container.addChild(this.displayObject);
+  }
+
+  stop() {
+    this._transition = makeTransition()
   }
 }
