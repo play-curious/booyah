@@ -1397,14 +1397,16 @@ export class AlternativeEntity extends CompositeEntity {
   }
 }
 
-export class ShakerEntity<T extends PIXI.DisplayObject = PIXI.DisplayObject> extends DisplayObjectEntity<T> {
+export class ShakerEntity<
+  T extends PIXI.DisplayObject = PIXI.DisplayObject
+> extends DisplayObjectEntity<T> {
   private _container = new PIXI.Container();
   private _basePosition = new PIXI.Point();
 
   constructor(public displayObject: T, public amount: number | PIXI.Point) {
     super(displayObject);
     this._basePosition.copyFrom(displayObject.position);
-    displayObject.position.set(0,0);
+    displayObject.position.set(0, 0);
   }
 
   _setup() {
@@ -1416,11 +1418,12 @@ export class ShakerEntity<T extends PIXI.DisplayObject = PIXI.DisplayObject> ext
 
   _update() {
     const angle = Math.random() * 2 * Math.PI;
-    ["x","y"].forEach((axe: 'x' | 'y') => {
-      this._container.position[axe] = this._basePosition[axe] +
+    ["x", "y"].forEach((axe: "x" | "y") => {
+      this._container.position[axe] =
+        this._basePosition[axe] +
         (typeof this.amount == "number" ? this.amount : this.amount[axe]) *
-        Math[axe === "x" ? "cos" : "sin"](angle);
-    })
+          Math[axe === "x" ? "cos" : "sin"](angle);
+    });
   }
 
   _teardown() {
@@ -1431,6 +1434,6 @@ export class ShakerEntity<T extends PIXI.DisplayObject = PIXI.DisplayObject> ext
   }
 
   stop() {
-    this._transition = makeTransition()
+    this._transition = makeTransition();
   }
 }
