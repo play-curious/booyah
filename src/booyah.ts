@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import Stats from "stats.js";
 
 // @ts-ignore
 const FontFaceObserver = require("fontfaceobserver");
@@ -40,6 +41,7 @@ export interface Directives {
   endingScenes: string[];
   screenSize: PIXI.IPoint;
   canvasId: string;
+  fpsMeterPosition: string;
 }
 
 const DEFAULT_DIRECTIVES: any = {
@@ -84,6 +86,8 @@ const DEFAULT_DIRECTIVES: any = {
     skip: "booyah/images/button-skip.png",
     play: "booyah/images/button-play.png",
   },
+
+  fpsMeterPosition: "none",
 };
 
 const GRAPHICAL_ASSETS = [
@@ -169,6 +173,7 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
     sceneParams: {};
     scene: any;
     startingProgress: any;
+    fpsMeterPosition: string;
   };
 
   constructor(directives: Directives, searchUrl: string) {
@@ -181,6 +186,7 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
       sceneParams: directives.startingSceneParams,
       scene: directives.startingScene,
       startingProgress: directives.startingProgress,
+      fpsMeterPosition: directives.fpsMeterPosition,
     };
 
     const searchParams = new URLSearchParams(searchUrl);
@@ -206,6 +212,9 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
       this.options.musicOn = false;
       this.options.fxOn = false;
     }
+
+    if (searchParams.has("fps"))
+      this.options.fpsMeterPosition = searchParams.get("fps");
   }
 
   setOption(name: string, value: any) {
@@ -1208,6 +1217,41 @@ function loadVariable() {
   // );
 }
 
+let fpsMeter: Stats;
+function showFpsMeter(position: string) {
+  fpsMeter = new Stats();
+  fpsMeter.showPanel(0);
+  fpsMeter.begin();
+  document.body.appendChild(fpsMeter.dom);
+
+  switch (position) {
+    // upper-left is default
+
+    case "upper-right": {
+      fpsMeter.dom.style.removeProperty("left");
+      fpsMeter.dom.style.right = "0";
+      break;
+    }
+    case "lower-right": {
+      fpsMeter.dom.style.removeProperty("left");
+      fpsMeter.dom.style.removeProperty("top");
+      fpsMeter.dom.style.right = "0";
+      fpsMeter.dom.style.bottom = "0";
+      break;
+    }
+    case "lower-left": {
+      fpsMeter.dom.style.removeProperty("top");
+      fpsMeter.dom.style.bottom = "0";
+      break;
+    }
+  }
+}
+
+function updateFpsMeter() {
+  fpsMeter.end();
+  fpsMeter.begin();
+}
+
 function doneLoading() {
   const frameInfo: entity.FrameInfo = {
     playTime: 0,
@@ -1298,6 +1342,10 @@ export function go(directives: Partial<Directives> = {}) {
   });
   rootConfig.container = rootConfig.app.stage;
 
+  // Optionally show fps meter
+  if (rootConfig.playOptions.options.fpsMeterPosition !== "none")
+    showFpsMeter(rootConfig.playOptions.options.fpsMeterPosition);
+
   util.sendMetrics("send", "event", "loading", "start");
   util.startTiming("preload");
 
@@ -1326,7 +1374,11 @@ export function go(directives: Partial<Directives> = {}) {
 
       // The loading scene doesn't get the full entityConfig
       loadingScene.setup(frameInfo, rootConfig);
+
       rootConfig.app.ticker.add(update);
+
+      if (rootConfig.playOptions.options.fpsMeterPosition !== "none")
+        rootConfig.app.ticker.add(updateFpsMeter);
     })
     .then(() => loadFixedAssets())
     .then(loadVariable)
