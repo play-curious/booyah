@@ -823,6 +823,26 @@ export function makeTransitionTable(table: {
   return f;
 }
 
+export interface FunctionalEntityFunctions {
+  setup: (
+    frameInfo: FrameInfo,
+    entityConfig: any,
+    entity: FunctionalEntity
+  ) => void;
+  update: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
+  teardown: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
+  onSignal: (
+    frameInfo: FrameInfo,
+    signal: string,
+    data: any,
+    entity: FunctionalEntity
+  ) => void;
+  requestTransition: (
+    frameInfo: FrameInfo,
+    entity: FunctionalEntity
+  ) => Transition | boolean;
+}
+
 /**
   An entity that gets its behavior from functions provided inline in the constructor.
   Useful for small entities that don't require their own class definition.
@@ -834,31 +854,9 @@ export function makeTransitionTable(table: {
       teardown: () => console.log("teardown"),
     });
 */
-export class FunctionalEntity extends ParallelEntity {
-  // @functions is an object, with keys: setup, update, teardown, onSignal
-  constructor(
-    public readonly functions: {
-      setup: (
-        frameInfo: FrameInfo,
-        entityConfig: any,
-        entity: FunctionalEntity
-      ) => void;
-      update: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
-      teardown: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
-      onSignal: (
-        frameInfo: FrameInfo,
-        signal: string,
-        data: any,
-        entity: FunctionalEntity
-      ) => void;
-      requestTransition: (
-        frameInfo: FrameInfo,
-        entity: FunctionalEntity
-      ) => Transition | undefined;
-    },
-    entityContexts: EntityContext[] = []
-  ) {
-    super(entityContexts);
+export class FunctionalEntity extends CompositeEntity {
+  constructor(public readonly functions: Partial<FunctionalEntityFunctions>) {
+    super();
   }
 
   _setup() {
@@ -869,10 +867,18 @@ export class FunctionalEntity extends ParallelEntity {
   _update() {
     if (this.functions.update) this.functions.update(this._lastFrameInfo, this);
     if (this.functions.requestTransition) {
-      this._transition = this.functions.requestTransition(
+      const result = this.functions.requestTransition(
         this._lastFrameInfo,
         this
       );
+      if (result) {
+        if (_.isObject(result)) {
+          this._transition = result;
+        } else {
+          // result is true
+          this._transition = makeTransition();
+        }
+      }
     }
   }
 
@@ -1333,13 +1339,13 @@ export class Decision extends EntityBase {
 
 /**
  * Waits for an event to be delivered, and decides to request a transition depending on the event value.
- * @handler is a function of the event arguments, and should return a transition (or false if no transition)
+ * @handler is a function of the event arguments, and should return either a transition or a boolean as to whether to transition or not
  */
 export class WaitForEvent extends EntityBase {
   constructor(
     public emitter: PIXI.utils.EventEmitter,
     public eventName: string,
-    public handler: (...args: any) => Transition = _.constant(makeTransition())
+    public handler: (...args: any) => Transition | boolean = _.constant(true)
   ) {
     super();
   }
@@ -1349,7 +1355,15 @@ export class WaitForEvent extends EntityBase {
   }
 
   _handleEvent(...args: any) {
-    this._transition = this.handler(...args);
+    const result = this.handler(...args);
+    if (!result) return;
+
+    if (_.isObject(result)) {
+      this._transition = result;
+    } else {
+      // result is true
+      this._transition = makeTransition();
+    }
   }
 }
 

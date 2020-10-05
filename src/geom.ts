@@ -272,3 +272,8 @@ export function randomPointAwayFromOthers(
       return newPoint;
   }
 }
+
+/** Returns if two numbers are within an epsilon of each other */
+export function areAlmostEqualNumber(x: number, y: number): boolean {
+  return Math.abs(x - y) <= EPSILON;
+}
