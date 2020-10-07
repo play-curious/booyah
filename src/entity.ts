@@ -114,7 +114,8 @@ export interface Entity extends PIXI.utils.EventEmitter {
  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
-export abstract class EntityBase extends PIXI.utils.EventEmitter
+export abstract class EntityBase
+  extends PIXI.utils.EventEmitter
   implements Entity {
   protected _eventListeners: IEventListener[] = [];
   protected _transition: Transition;
@@ -1120,9 +1121,16 @@ export class ToggleSwitch extends EntityBase {
 export class AnimatedSpriteEntity extends EntityBase {
   constructor(
     public readonly sprite: PIXI.AnimatedSprite,
-    private readonly resetFrame: boolean = true
+    public options?: {
+      resetFrame?: boolean;
+      transitionOnComplete?: boolean | (() => any);
+    }
   ) {
     super();
+    this.options = this.options ?? {};
+    this.options.resetFrame = this.options?.resetFrame ?? true;
+    this.options.transitionOnComplete =
+      this.options?.transitionOnComplete ?? true;
   }
 
   _setup() {
@@ -1143,7 +1151,7 @@ export class AnimatedSpriteEntity extends EntityBase {
     if (!this._entityConfig.container.children.includes(this.sprite))
       this._entityConfig.container.addChild(this.sprite);
 
-    if (this.resetFrame) this.sprite.gotoAndPlay(0);
+    if (this.options.resetFrame) this.sprite.gotoAndPlay(0);
     else this.sprite.play();
   }
 
@@ -1165,11 +1173,16 @@ export class AnimatedSpriteEntity extends EntityBase {
   _teardown(frameInfo: FrameInfo) {
     this.sprite.stop();
     this.sprite.onComplete = null;
-    if (this.resetFrame) this._entityConfig.container.removeChild(this.sprite);
+    if (this.options.resetFrame)
+      this._entityConfig.container.removeChild(this.sprite);
   }
 
   private _onAnimationComplete() {
-    this._transition = makeTransition();
+    if (this.options.transitionOnComplete === true) {
+      this._transition = makeTransition();
+    } else if (this.options.transitionOnComplete) {
+      this.options.transitionOnComplete();
+    }
   }
 }
 

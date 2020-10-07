@@ -322,11 +322,14 @@ export function getFramesForSpriteSheet(
 
 export function makeAnimatedSprite(
   resource: PIXI.LoaderResource,
-  resetFrame: boolean = true
+  options?: {
+    resetFrame?: boolean;
+    transitionOnComplete?: boolean;
+  }
 ): entity.AnimatedSpriteEntity {
   return new entity.AnimatedSpriteEntity(
     new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource)),
-    resetFrame
+    options
   );
 }
 
