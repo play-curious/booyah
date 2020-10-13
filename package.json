@@ -10,7 +10,7 @@
     "prepublish": "yarn build && yarn prettier"
   },
   "license": "MIT",
-  "devDependencies": {
+  "dependencies": {
     "@types/fontfaceobserver": "^0.0.6",
     "@types/google.analytics": "0.0.40",
     "@types/howler": "2.2.0",
