@@ -228,7 +228,7 @@ export function moveTowardsScalar(a: number, b: number, speed: number): number {
   return lerp(a, b, clamp(speed / d, 0, 1));
 }
 
-/** Returns a random number between a amd b */
+/** Returns a random number between a and b */
 export function randomInRange(a: number, b: number): number {
   return a + Math.random() * (b - a);
 }

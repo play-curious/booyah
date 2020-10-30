@@ -53,10 +53,17 @@ export class Jukebox extends entity.EntityBase {
 
     if (signal === "pause") this.musicPlaying.pause();
     else if (signal === "play") this.musicPlaying.play();
-    else if (signal === "reset") this.changeMusic();
+    else if (signal === "reset") this.play();
   }
 
-  changeMusic(name?: string) {
+  play(name?: string) {
+    if (this.musicPlaying && this.musicName === name) return;
+
+    if (!(name in this._entityConfig.musicAudio)) {
+      console.error("Missing music", name);
+      return;
+    }
+
     if (this.musicPlaying) {
       // TODO: fade
       this.musicPlaying.stop();
@@ -68,6 +75,11 @@ export class Jukebox extends entity.EntityBase {
       this.musicPlaying = this._entityConfig.musicAudio[name];
       this.musicPlaying.play();
     }
+  }
+
+  /** @deprecated Use play() instead */
+  changeMusic(name?: string) {
+    this.play(name);
   }
 
   setMuted(isMuted: boolean) {
@@ -145,6 +157,11 @@ export class FxMachine extends entity.EntityBase {
   }
 
   play(name: string) {
+    if (!(name in this._entityConfig.fxAudio)) {
+      console.error("Missing sound effect", name);
+      return;
+    }
+
     this._entityConfig.fxAudio[name].play();
   }
 

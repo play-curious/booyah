@@ -253,7 +253,9 @@ export function loadJson(fileName: string): Promise<any> {
   });
 }
 
-export function stringToBool(s: string): boolean {
+export function stringToBool(s?: string): boolean {
+  if(isNullish(s)) return false;
+
   return !/^(?:false|off|0)$/i.test(s);
 }
 

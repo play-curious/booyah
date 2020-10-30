@@ -114,8 +114,7 @@ export interface Entity extends PIXI.utils.EventEmitter {
  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
-export abstract class EntityBase
-  extends PIXI.utils.EventEmitter
+export abstract class EntityBase extends PIXI.utils.EventEmitter
   implements Entity {
   protected _eventListeners: IEventListener[] = [];
   protected _transition: Transition;
