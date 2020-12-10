@@ -123,6 +123,7 @@ class PlayOptions extends PIXI.utils.EventEmitter {
     this.options.scene = directives.startingScene;
     this.options.sceneParams = directives.startingSceneParams;
     this.options.startingProgress = directives.startingProgress;
+    this.options.endingScenes = directives.endingScenes;
 
     const searchParams = new URLSearchParams(searchUrl);
     if (searchParams.has("music"))
@@ -135,6 +136,8 @@ class PlayOptions extends PIXI.utils.EventEmitter {
       );
     if (searchParams.has("scene"))
       this.options.scene = searchParams.get("scene");
+    if (searchParams.has("endingScenes"))
+      this.options.endingScenes = JSON.parse(searchParams.get("endingScenes"));
     if (searchParams.has("params"))
       this.options.sceneParams = JSON.parse(searchParams.get("params"));
     if (searchParams.has("progress"))
@@ -1125,7 +1128,7 @@ export function go(directives = {}) {
       startingState: rootConfig.playOptions.options.scene,
       startingStateParams: rootConfig.playOptions.options.sceneParams,
       startingProgress: rootConfig.playOptions.options.startingProgress,
-      endingStates: rootConfig.directives.endingScenes,
+      endingStates: rootConfig.playOptions.options.endingScenes,
     }
   );
   rootConfig.gameStateMachine.on("stateChange", onGameStateMachineChange);
