@@ -42,6 +42,10 @@ export interface Directives {
   screenSize: PIXI.IPoint;
   canvasId: string;
   fpsMeterPosition: string;
+  loader: {
+    position: PIXI.IPointData;
+    scale: number;
+  };
 }
 
 const DEFAULT_DIRECTIVES: any = {
@@ -88,6 +92,11 @@ const DEFAULT_DIRECTIVES: any = {
   },
 
   fpsMeterPosition: "none",
+
+  loader: {
+    position: null,
+    scale: 1,
+  },
 };
 
 const GRAPHICAL_ASSETS = [
@@ -811,20 +820,20 @@ export class LoadingScene extends entity.EntityBase {
     this.container.addChild(this.loadingContainer);
 
     this.loadingFill = new PIXI.Graphics();
-    this.loadingFill.position.set(
-      this._entityConfig.app.screen.width / 2 - 50,
-      (this._entityConfig.app.screen.height * 3) / 4 - 50
-    );
+    // this.loadingFill.scale.set(
+    //   this._entityConfig.directives.loader.scale
+    // );
     this.loadingContainer.addChild(this.loadingFill);
 
     const loadingFillMask = new PIXI.Graphics();
     loadingFillMask.beginFill(0xffffff);
-    loadingFillMask.drawCircle(0, 0, 50);
-    loadingFillMask.endFill();
-    loadingFillMask.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
+    loadingFillMask.drawCircle(
+      0,
+      0,
+      50 * this._entityConfig.directives.loader.scale
     );
+    loadingFillMask.endFill();
+    loadingFillMask.position.set(this._entityConfig.directives.loader.position);
     this.loadingContainer.addChild(loadingFillMask);
 
     this.loadingFill.mask = loadingFillMask;
@@ -835,9 +844,9 @@ export class LoadingScene extends entity.EntityBase {
       ].texture
     );
     this.loadingCircle.anchor.set(0.5);
-    this.loadingCircle.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
+    this.loadingCircle.scale.set(this._entityConfig.directives.loader.scale);
+    this.loadingCircle.position.copyFrom(
+      this._entityConfig.directives.loader.position
     );
     this.loadingContainer.addChild(this.loadingCircle);
 
@@ -892,10 +901,8 @@ export class ReadyScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
-    );
+    button.scale.set(this._entityConfig.directives.loader.scale);
+    button.position.copyFrom(this._entityConfig.directives.loader.position);
     this._on(
       button,
       "pointertap",
@@ -934,10 +941,8 @@ export class LoadingErrorScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
-    );
+    button.scale.set(this._entityConfig.directives.loader.scale);
+    button.position.copyFrom(this._entityConfig.directives.loader.position);
     this.container.addChild(button);
 
     this._entityConfig.container.addChild(this.container);
@@ -970,10 +975,7 @@ export class DoneScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
-    );
+    button.position.copyFrom(this._entityConfig.directives.loader.position);
     this._on(
       button,
       "pointertap",
@@ -1048,7 +1050,7 @@ function update(timeScale: number) {
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
-function changeGameState(newGameState: entity.GameState) {
+export function changeGameState(newGameState: entity.GameState) {
   console.log("switching from game state", gameState, "to", newGameState);
   gameState = newGameState;
 
