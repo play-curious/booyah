@@ -123,6 +123,10 @@ export abstract class EntityBase
   protected _lastFrameInfo: FrameInfo;
   protected _isSetup = false;
 
+  get entityConfig(): EntityConfig {
+    return this._entityConfig;
+  }
+
   public setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void {
     if (this._isSetup) throw new Error("setup() called twice");
 
