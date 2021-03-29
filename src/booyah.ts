@@ -42,7 +42,7 @@ export interface Directives {
   screenSize: PIXI.IPoint;
   canvasId: string;
   fpsMeterPosition: string;
-  loader: {
+  loadingGauge: {
     position: PIXI.IPointData;
     scale: number;
   };
@@ -93,7 +93,7 @@ const DEFAULT_DIRECTIVES: any = {
 
   fpsMeterPosition: "none",
 
-  loader: {
+  loadingGauge: {
     position: null,
     scale: 1,
   },
@@ -820,9 +820,6 @@ export class LoadingScene extends entity.EntityBase {
     this.container.addChild(this.loadingContainer);
 
     this.loadingFill = new PIXI.Graphics();
-    // this.loadingFill.scale.set(
-    //   this._entityConfig.directives.loader.scale
-    // );
     this.loadingContainer.addChild(this.loadingFill);
 
     const loadingFillMask = new PIXI.Graphics();
@@ -830,10 +827,12 @@ export class LoadingScene extends entity.EntityBase {
     loadingFillMask.drawCircle(
       0,
       0,
-      50 * this._entityConfig.directives.loader.scale
+      50 * this._entityConfig.directives.loadingGauge.scale
     );
     loadingFillMask.endFill();
-    loadingFillMask.position.set(this._entityConfig.directives.loader.position);
+    loadingFillMask.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
+    );
     this.loadingContainer.addChild(loadingFillMask);
 
     this.loadingFill.mask = loadingFillMask;
@@ -844,9 +843,11 @@ export class LoadingScene extends entity.EntityBase {
       ].texture
     );
     this.loadingCircle.anchor.set(0.5);
-    this.loadingCircle.scale.set(this._entityConfig.directives.loader.scale);
+    this.loadingCircle.scale.set(
+      this._entityConfig.directives.loadingGauge.scale
+    );
     this.loadingCircle.position.copyFrom(
-      this._entityConfig.directives.loader.position
+      this._entityConfig.directives.loadingGauge.position
     );
     this.loadingContainer.addChild(this.loadingCircle);
 
@@ -901,8 +902,10 @@ export class ReadyScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.scale.set(this._entityConfig.directives.loader.scale);
-    button.position.copyFrom(this._entityConfig.directives.loader.position);
+    button.scale.set(this._entityConfig.directives.loadingGauge.scale);
+    button.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
+    );
     this._on(
       button,
       "pointertap",
@@ -941,8 +944,10 @@ export class LoadingErrorScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.scale.set(this._entityConfig.directives.loader.scale);
-    button.position.copyFrom(this._entityConfig.directives.loader.position);
+    button.scale.set(this._entityConfig.directives.loadingGauge.scale);
+    button.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
+    );
     this.container.addChild(button);
 
     this._entityConfig.container.addChild(this.container);
@@ -1311,9 +1316,21 @@ export function makePreloader(additionalAssets: string[]) {
   return loader;
 }
 
+function setDefaultDirectives(directives: Partial<Directives>) {
+  rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
+
+  // Set the loading gauge position from either the directives or default
+  if (!rootConfig.directives.loadingGauge.position) {
+    rootConfig.directives.loadingGauge.position = new PIXI.Point(
+      rootConfig.directives.screenSize.x / 2 - 50,
+      (rootConfig.directives.screenSize.y * 3) / 4 - 50
+    );
+  }
+}
+
 export function go(directives: Partial<Directives> = {}) {
   _.extend(rootConfig, directives.rootConfig);
-  rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
+  setDefaultDirectives(directives);
 
   // Process starting options
   rootConfig.playOptions = new PlayOptions(
