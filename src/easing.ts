@@ -1,4 +1,5 @@
 // Based on https://github.com/AndrewRayCode/easing-utils
+// Example on http://andrewraycode.github.io/easing-utils/gh-pages/
 
 export type EasingFunction = (t: number) => number;
 

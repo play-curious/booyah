@@ -42,6 +42,10 @@ export interface Directives {
   screenSize: PIXI.IPoint;
   canvasId: string;
   fpsMeterPosition: string;
+  loadingGauge: {
+    position: PIXI.IPointData;
+    scale: number;
+  };
 }
 
 const DEFAULT_DIRECTIVES: any = {
@@ -88,6 +92,11 @@ const DEFAULT_DIRECTIVES: any = {
   },
 
   fpsMeterPosition: "none",
+
+  loadingGauge: {
+    position: null,
+    scale: 1,
+  },
 };
 
 const GRAPHICAL_ASSETS = [
@@ -811,19 +820,18 @@ export class LoadingScene extends entity.EntityBase {
     this.container.addChild(this.loadingContainer);
 
     this.loadingFill = new PIXI.Graphics();
-    this.loadingFill.position.set(
-      this._entityConfig.app.screen.width / 2 - 50,
-      (this._entityConfig.app.screen.height * 3) / 4 - 50
-    );
     this.loadingContainer.addChild(this.loadingFill);
 
     const loadingFillMask = new PIXI.Graphics();
     loadingFillMask.beginFill(0xffffff);
-    loadingFillMask.drawCircle(0, 0, 50);
+    loadingFillMask.drawCircle(
+      0,
+      0,
+      50 * this._entityConfig.directives.loadingGauge.scale
+    );
     loadingFillMask.endFill();
-    loadingFillMask.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
+    loadingFillMask.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
     );
     this.loadingContainer.addChild(loadingFillMask);
 
@@ -835,9 +843,11 @@ export class LoadingScene extends entity.EntityBase {
       ].texture
     );
     this.loadingCircle.anchor.set(0.5);
-    this.loadingCircle.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
+    this.loadingCircle.scale.set(
+      this._entityConfig.directives.loadingGauge.scale
+    );
+    this.loadingCircle.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
     );
     this.loadingContainer.addChild(this.loadingCircle);
 
@@ -892,9 +902,9 @@ export class ReadyScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
+    button.scale.set(this._entityConfig.directives.loadingGauge.scale);
+    button.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
     );
     this._on(
       button,
@@ -934,9 +944,9 @@ export class LoadingErrorScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
+    button.scale.set(this._entityConfig.directives.loadingGauge.scale);
+    button.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
     );
     this.container.addChild(button);
 
@@ -970,10 +980,7 @@ export class DoneScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.set(
-      this._entityConfig.app.screen.width / 2,
-      (this._entityConfig.app.screen.height * 3) / 4
-    );
+    button.position.copyFrom(this._entityConfig.directives.loader.position);
     this._on(
       button,
       "pointertap",
@@ -1048,7 +1055,7 @@ function update(timeScale: number) {
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
-function changeGameState(newGameState: entity.GameState) {
+export function changeGameState(newGameState: entity.GameState) {
   console.log("switching from game state", gameState, "to", newGameState);
   gameState = newGameState;
 
@@ -1309,9 +1316,21 @@ export function makePreloader(additionalAssets: string[]) {
   return loader;
 }
 
+function setDefaultDirectives(directives: Partial<Directives>) {
+  rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
+
+  // Set the loading gauge position from either the directives or default
+  if (!rootConfig.directives.loadingGauge.position) {
+    rootConfig.directives.loadingGauge.position = new PIXI.Point(
+      rootConfig.directives.screenSize.x / 2 - 50,
+      (rootConfig.directives.screenSize.y * 3) / 4 - 50
+    );
+  }
+}
+
 export function go(directives: Partial<Directives> = {}) {
   _.extend(rootConfig, directives.rootConfig);
-  rootConfig.directives = util.deepDefaults(directives, DEFAULT_DIRECTIVES);
+  setDefaultDirectives(directives);
 
   // Process starting options
   rootConfig.playOptions = new PlayOptions(
