@@ -253,7 +253,7 @@ export class SpeakerDisplay extends entity.EntityBase {
 
   _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     this.container = new PIXI.Container();
-    this.container.position = this.position;
+    this.container.position.copyFrom(this.position);
 
     // Make a hidden sprite for each texture, add it to the container
     this.namesToSprites = _.mapObject(this.namesToImages, (image) => {

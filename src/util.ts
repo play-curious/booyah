@@ -316,12 +316,6 @@ export function setPropertyInTree(root: Root, name: string, value: any): void {
   }
 }
 
-export function getFramesForSpriteSheet(
-  resource: PIXI.LoaderResource
-): PIXI.Texture[] {
-  return _.map(resource.textures, (value) => value);
-}
-
 export function makeAnimatedSprite(
   resource: PIXI.LoaderResource,
   options?: {
@@ -330,7 +324,7 @@ export function makeAnimatedSprite(
   }
 ): entity.AnimatedSpriteEntity {
   return new entity.AnimatedSpriteEntity(
-    new PIXI.AnimatedSprite(getFramesForSpriteSheet(resource)),
+    new PIXI.AnimatedSprite(Object.values(resource)),
     options
   );
 }

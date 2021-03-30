@@ -1065,7 +1065,7 @@ export class ToggleSwitch extends EntityBase {
     super.setup(frameInfo, entityConfig);
 
     this.container = new PIXI.Container();
-    this.container.position = this.position;
+    this.container.position.copyFrom(this.position);
 
     this.spriteOn = new PIXI.Sprite(this.onTexture);
     this.spriteOn.interactive = true;

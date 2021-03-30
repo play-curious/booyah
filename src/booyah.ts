@@ -286,9 +286,10 @@ export class MenuEntity extends entity.CompositeEntity {
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
-    this.pauseButton.position =
+    this.pauseButton.position.copyFrom(
       this.options.menuButtonPosition ??
-      new PIXI.Point(this._entityConfig.app.renderer.width - 50, 50);
+      new PIXI.Point(this._entityConfig.app.renderer.width - 50, 50)
+    );
     this.pauseButton.interactive = true;
     this._on(this.pauseButton, "pointertap", this._onPause);
     this.container.addChild(this.pauseButton);

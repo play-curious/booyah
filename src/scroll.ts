@@ -484,7 +484,7 @@ export class Scrollbox extends entity.EntityBase {
         (this.content.height + this.options.contentMarginY),
       0
     );
-    this.content.position = position;
+    this.content.position.copyFrom(position);
 
     this._drawScrollbars();
 
