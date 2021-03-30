@@ -13,6 +13,7 @@
   "dependencies": {
     "fontfaceobserver": "^2.1.0",
     "howler": "^2.2.0",
+    "pixi-filters": "^4.0.0",
     "pixi.js": "5.3.9",
     "stats.js": "^0.17.0",
     "underscore": "~1.10"

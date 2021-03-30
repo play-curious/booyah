@@ -254,7 +254,7 @@ export function loadJson(fileName: string): Promise<any> {
 }
 
 export function stringToBool(s?: string): boolean {
-  if(isNullish(s)) return false;
+  if (isNullish(s)) return false;
 
   return !/^(?:false|off|0)$/i.test(s);
 }
@@ -324,7 +324,7 @@ export function makeAnimatedSprite(
   }
 ): entity.AnimatedSpriteEntity {
   return new entity.AnimatedSpriteEntity(
-    new PIXI.AnimatedSprite(Object.values(resource)),
+    new PIXI.AnimatedSprite(Object.values(resource.textures)),
     options
   );
 }
