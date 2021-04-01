@@ -56,6 +56,13 @@ export class Jukebox extends entity.EntityBase {
     else if (signal === "reset") this.play();
   }
 
+  changeVolume(volume: number){
+    this.volume = volume;
+    _.each(this._entityConfig.musicAudio, (howl: Howl) =>
+      howl.volume(volume)
+    );
+  }
+
   play(name?: string) {
     if (this.musicPlaying && this.musicName === name) return;
 
@@ -148,12 +155,18 @@ export class FxMachine extends entity.EntityBase {
   }
 
   _setup() {
-    _.each(this._entityConfig.fxAudio, (howl: Howl) =>
-      howl.volume(this.volume)
-    );
+    this.changeVolume(this.volume);
+
     this._updateMuted();
 
     this._on(this._entityConfig.playOptions, "fxOn", this._updateMuted);
+  }
+
+  changeVolume(volume: number){
+    this.volume = volume;
+    _.each(this._entityConfig.fxAudio, (howl: Howl) =>
+      howl.volume(volume)
+    );
   }
 
   play(name: string) {
