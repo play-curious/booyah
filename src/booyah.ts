@@ -376,7 +376,7 @@ export class MenuEntity extends entity.CompositeEntity {
       }
     }
 
-    if (util.supportsFullscreen(document.getElementById("game-parent"))) {
+    if (util.supportsFullscreen()) {
       this.fullScreenButton = new entity.ToggleSwitch({
         onTexture: this._entityConfig.app.loader.resources[
           "booyah/images/fullscreen-on.png"

@@ -110,12 +110,14 @@ export function resizeGame(appSize: PIXI.Point): void {
   }
 }
 
-export function supportsFullscreen(element: any): boolean {
+export function supportsFullscreen(): boolean {
+  // Stop TypeScript from complaining about feature detection
+  const d: any = document;
   return !!(
-    element.requestFullscreen ||
-    element.mozRequestFullScreen ||
-    element.webkitRequestFullscreen ||
-    element.msRequestFullscreen
+    d.fullscreenEnabled ||
+    d.mozFullScreenEnabled ||
+    d.webkitFullscreenEnabled ||
+    d.msFullscreenEnabled
   );
 }
 
