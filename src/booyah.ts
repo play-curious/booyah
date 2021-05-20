@@ -28,7 +28,7 @@ export interface Directives {
   splashScreen: string;
   graphicalAssets: string[];
   fontAssets: string[];
-  jsonAssets: { [k: string]: string };
+  jsonAssets: Array<string | { key: string; url: string }>;
   musicAssets: (string | { key: string; url: string })[];
   fxAssets: (string | { key: string; url: string })[];
   extraLoaders: ((entityConfig: entity.EntityConfig) => Promise<any>)[];

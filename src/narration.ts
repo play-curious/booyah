@@ -5,240 +5,196 @@ import _ from "underscore";
 import * as entity from "./entity";
 import * as audio from "./audio";
 import * as util from "./util";
+import { collapseTextChangeRangesAcrossMultipleVersions } from "typescript";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
-/**
- * @deprecated May not be up to date with other changes in Booyah
- */
-export class Narrator extends entity.EntityBase {
-  public container: PIXI.Container;
-  public narratorSubtitle: PIXI.Text;
-  public characterSubtitle: PIXI.Text;
-  public key: string;
-  public isPlaying: boolean;
-  public keyQueue: any[];
-  public isPaused: boolean;
-  public currentHowl: Howl;
-  public currentSoundId: any;
-  public keyStartTime: number;
-  public nextLineAt: number;
-  public lineIndex = 0;
-  public lines: any[];
-  public duration: number;
+export type DialogLine = {
+  speaker?: string;
+  text: string;
+  start?: number;
+};
 
-  // filesToHowl is a Map
-  constructor(
-    public filesToHowl: Map<string, Howl>,
-    public narrationTable: any
-  ) {
+export class SubtitleNarratorTextStyle {
+  fontFamily = "Teko";
+  fontSize = 40;
+  fill = "white";
+  strokeThickness = 4;
+  align = "center";
+  wordWrapWidth: number;
+}
+
+export class SubtitleNarratorOptions {
+  position: PIXI.IPointData;
+  textStyle: Partial<SubtitleNarratorTextStyle> =
+    new SubtitleNarratorTextStyle();
+}
+
+/**
+ * Events:
+ *  done - key (string)
+ */
+export class SubtitleNarrator extends entity.CompositeEntity {
+  private subtitleTexts: { [k: string]: { [k: string]: any } };
+  private container: PIXI.Container;
+  private narratorSubtitle: PIXI.Text;
+  private key: string | null;
+  private timeSincePlay: number | null;
+  private lines: DialogLine[] | null;
+  private nextLineAt: number | null;
+  private lineIndex: number | null;
+  private _options: SubtitleNarratorOptions;
+
+  constructor(options?: Partial<SubtitleNarratorOptions>) {
     super();
+
+    this._options = util.fillInOptions(options, new SubtitleNarratorOptions());
+    this._options.textStyle = util.fillInOptions(
+      options.textStyle,
+      new SubtitleNarratorTextStyle()
+    );
   }
 
   _setup() {
-    this.container = new PIXI.Container();
+    this.subtitleTexts = this._entityConfig.jsonAssets.subtitles;
 
-    this.narratorSubtitle = new PIXI.Text("", {
-      fontFamily: "Roboto Condensed",
-      fontSize: 32,
-      fill: "white",
-      strokeThickness: 4,
-      align: "center",
+    this.container = new PIXI.Container();
+    this._entityConfig.container.addChild(this.container);
+
+    const styleOptions = _.defaults(this._options.textStyle, {
       wordWrap: true,
       wordWrapWidth: this._entityConfig.app.screen.width - 150,
     });
+
+    this.narratorSubtitle = new PIXI.Text("", styleOptions);
     this.narratorSubtitle.anchor.set(0.5, 0.5);
-    this.narratorSubtitle.position.set(
-      this._entityConfig.app.screen.width / 2,
-      this._entityConfig.app.screen.height - 75
-    );
+
+    if (this._options.position) {
+      this.narratorSubtitle.position.copyFrom(this._options.position);
+    } else {
+      this.narratorSubtitle.position.set(
+        this._entityConfig.app.screen.width / 2,
+        this._entityConfig.app.screen.height - 75
+      );
+    }
     this.container.addChild(this.narratorSubtitle);
 
-    this.characterSubtitle = new PIXI.Text("", {
-      fontFamily: "Roboto Condensed",
-      fontSize: 32,
-      fill: "white",
-      strokeThickness: 4,
-      align: "left",
-      wordWrap: true,
-      wordWrapWidth: this._entityConfig.app.screen.width - 350,
-    });
-    this.characterSubtitle.anchor.set(0, 0.5);
-    this.characterSubtitle.position.set(
-      300,
-      this._entityConfig.app.screen.height - 75
-    );
-    this.container.addChild(this.characterSubtitle);
-
-    this._entityConfig.container.addChild(this.container);
-
     this.key = null;
-    this.isPlaying = false;
-    this.keyQueue = [];
+    this.timeSincePlay = null;
+    this.lines = null;
+    this.nextLineAt = null;
 
-    this.isPaused = false;
-    this.currentHowl = null;
-    this.currentSoundId = null;
-
-    this._on(this._entityConfig.playOptions, "fxOn", () => this._updateMuted);
     this._on(
       this._entityConfig.playOptions,
       "showSubtitles",
-      () => this._updateShowSubtitles
+      this._updateShowSubtitles
     );
 
-    this._updateMuted();
     this._updateShowSubtitles();
   }
 
-  update(frameInfo: entity.FrameInfo) {
-    super.update(frameInfo);
+  _update() {
+    if (!this.key || this._lastFrameInfo.gameState !== "playing") return;
 
-    if (frameInfo.gameState == "paused") {
-      if (!this.isPaused) {
-        if (this.currentHowl) this.currentHowl.pause(this.currentSoundId);
-        this.isPaused = true;
-      }
-    } else if (this.isPaused && this.isPlaying) {
-      if (this.currentHowl) this.currentHowl.play(this.currentSoundId);
-      this.isPaused = false;
-    } else if (!this.isPlaying) {
-      if (this.keyQueue.length > 0) {
-        this.key = this.keyQueue.shift();
-        this._initNarration(frameInfo.playTime);
-      }
-    } else if (frameInfo.playTime - this.keyStartTime >= this.nextLineAt) {
-      this.lineIndex++;
-      if (this.lineIndex < this.lines.length) {
-        this._updateNextLineAt();
-        this._updateText(
-          this.lines[this.lineIndex].text,
-          this.lines[this.lineIndex].speaker
-        );
-      } else {
-        this.isPlaying = false;
-        this.currentSoundId = null;
-        this.currentHowl = null;
-
-        this._updateText();
-      }
-    }
+    this.timeSincePlay += this._lastFrameInfo.timeSinceLastFrame;
+    this._updateSubtitle();
   }
 
   _teardown() {
     this._entityConfig.container.removeChild(this.container);
   }
 
-  // @priority < 0 means to skip the narration if other narration is in progress
-  changeKey(key: string, priority = 0) {
-    if (!_.has(this.narrationTable, key)) {
+  changeKey(key: string) {
+    if (!_.has(this.subtitleTexts, key)) {
       console.error("No key", key, "in narration table");
       return;
     }
 
-    if (this.isPlaying && priority < 0) {
-      console.log("Skipping narration", key, "of priority", priority);
-      return;
-    }
-
-    // TODO sort keys by priority
-    this.keyQueue.push(key);
+    this._stopNarration();
+    this._initNarration(key);
   }
 
-  // Stop currently playing and empty queue
-  cancelAll() {
-    this.keyQueue = [];
-
-    if (this.isPlaying) {
-      if (this.currentHowl) this.currentHowl.pause(this.currentSoundId);
-
-      this.isPlaying = false;
-      this.currentSoundId = null;
-      this.currentHowl = null;
-
-      this._updateText();
-    }
+  stopNarration(key: string) {
+    if (this.key === key) this._stopNarration();
   }
 
-  narrationDuration(key: string) {
-    const narrationInfo = this.narrationTable[key];
-    // If start and end times are provided, use them
-    // Else get the entire duration of the file
-    if ("start" in narrationInfo) {
-      return narrationInfo.end - narrationInfo.start;
+  _onSignal(frameInfo: entity.FrameInfo, signal: string) {
+    if (signal === "reset") this._stopNarration();
+  }
+
+  _initNarration(key: string) {
+    this.key = key;
+    this.timeSincePlay = 0;
+    this.lines = breakDialogIntoLines(this.subtitleTexts[key].text);
+
+    if (this.lines[0].start) {
+      // Wait for first line
+      this.lineIndex = -1;
     } else {
-      const file = this.narrationTable[key].file || key;
-      return this.filesToHowl.get(file).duration() * 1000;
+      // Start first line now
+      this.lineIndex = 0;
+      this.narratorSubtitle.text = this.lines[0].text;
     }
-  }
-
-  _onSignal(frameInfo: entity.FrameInfo, signal: string, data?: any) {
-    if (signal === "reset") this.cancelAll();
-  }
-
-  _initNarration(playTime: number) {
-    this.duration = this.narrationDuration(this.key);
-    this.lines = this.narrationTable[this.key].dialog;
-    this.lineIndex = 0;
-    this.keyStartTime = playTime;
-    this.isPlaying = true;
-
     this._updateNextLineAt();
-    this._updateText(this.lines[0].text, this.lines[0].speaker);
-
-    if (this.narrationTable[this.key].skipFile) {
-      this.currentHowl = null;
-    } else {
-      const file = this.narrationTable[this.key].file || this.key;
-      this.currentHowl = this.filesToHowl.get(file);
-
-      // If the start time is provided, this is a sprite
-      // Otherwise it's just a single file
-      if ("start" in this.narrationTable[this.key]) {
-        this.currentSoundId = this.currentHowl.play(this.key);
-      } else {
-        this.currentHowl.seek(0);
-        this.currentSoundId = this.currentHowl.play();
-      }
-    }
   }
 
-  _updateText(text = "", speaker: string = null) {
-    if (text === "") {
-      this.narratorSubtitle.text = "";
-      this.characterSubtitle.text = "";
-    } else if (speaker && !speaker.endsWith(".big")) {
-      this.narratorSubtitle.text = "";
-      this.characterSubtitle.text = text;
-    } else {
-      this.narratorSubtitle.text = text;
-      this.characterSubtitle.text = "";
-    }
+  _stopNarration() {
+    if (!this.key) return;
 
-    this.emit("changeSpeaker", speaker);
+    this.emit("done", this.key);
+
+    this.key = null;
+    this.timeSincePlay = null;
+    this.lines = null;
+    this.nextLineAt = null;
+
+    this.narratorSubtitle.text = "";
   }
 
-  // Must be called after this.duration, this.lines, this.lineIndex, etc.. have been set
+  // Must be called after his.lines, this.lineIndex, etc.. have been set
   _updateNextLineAt() {
-    if (this.lineIndex === this.lines.length - 1) {
-      this.nextLineAt = this.duration;
-    } else if ("start" in this.lines[this.lineIndex + 1]) {
+    if (
+      this.lineIndex < this.lines.length - 1 &&
+      this.lines[this.lineIndex + 1].start
+    ) {
       this.nextLineAt = this.lines[this.lineIndex + 1].start;
     } else {
       this.nextLineAt =
-        ((this.lineIndex + 1) * this.duration) / this.lines.length;
+        this.timeSincePlay +
+        estimateDuration(this.lines[this.lineIndex].text, TIME_PER_WORD);
     }
   }
 
-  _updateMuted() {
-    const muted = !this._entityConfig.playOptions.options.fxOn;
-    for (let howl of this.filesToHowl.values()) howl.mute(muted);
+  _updateSubtitle() {
+    if (this.nextLineAt >= this.timeSincePlay) return;
+
+    this.lineIndex++;
+    if (this.lineIndex < this.lines.length) {
+      this._updateNextLineAt();
+      this.narratorSubtitle.text = this.lines[this.lineIndex].text;
+    } else {
+      this._stopNarration();
+    }
   }
 
   _updateShowSubtitles() {
-    this.container.visible =
-      this._entityConfig.playOptions.options.showSubtitles;
+    const showSubtitles = this._entityConfig.playOptions.options.showSubtitles;
+    this.container.visible = showSubtitles;
   }
+}
+
+export function makeInstallSubtitleNarrator(
+  options?: Partial<SubtitleNarratorOptions>
+) {
+  function installSubtitleNarrator(
+    rootConfig: entity.EntityConfig,
+    rootEntity: entity.ParallelEntity
+  ) {
+    rootConfig.narrator = new SubtitleNarrator(options);
+    rootEntity.addChildEntity(rootConfig.narrator);
+  }
+
+  return installSubtitleNarrator;
 }
 
 export class SpeakerDisplay extends entity.EntityBase {
@@ -492,7 +448,7 @@ export function makeNarrationLoader(
   });
 }
 
-export function breakDialogIntoLines(text: string) {
+export function breakDialogIntoLines(text: string): DialogLine[] {
   // Regular expression to match dialog lines like "[Malo:481] Ahoy there, matey!"
   const r = /^(?:\[([^:]+)?(?:\:(\d+))?\])?(.*)/;
   const rNewLines = /__/g;
@@ -502,7 +458,8 @@ export function breakDialogIntoLines(text: string) {
     // speaker and start can both be undefined, and will be stripped from the transition
     let [, speaker, start, dialog] = r.exec(textLine);
     //@ts-ignore
-    if (start) start = parseInt(start);
+    let startAsNumber: number;
+    if (start) startAsNumber = parseInt(start);
     dialog = dialog.trim();
 
     if (dialog.length > 0) {
@@ -510,7 +467,7 @@ export function breakDialogIntoLines(text: string) {
       dialogLines.push({
         speaker,
         text: textWithNewLines,
-        start,
+        start: startAsNumber,
       });
     }
   }
