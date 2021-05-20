@@ -378,12 +378,14 @@ export class MenuEntity extends entity.CompositeEntity {
 
     if (util.supportsFullscreen()) {
       this.fullScreenButton = new entity.ToggleSwitch({
-        onTexture: this._entityConfig.app.loader.resources[
-          "booyah/images/fullscreen-on.png"
-        ].texture,
-        offTexture: this._entityConfig.app.loader.resources[
-          "booyah/images/fullscreen-off.png"
-        ].texture,
+        onTexture:
+          this._entityConfig.app.loader.resources[
+            "booyah/images/fullscreen-on.png"
+          ].texture,
+        offTexture:
+          this._entityConfig.app.loader.resources[
+            "booyah/images/fullscreen-off.png"
+          ].texture,
         isOn: false,
         position: new PIXI.Point(405, 130),
       });
@@ -406,12 +408,12 @@ export class MenuEntity extends entity.CompositeEntity {
     }
 
     this.musicButton = new entity.ToggleSwitch({
-      onTexture: this._entityConfig.app.loader.resources[
-        "booyah/images/music-on.png"
-      ].texture,
-      offTexture: this._entityConfig.app.loader.resources[
-        "booyah/images/music-off.png"
-      ].texture,
+      onTexture:
+        this._entityConfig.app.loader.resources["booyah/images/music-on.png"]
+          .texture,
+      offTexture:
+        this._entityConfig.app.loader.resources["booyah/images/music-off.png"]
+          .texture,
       isOn: this._entityConfig.playOptions.options.musicOn,
       position: new PIXI.Point(405, 230),
     });
@@ -421,12 +423,12 @@ export class MenuEntity extends entity.CompositeEntity {
     // TODO prevent being able to turn both subtitles and sound off
 
     this.fxButton = new entity.ToggleSwitch({
-      onTexture: this._entityConfig.app.loader.resources[
-        "booyah/images/voices-on.png"
-      ].texture,
-      offTexture: this._entityConfig.app.loader.resources[
-        "booyah/images/voices-off.png"
-      ].texture,
+      onTexture:
+        this._entityConfig.app.loader.resources["booyah/images/voices-on.png"]
+          .texture,
+      offTexture:
+        this._entityConfig.app.loader.resources["booyah/images/voices-off.png"]
+          .texture,
       isOn: this._entityConfig.playOptions.options.fxOn,
       position: new PIXI.Point(630, 230),
     });
@@ -434,12 +436,14 @@ export class MenuEntity extends entity.CompositeEntity {
     this._activateChildEntity(this.fxButton, menuButtonLayerConfig);
 
     this.subtitlesButton = new entity.ToggleSwitch({
-      onTexture: this._entityConfig.app.loader.resources[
-        "booyah/images/subtitles-on.png"
-      ].texture,
-      offTexture: this._entityConfig.app.loader.resources[
-        "booyah/images/subtitles-off.png"
-      ].texture,
+      onTexture:
+        this._entityConfig.app.loader.resources[
+          "booyah/images/subtitles-on.png"
+        ].texture,
+      offTexture:
+        this._entityConfig.app.loader.resources[
+          "booyah/images/subtitles-off.png"
+        ].texture,
       isOn: this._entityConfig.playOptions.options.showSubtitles,
       position: new PIXI.Point(630, 130),
     });
@@ -661,9 +665,10 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 
   _onSwitchLanguage(language: string) {
-    this.confirmLanguageButton.texture = this._entityConfig.app.loader.resources[
-      `booyah/images/lang-${language}-on.png`
-    ].texture;
+    this.confirmLanguageButton.texture =
+      this._entityConfig.app.loader.resources[
+        `booyah/images/lang-${language}-on.png`
+      ].texture;
     this._on(this.confirmLanguageButton, "pointertap", () =>
       this._onConfirmSwitchLanguage(language)
     );
@@ -1070,10 +1075,12 @@ function loadFixedAssets() {
   util.startTiming("loadFixed");
 
   // Load graphical assets
-  const pixiLoaderResources = [].concat(
-    GRAPHICAL_ASSETS,
-    _.values(rootConfig.directives.graphics),
-    rootConfig.directives.graphicalAssets
+  const pixiLoaderResources = _.unique(
+    [].concat(
+      GRAPHICAL_ASSETS,
+      _.values(rootConfig.directives.graphics),
+      rootConfig.directives.graphicalAssets
+    )
   );
   rootConfig.app.loader.add(pixiLoaderResources);
   rootConfig.app.loader.onProgress.add(pixiLoadProgressHandler);
@@ -1153,7 +1160,7 @@ function loadFixedAssets() {
       videoLoader
         .fetch(
           rootConfig.directives.videoAssets.map(
-            (name: string) => `video/${name}`
+            (name: string) => `video/${name}.mp4`
           )
         )
         .then((assets: any[]) => {

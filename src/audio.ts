@@ -32,7 +32,6 @@ export class Jukebox extends entity.EntityBase {
     this.musicPlaying = null;
 
     _.each(this._entityConfig.musicAudio, (howl: Howl) => {
-      howl.volume(this.volume);
       howl.loop(true);
     });
 
@@ -56,14 +55,12 @@ export class Jukebox extends entity.EntityBase {
     else if (signal === "reset") this.play();
   }
 
-  changeVolume(volume: number){
+  changeVolume(volume: number) {
     this.volume = volume;
-    _.each(this._entityConfig.musicAudio, (howl: Howl) =>
-      howl.volume(volume)
-    );
+    if (this.musicPlaying) this.musicPlaying.volume(volume);
   }
 
-  play(name?: string) {
+  play(name?: string, volume?: number) {
     if (this.musicPlaying && this.musicName === name) return;
 
     if (!(name in this._entityConfig.musicAudio)) {
@@ -80,6 +77,7 @@ export class Jukebox extends entity.EntityBase {
     if (name) {
       this.musicName = name;
       this.musicPlaying = this._entityConfig.musicAudio[name];
+      this.musicPlaying.volume(volume ?? this.volume);
       this.musicPlaying.play();
     }
   }
@@ -162,11 +160,9 @@ export class FxMachine extends entity.EntityBase {
     this._on(this._entityConfig.playOptions, "fxOn", this._updateMuted);
   }
 
-  changeVolume(volume: number){
+  changeVolume(volume: number) {
     this.volume = volume;
-    _.each(this._entityConfig.fxAudio, (howl: Howl) =>
-      howl.volume(volume)
-    );
+    _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.volume(volume));
   }
 
   play(name: string) {

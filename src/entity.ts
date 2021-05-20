@@ -116,7 +116,8 @@ export interface Entity extends PIXI.utils.EventEmitter {
  */
 export abstract class EntityBase
   extends PIXI.utils.EventEmitter
-  implements Entity {
+  implements Entity
+{
   protected _eventListeners: IEventListener[] = [];
   protected _transition: Transition;
   protected _entityConfig: EntityConfig;
@@ -718,9 +719,8 @@ export class StateMachine extends CompositeEntity {
           );
         }
       } else {
-        const transitionDescriptor: TransitionDescriptor = this.transitions[
-          this.lastTransition.name
-        ];
+        const transitionDescriptor: TransitionDescriptor =
+          this.transitions[this.lastTransition.name];
         if (_.isFunction(transitionDescriptor)) {
           nextStateDescriptor = transitionDescriptor(transition);
         } else {
@@ -973,6 +973,11 @@ export class ContainerEntity extends ParallelEntity {
   }
 }
 
+export class VideoEntityOptions {
+  loop = false;
+  scale: PIXI.IPoint | number = 1;
+}
+
 /**
   Manages a video asset. Can optionally loop the video.
   Asks for a transition when the video has ended.
@@ -981,24 +986,27 @@ export class VideoEntity extends EntityBase {
   public container: PIXI.Container;
   public videoElement: any;
   public videoSprite: any;
-  public loop: boolean;
+  private _options: VideoEntityOptions;
 
-  constructor(public videoName: string, options: any = {}) {
+  constructor(public videoName: string, options?: Partial<VideoEntityOptions>) {
     super();
 
-    util.setupOptions(this, options, {
-      loop: false,
-    });
+    this._options = util.fillInOptions(options, new VideoEntityOptions());
   }
 
   _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
+    const videoPath = `video/${this.videoName}.mp4`;
+    if (!(videoPath in this._entityConfig.videoAssets)) {
+      throw new Error(`Cannot find video at path "${videoPath}"`);
+    }
+
     // This container is used so that the video is inserted in the right place,
     // even if the sprite isn't added until later.
     this.container = new PIXI.Container();
     this._entityConfig.container.addChild(this.container);
 
-    this.videoElement = this._entityConfig.videoAssets[this.videoName];
-    this.videoElement.loop = this.loop;
+    this.videoElement = this._entityConfig.videoAssets[videoPath];
+    this.videoElement.loop = this._options.loop;
     this.videoElement.currentTime = 0;
 
     this.videoSprite = null;
@@ -1035,6 +1043,7 @@ export class VideoEntity extends EntityBase {
     const videoResource = new PIXI.resources.VideoResource(this.videoElement);
     //@ts-ignore
     this.videoSprite = PIXI.Sprite.from(videoResource);
+    this.videoSprite.scale.set(this._options.scale);
     this.container.addChild(this.videoSprite);
   }
 }
@@ -1206,22 +1215,40 @@ export class DisplayObjectEntity<
   }
 }
 
+export class SkipButtonOptions {
+  position: PIXI.IPointData;
+}
+
 export class SkipButton extends EntityBase {
   public sprite: PIXI.Sprite;
+
+  private _options: SkipButtonOptions;
+
+  constructor(options?: Partial<SkipButtonOptions>) {
+    super();
+
+    this._options = util.fillInOptions(options, new SkipButtonOptions());
+  }
 
   setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
     super.setup(frameInfo, entityConfig);
 
     this.sprite = new PIXI.Sprite(
       this._entityConfig.app.loader.resources[
-        this._entityConfig.directives.graphics.skip as number
+        this._entityConfig.directives.graphics.skip
       ].texture
     );
     this.sprite.anchor.set(0.5);
-    this.sprite.position.set(
-      this._entityConfig.app.screen.width - 50,
-      this._entityConfig.app.screen.height - 50
-    );
+
+    if (this._options.position) {
+      this.sprite.position.copyFrom(this._options.position);
+    } else {
+      this.sprite.position.set(
+        this._entityConfig.app.screen.width - 50,
+        this._entityConfig.app.screen.height - 50
+      );
+    }
+
     this.sprite.interactive = true;
     this._on(this.sprite, "pointertap", this._onSkip);
 

@@ -2,8 +2,9 @@ import * as PIXI from "pixi.js";
 import { Howl, Howler } from "howler";
 import _ from "underscore";
 
-import * as entity from "./entity.js";
-import * as audio from "./audio.js";
+import * as entity from "./entity";
+import * as audio from "./audio";
+import * as util from "./util";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
@@ -235,7 +236,8 @@ export class Narrator extends entity.EntityBase {
   }
 
   _updateShowSubtitles() {
-    this.container.visible = this._entityConfig.playOptions.options.showSubtitles;
+    this.container.visible =
+      this._entityConfig.playOptions.options.showSubtitles;
   }
 }
 
@@ -343,11 +345,13 @@ export class RandomNarration extends entity.EntityBase {
   }
 }
 
-export interface VideoSceneOptions {
-  video: null;
-  loopVideo: false;
-  narration: null;
-  music: null;
+export class VideoSceneOptions {
+  video: string;
+  videoOptions: Partial<entity.VideoEntityOptions>;
+  narration: string;
+  music: string;
+  musicVolume: number;
+  skipButtonOptions: Partial<entity.SkipButtonOptions>;
 }
 
 /** 
@@ -355,48 +359,48 @@ export interface VideoSceneOptions {
   Terminates when either the video completes, or the skip button is pressed. 
  */
 export class VideoScene extends entity.CompositeEntity {
-  public options: VideoSceneOptions;
   public narration: SingleNarration;
   public video: entity.VideoEntity;
   public skipButton: entity.SkipButton;
   public previousMusic: string;
 
+  private _options: VideoSceneOptions;
+
   constructor(options: Partial<VideoSceneOptions> = {}) {
     super();
 
-    this.options = _.defaults(options, {
-      video: null,
-      loopVideo: false,
-      narration: null,
-      music: null,
-    });
+    this._options = util.fillInOptions(options, new VideoSceneOptions());
   }
 
   _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
-    if (this.options.narration) {
-      this.narration = new SingleNarration(this.options.narration);
+    if (this._options.narration) {
+      this.narration = new SingleNarration(this._options.narration);
       this._activateChildEntity(this.narration);
     }
 
-    if (this.options.video) {
-      this.video = new entity.VideoEntity(this.options.video, {
-        loop: this.options.loopVideo,
-      });
+    if (this._options.video) {
+      this.video = new entity.VideoEntity(
+        this._options.video,
+        this._options.videoOptions
+      );
       this._activateChildEntity(this.video);
     }
 
-    if (this.options.music) {
+    if (this._options.music) {
       this.previousMusic = this._entityConfig.jukebox.musicName;
-      this._entityConfig.jukebox.changeMusic(this.options.music);
+      this._entityConfig.jukebox.changeMusic(
+        this._options.music,
+        this._options.musicVolume
+      );
     }
 
-    this.skipButton = new entity.SkipButton();
+    this.skipButton = new entity.SkipButton(this._options.skipButtonOptions);
     this._activateChildEntity(this.skipButton);
   }
 
   _update(frameInfo: entity.FrameInfo) {
     if (
-      (this.options.video && this.video.transition) ||
+      (this._options.video && this.video.transition) ||
       this.skipButton.transition
     ) {
       this._transition = entity.makeTransition();
@@ -404,7 +408,7 @@ export class VideoScene extends entity.CompositeEntity {
   }
 
   _teardown() {
-    if (this.options.music)
+    if (this._options.music)
       this._entityConfig.jukebox.changeMusic(this.previousMusic);
   }
 }
