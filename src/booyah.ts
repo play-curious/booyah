@@ -149,6 +149,7 @@ const rootConfig: entity.EntityConfig = {
 let loadingScene: LoadingScene;
 let loadingErrorScene: LoadingErrorScene;
 let gameEntity: entity.ParallelEntity;
+let lastFrameInfo: entity.FrameInfo;
 
 function getRootEntity(): entity.Entity {
   return loadingScene || loadingErrorScene || gameEntity;
@@ -1038,7 +1039,7 @@ function update(timeScale: number) {
     timeSinceStart += timeSinceLastFrame;
   }
 
-  const frameInfo: entity.FrameInfo = {
+  lastFrameInfo = {
     playTime,
     timeSinceStart,
     timeSinceLastFrame,
@@ -1046,24 +1047,34 @@ function update(timeScale: number) {
     gameState,
   };
 
-  if (previousGameState !== gameState) {
-    if (previousGameState == "playing" && gameState == "paused") {
-      getRootEntity().onSignal(frameInfo, "pause");
-    } else if (previousGameState == "paused" && gameState == "playing") {
-      getRootEntity().onSignal(frameInfo, "play");
-    }
+  // if (previousGameState !== gameState) {
+  //   if (previousGameState == "playing" && gameState == "paused") {
+  //     getRootEntity().onSignal(frameInfo, "pause");
+  //   } else if (previousGameState == "paused" && gameState == "playing") {
+  //     getRootEntity().onSignal(frameInfo, "play");
+  //   }
 
-    previousGameState = gameState;
-  }
+  //   previousGameState = gameState;
+  // }
 
-  getRootEntity().update(frameInfo);
+  getRootEntity().update(lastFrameInfo);
 
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
 export function changeGameState(newGameState: entity.GameState) {
   console.log("switching from game state", gameState, "to", newGameState);
+
+  let previousGameState = gameState;
   gameState = newGameState;
+
+  if (previousGameState !== newGameState) {
+    if (previousGameState == "playing" && newGameState == "paused") {
+      getRootEntity().onSignal(lastFrameInfo, "pause");
+    } else if (previousGameState == "paused" && newGameState == "playing") {
+      getRootEntity().onSignal(lastFrameInfo, "play");
+    }
+  }
 
   util.sendMetrics("send", "event", "changeGameState", newGameState);
 }
@@ -1268,7 +1279,7 @@ function updateFpsMeter() {
 }
 
 function doneLoading() {
-  const frameInfo: entity.FrameInfo = {
+  lastFrameInfo = {
     playTime: 0,
     timeSinceStart: 0,
     timeSinceLastFrame: 0,
@@ -1282,7 +1293,7 @@ function doneLoading() {
   changeGameState("playing");
 
   // Remove loading screen
-  loadingScene.teardown(frameInfo);
+  loadingScene.teardown(lastFrameInfo);
   loadingScene = null;
 
   // The new rootEntity will contain all the sub entities
@@ -1314,7 +1325,51 @@ function doneLoading() {
     });
   }
 
-  gameEntity.setup(frameInfo, rootConfig);
+  setupVisibilityDetection();
+
+  gameEntity.setup(lastFrameInfo, rootConfig);
+}
+
+/** Detect when the page is not shown, and pause the game */
+function setupVisibilityDetection() {
+  // Based on https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
+  const d: any = document;
+
+  let hiddenProperty: string;
+  let visibilityChangeProperty: string;
+
+  if (typeof d.hidden !== "undefined") {
+    // Opera 12.10 and Firefox 18 and later support
+    hiddenProperty = "hidden";
+    visibilityChangeProperty = "visibilitychange";
+  } else if (typeof d.msHidden !== "undefined") {
+    hiddenProperty = "msHidden";
+    visibilityChangeProperty = "msvisibilitychange";
+  } else if (typeof d.webkitHidden !== "undefined") {
+    hiddenProperty = "webkitHidden";
+    visibilityChangeProperty = "webkitvisibilitychange";
+  }
+
+  // If the page is hidden, pause the video;
+  // if the page is shown, play the video
+  function handleVisibilityChange() {
+    if (d[hiddenProperty]) {
+      console.log("Lost visibility. Hiding the game");
+      changeGameState("paused");
+    }
+    // Let the player unpause by themselves
+  }
+
+  // Warn if the browser doesn't support addEventListener or the Page Visibility API
+  if (
+    typeof d.addEventListener === "undefined" ||
+    hiddenProperty === undefined
+  ) {
+    console.warn("Page Visibility API not supported on this browser");
+  } else {
+    // Handle page visibility change
+    d.addEventListener(visibilityChangeProperty, handleVisibilityChange, false);
+  }
 }
 
 export function makePreloader(additionalAssets: string[]) {

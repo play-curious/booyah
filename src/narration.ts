@@ -344,7 +344,7 @@ export class VideoScene extends entity.CompositeEntity {
 
     if (this._options.music) {
       this.previousMusic = this._entityConfig.jukebox.musicName;
-      this._entityConfig.jukebox.changeMusic(
+      this._entityConfig.jukebox.play(
         this._options.music,
         this._options.musicVolume
       );
@@ -365,7 +365,7 @@ export class VideoScene extends entity.CompositeEntity {
 
   _teardown() {
     if (this._options.music)
-      this._entityConfig.jukebox.changeMusic(this.previousMusic);
+      this._entityConfig.jukebox.play(this.previousMusic);
   }
 }
 

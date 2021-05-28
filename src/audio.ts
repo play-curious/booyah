@@ -82,11 +82,6 @@ export class Jukebox extends entity.EntityBase {
     }
   }
 
-  /** @deprecated Use play() instead */
-  changeMusic(name?: string) {
-    this.play(name);
-  }
-
   setMuted(isMuted: boolean) {
     this.muted = isMuted;
     this._updateMuted();
@@ -126,14 +121,14 @@ export class MusicEntity extends entity.EntityBase {
   }
 
   _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
-    this._entityConfig.jukebox.changeMusic(this.trackName);
+    this._entityConfig.jukebox.play(this.trackName);
 
     this._transition = entity.makeTransition();
   }
 
   _teardown() {
     if (this.stopOnTeardown) {
-      this._entityConfig.jukebox.changeMusic();
+      this._entityConfig.jukebox.play();
     }
   }
 }
