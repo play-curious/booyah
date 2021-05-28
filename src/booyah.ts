@@ -823,23 +823,25 @@ export class LoadingScene extends entity.EntityBase {
       );
     }
 
+    const centerPos: PIXI.IPoint =
+      this._entityConfig.directives.loadingGauge.position;
+    const scale: number = this._entityConfig.directives.loadingGauge.scale;
+
     this.loadingContainer = new PIXI.Container();
     this.container.addChild(this.loadingContainer);
 
     this.loadingFill = new PIXI.Graphics();
+    this.loadingFill.position.set(
+      centerPos.x - 50 * scale,
+      centerPos.y - 50 * scale
+    );
     this.loadingContainer.addChild(this.loadingFill);
 
     const loadingFillMask = new PIXI.Graphics();
     loadingFillMask.beginFill(0xffffff);
-    loadingFillMask.drawCircle(
-      0,
-      0,
-      50 * this._entityConfig.directives.loadingGauge.scale
-    );
+    loadingFillMask.drawCircle(0, 0, 50 * scale);
     loadingFillMask.endFill();
-    loadingFillMask.position.copyFrom(
-      this._entityConfig.directives.loadingGauge.position
-    );
+    loadingFillMask.position.copyFrom(centerPos);
     this.loadingContainer.addChild(loadingFillMask);
 
     this.loadingFill.mask = loadingFillMask;
@@ -866,11 +868,12 @@ export class LoadingScene extends entity.EntityBase {
       LOADING_SCENE_SPIN_SPEED * this._lastFrameInfo.timeScale;
 
     if (this.shouldUpdateProgress) {
+      const scale: number = this._entityConfig.directives.loadingGauge.scale;
       const height = this.progress * 100; // Because the graphic happens to be 100px tall
 
       this.loadingFill.clear();
       this.loadingFill.beginFill(0xffffff);
-      this.loadingFill.drawRect(0, 100, 100, -height);
+      this.loadingFill.drawRect(0, 100 * scale, 100 * scale, -height * scale);
       this.loadingFill.endFill();
 
       this.shouldUpdateProgress = false;
@@ -1046,16 +1049,6 @@ function update(timeScale: number) {
     timeScale,
     gameState,
   };
-
-  // if (previousGameState !== gameState) {
-  //   if (previousGameState == "playing" && gameState == "paused") {
-  //     getRootEntity().onSignal(frameInfo, "pause");
-  //   } else if (previousGameState == "paused" && gameState == "playing") {
-  //     getRootEntity().onSignal(frameInfo, "play");
-  //   }
-
-  //   previousGameState = gameState;
-  // }
 
   getRootEntity().update(lastFrameInfo);
 
