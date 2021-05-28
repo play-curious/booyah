@@ -114,8 +114,8 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._initNarration(key);
   }
 
-  stopNarration(key: string) {
-    if (this.key === key) this._stopNarration();
+  stopNarration() {
+    this._stopNarration();
   }
 
   _onSignal(frameInfo: entity.FrameInfo, signal: string) {
@@ -248,12 +248,12 @@ export class SpeakerDisplay extends entity.EntityBase {
 }
 
 export class SingleNarration extends entity.EntityBase {
-  constructor(public narrationKey: string, public priority = 0) {
+  constructor(public narrationKey: string) {
     super();
   }
 
   _setup() {
-    this._entityConfig.narrator.changeKey(this.narrationKey, this.priority);
+    this._entityConfig.narrator.changeKey(this.narrationKey);
     this._on(this._entityConfig.narrator, "done", this._onNarrationDone);
   }
 
@@ -262,9 +262,7 @@ export class SingleNarration extends entity.EntityBase {
   }
 
   _teardown() {
-    /* TODO: make <Narrator>.stopNarration method
-      this._entityConfig.narrator.stopNarration(this.narrationKey);
-    */
+    this._entityConfig.narrator.stopNarration();
   }
 }
 

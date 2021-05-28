@@ -63,15 +63,18 @@ export class Jukebox extends entity.EntityBase {
   play(name?: string, volume?: number) {
     if (this.musicPlaying && this.musicName === name) return;
 
-    if (!(name in this._entityConfig.musicAudio)) {
-      console.error("Missing music", name);
-      return;
-    }
-
     if (this.musicPlaying) {
       // TODO: fade
       this.musicPlaying.stop();
       this.musicPlaying = null;
+    }
+
+    // If no new music is requested, stop
+    if (!name) return;
+
+    if (!(name in this._entityConfig.musicAudio)) {
+      console.error("Missing music", name);
+      return;
     }
 
     if (name) {
