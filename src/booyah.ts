@@ -1356,9 +1356,13 @@ function setupVisibilityDetection() {
   function handleVisibilityChange() {
     if (d[hiddenProperty]) {
       console.log("Lost visibility. Hiding the game");
+
+      getRootEntity().onSignal(lastFrameInfo, "lostVisibility");
       changeGameState("paused");
+    } else {
+      getRootEntity().onSignal(lastFrameInfo, "gainedVisibility");
+      // Let the game handle unpausing
     }
-    // Let the player unpause by themselves
   }
 
   // Warn if the browser doesn't support addEventListener or the Page Visibility API
