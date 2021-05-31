@@ -240,12 +240,16 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
   }
 }
 
+export class CreditsEntityOptions {
+  // @credits like { "Game Design": ["JC", "Jesse"], }
+  credits: { [k: string]: string[] | string } = {};
+  textSize = 32;
+  fontFamily = "Roboto Condensed";
+}
+
 export class MenuEntityOptions {
   menuButtonPosition: PIXI.Point = null;
-
-  // @credits like { "Game Design": ["JC", "Jesse"], }
-  credits: { [k: string]: string } = {};
-  creditsTextSize = 32;
+  creditsEntityOptions: CreditsEntityOptions;
 }
 
 export class MenuEntity extends entity.CompositeEntity {
@@ -661,7 +665,7 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 
   _showCredits() {
-    this.creditsEntity = new CreditsEntity(this.options);
+    this.creditsEntity = new CreditsEntity(this.options.creditsEntityOptions);
     this._activateChildEntity(this.creditsEntity);
   }
 
@@ -707,17 +711,21 @@ export class CreditsEntity extends entity.CompositeEntity {
   public container: PIXI.Container;
   public mask: PIXI.Graphics;
 
-  constructor(public readonly options: MenuEntityOptions) {
+  private _options: CreditsEntityOptions;
+
+  constructor(options: Partial<CreditsEntityOptions>) {
     super();
+
+    this._options = util.fillInOptions(options, new CreditsEntityOptions());
   }
 
-  _setup(entityConfig: any) {
+  _setup() {
     this.container = new PIXI.Container();
 
     let rolesText = "";
     let peopleText = "";
     let didFirstLine = false;
-    for (let role in this.options.credits) {
+    for (let role in this._options.credits) {
       if (didFirstLine) {
         rolesText += "\n";
         peopleText += "\n";
@@ -728,9 +736,9 @@ export class CreditsEntity extends entity.CompositeEntity {
       rolesText += role;
 
       // Their could be one person credited (string), or an array
-      const people = _.isArray(this._entityConfig.options.credits[role])
-        ? this._entityConfig.options.credits[role]
-        : [this._entityConfig.options.credits[role]];
+      const people = _.isArray(this._options.credits[role])
+        ? this._options.credits[role]
+        : [this._options.credits[role]];
       for (let person of people) {
         rolesText += "\n";
         peopleText += person + "\n";
@@ -766,8 +774,8 @@ export class CreditsEntity extends entity.CompositeEntity {
     this.container.addChild(closeButton);
 
     const roles = new PIXI.Text(rolesText, {
-      fontFamily: "Roboto Condensed",
-      fontSize: this.options.creditsTextSize,
+      fontFamily: this._options.fontFamily,
+      fontSize: this._options.textSize,
       fill: "white",
       align: "right",
     });
@@ -779,8 +787,8 @@ export class CreditsEntity extends entity.CompositeEntity {
     this.container.addChild(roles);
 
     const people = new PIXI.Text(peopleText, {
-      fontFamily: "Roboto Condensed",
-      fontSize: this.options.creditsTextSize,
+      fontFamily: this._options.fontFamily,
+      fontSize: this._options.textSize,
       fill: "white",
       align: "left",
     });
