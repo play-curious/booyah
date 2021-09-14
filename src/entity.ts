@@ -1147,11 +1147,7 @@ export class AnimatedSpriteEntity extends EntityBase {
   }
 
   _setup() {
-    if (this.sprite.autoUpdate)
-      console.warn(
-        "Warning: overwriting this.sprite.autoUpdate. value:",
-        false
-      );
+    // No warning
     this.sprite.autoUpdate = false;
 
     if (this.sprite.onComplete)
