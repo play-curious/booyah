@@ -7,7 +7,7 @@
     "watch": "tsc --watch",
     "test": "jest",
     "prettier": "npx prettier ./src --write",
-    "prepublish": "yarn build && yarn prettier"
+    "prepublishOnly": "yarn build && yarn prettier"
   },
   "license": "MIT",
   "dependencies": {
