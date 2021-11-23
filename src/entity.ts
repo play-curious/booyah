@@ -984,7 +984,7 @@ export class VideoEntityOptions {
 */
 export class VideoEntity extends EntityBase {
   public container: PIXI.Container;
-  public videoElement: any;
+  public videoElement: HTMLVideoElement;
   public videoSprite: any;
   private _options: VideoEntityOptions;
 
@@ -1006,6 +1006,68 @@ export class VideoEntity extends EntityBase {
     this._entityConfig.container.addChild(this.container);
 
     this.videoElement = this._entityConfig.videoAssets[videoPath];
+    this.videoElement.loop = this._options.loop;
+    this.videoElement.currentTime = 0;
+
+    this.videoSprite = null;
+
+    // videoElement.play() might not return a promise on older browsers
+    Promise.resolve(this.videoElement.play()).then(() => {
+      // Including a slight delay seems to workaround a bug affecting Firefox
+      window.setTimeout(() => this._startVideo(), 100);
+    });
+  }
+
+  _update(frameInfo: FrameInfo) {
+    if (this.videoElement.ended) this._transition = makeTransition();
+  }
+
+  _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
+    if (signal === "pause") {
+      this.videoElement.pause();
+    } else if (signal === "play") {
+      this.videoElement.play();
+    }
+  }
+
+  teardown(frameInfo: FrameInfo) {
+    this.videoElement.pause();
+    this.videoSprite = null;
+    this._entityConfig.container.removeChild(this.container);
+    this.container = null;
+
+    super.teardown(frameInfo);
+  }
+
+  _startVideo() {
+    const videoResource = new PIXI.resources.VideoResource(this.videoElement);
+    //@ts-ignore
+    this.videoSprite = PIXI.Sprite.from(videoResource);
+    this.videoSprite.scale.set(this._options.scale);
+    this.container.addChild(this.videoSprite);
+  }
+}
+
+export class StreamingVideoEntity extends EntityBase {
+  public container: PIXI.Container;
+  public videoElement: HTMLVideoElement;
+  public videoSprite: any;
+  private _options: VideoEntityOptions;
+
+  constructor(public videoURL: string, options?: Partial<VideoEntityOptions>) {
+    super();
+
+    this._options = util.fillInOptions(options, new VideoEntityOptions());
+  }
+
+  _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
+    // This container is used so that the video is inserted in the right place,
+    // even if the sprite isn't added until later.
+    this.container = new PIXI.Container();
+    this._entityConfig.container.addChild(this.container);
+
+    this.videoElement = document.createElement("video");
+    this.videoElement.innerHTML += `<source src="${this.videoURL}">`;
     this.videoElement.loop = this._options.loop;
     this.videoElement.currentTime = 0;
 
