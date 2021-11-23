@@ -1068,6 +1068,7 @@ export class StreamingVideoEntity extends EntityBase {
 
     this.videoElement = document.createElement("video");
     this.videoElement.innerHTML += `<source src="${this.videoURL}">`;
+    this.videoElement.setAttribute("crossorigin", "anonymous");
     this.videoElement.loop = this._options.loop;
     this.videoElement.currentTime = 0;
 
