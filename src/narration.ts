@@ -6,6 +6,7 @@ import * as entity from "./entity";
 import * as audio from "./audio";
 import * as util from "./util";
 import { collapseTextChangeRangesAcrossMultipleVersions } from "typescript";
+import { StreamingVideoEntity } from "./entity";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
@@ -301,6 +302,7 @@ export class RandomNarration extends entity.EntityBase {
 
 export class VideoSceneOptions {
   video: string;
+  fromURL = false;
   videoOptions: Partial<entity.VideoEntityOptions>;
   narration: string;
   music: string;
@@ -314,7 +316,7 @@ export class VideoSceneOptions {
  */
 export class VideoScene extends entity.CompositeEntity {
   public narration: SingleNarration;
-  public video: entity.VideoEntity;
+  public video: entity.VideoEntity | entity.StreamingVideoEntity;
   public skipButton: entity.SkipButton;
   public previousMusic: string;
 
@@ -333,10 +335,9 @@ export class VideoScene extends entity.CompositeEntity {
     }
 
     if (this._options.video) {
-      this.video = new entity.VideoEntity(
-        this._options.video,
-        this._options.videoOptions
-      );
+      this.video = new entity[
+        this._options.fromURL ? "StreamingVideoEntity" : "VideoEntity"
+      ](this._options.video, this._options.videoOptions);
       this._activateChildEntity(this.video);
     }
 
