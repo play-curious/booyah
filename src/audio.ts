@@ -172,6 +172,10 @@ export class FxMachine extends entity.EntityBase {
     this._entityConfig.fxAudio[name].play();
   }
 
+  stop(name: string) {
+    this._entityConfig.fxAudio[name].stop();
+  }
+
   // TODO: stop playing effects when paused or on teardown
 
   // onSignal(signal:string, data?:any) {
