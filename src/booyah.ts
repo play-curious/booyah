@@ -998,7 +998,7 @@ export class DoneScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.copyFrom(this._entityConfig.directives.loader.position);
+    button.position.copyFrom(this._entityConfig.directives.loadingGauge.position);
     this._on(
       button,
       "pointertap",
