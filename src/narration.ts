@@ -1,12 +1,9 @@
 import * as PIXI from "pixi.js";
-import { Howl, Howler } from "howler";
 import _ from "underscore";
 
 import * as entity from "./entity";
 import * as audio from "./audio";
 import * as util from "./util";
-import { collapseTextChangeRangesAcrossMultipleVersions } from "typescript";
-import { StreamingVideoEntity } from "./entity";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
@@ -302,7 +299,7 @@ export class RandomNarration extends entity.EntityBase {
 
 export class VideoSceneOptions {
   video: string;
-  fromURL = false;
+  streamVideo = false;
   videoOptions: Partial<entity.VideoEntityOptions>;
   narration: string;
   music: string;
@@ -336,13 +333,15 @@ export class VideoScene extends entity.CompositeEntity {
 
     if (this._options.video) {
       this.video = new entity[
-        this._options.fromURL ? "StreamingVideoEntity" : "VideoEntity"
+        this._options.streamVideo ? "StreamingVideoEntity" : "VideoEntity"
       ](this._options.video, this._options.videoOptions);
       this._activateChildEntity(this.video);
     }
 
+    this.previousMusic = this._entityConfig.jukebox.musicName;
+    this._entityConfig.jukebox.stop();
+
     if (this._options.music) {
-      this.previousMusic = this._entityConfig.jukebox.musicName;
       this._entityConfig.jukebox.play(
         this._options.music,
         this._options.musicVolume
@@ -363,8 +362,7 @@ export class VideoScene extends entity.CompositeEntity {
   }
 
   _teardown() {
-    if (this._options.music)
-      this._entityConfig.jukebox.play(this.previousMusic);
+    if (this.previousMusic) this._entityConfig.jukebox.play(this.previousMusic);
   }
 }
 

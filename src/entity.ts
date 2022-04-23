@@ -1048,6 +1048,10 @@ export class VideoEntity extends EntityBase {
   }
 }
 
+/**
+  Manages a video that is loaded from a remote source, rather than a local asset.
+  Asks for a transition when the video has ended.
+*/
 export class StreamingVideoEntity extends EntityBase {
   public container: PIXI.Container;
   public videoElement: HTMLVideoElement;
@@ -1064,6 +1068,38 @@ export class StreamingVideoEntity extends EntityBase {
     // This container is used so that the video is inserted in the right place,
     // even if the sprite isn't added until later.
     this.container = new PIXI.Container();
+
+    {
+      // Make black background
+      const bg = new PIXI.Graphics();
+      bg.beginFill(0);
+      bg.drawRect(
+        0,
+        0,
+        this._entityConfig.app.view.width,
+        this._entityConfig.app.view.height
+      );
+      bg.endFill();
+
+      bg.interactive = true;
+
+      this.container.addChild(bg);
+    }
+
+    {
+      // Make loading animation
+      const loadingText = new PIXI.Text("Loading", {
+        fontSize: 75,
+        fill: 0xffffff,
+      });
+      loadingText.anchor.set(0.5);
+      loadingText.position.set(
+        this._entityConfig.app.view.width / 2,
+        this._entityConfig.app.view.height / 2
+      );
+      this.container.addChild(loadingText);
+    }
+
     this._entityConfig.container.addChild(this.container);
 
     this.videoElement = document.createElement("video");
