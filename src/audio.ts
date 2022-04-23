@@ -85,6 +85,10 @@ export class Jukebox extends entity.EntityBase {
     }
   }
 
+  stop() {
+    this.play();
+  }
+
   setMuted(isMuted: boolean) {
     this.muted = isMuted;
     this._updateMuted();
