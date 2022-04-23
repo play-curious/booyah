@@ -11,7 +11,7 @@ export interface JukeboxOptions {
 
 /** 
   A music player, that only plays one track at a time.
-  By default the volume is lowered to not interere with sound effects.
+  By default the volume is lowered to not interfere with sound effects.
 */
 export class Jukebox extends entity.EntityBase {
   public volume: number;

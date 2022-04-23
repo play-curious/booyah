@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import { Howl } from "howler";
 import _ from "underscore";
 
 import * as entity from "./entity";
@@ -372,7 +373,7 @@ export function makeNarrationKeyList(prefix: number, count: number): number[] {
   return list;
 }
 
-/** Returns Map of file names to Howl objects, with sprite definintions */
+/** Returns Map of file names to Howl objects, with sprite definitions */
 export function loadNarrationAudio(
   narrationTable: { [k: string]: any },
   languageCode: string
