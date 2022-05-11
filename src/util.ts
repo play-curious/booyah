@@ -266,7 +266,7 @@ export async function loadSubtitles(fileName: string): Promise<narration.ParsedS
     request.send();
   });
 
-  const subtitleRegex = /^(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})\n([\S\s]+?)\n\d+\n/gm
+  const subtitleRegex = /^(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})\n([\S\s]+?)\n\d*\n/gm
 
   let match, output: narration.ParsedSubtitle[] = []
   while (match = subtitleRegex.exec(plainText)) {
