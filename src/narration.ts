@@ -135,7 +135,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   _initNarration(key: string) {
     this.key = key;
     this.timeSincePlay = 0;
-    this.lines = breakDialogIntoLines(this.subtitleTexts[key]);
+    this.lines = breakDialogIntoLines(this.subtitleTexts[key].text);
 
     if (this.lines[0].start) {
       // Wait for first line
