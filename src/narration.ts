@@ -8,12 +8,6 @@ import * as util from "./util";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
-export type DialogLine = {
-  speaker?: string;
-  text: string;
-  start?: number;
-};
-
 export class SubtitleNarratorTextStyle {
   fontFamily = "Teko";
   fontSize = 40;
@@ -45,14 +39,12 @@ export interface ParsedSubtitle {
  *  done - key (string)
  */
 export class SubtitleNarrator extends entity.CompositeEntity {
-  private subtitleTexts: ParsedSubtitles;
+  private subtitles: ParsedSubtitles;
   private container: PIXI.Container;
   private narratorSubtitle: PIXI.Text;
-  private key: string | null;
-  private timeSincePlay: number | null;
-  private lines: DialogLine[] | null;
-  private nextLineAt: number | null;
+  private name: string | null;
   private lineIndex: number | null;
+  private timeSincePlay: number | null;
   private _options: SubtitleNarratorOptions;
 
   constructor(options?: Partial<SubtitleNarratorOptions>) {
@@ -65,8 +57,20 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     );
   }
 
+  get line(): ParsedSubtitle {
+    return this.lines[this.lineIndex]
+  }
+
+  get lines(): ParsedSubtitle[] {
+    return this._entityConfig.subtitles[this.name]
+  }
+
+  get nextLine(): ParsedSubtitle | null {
+    return this.lines[this.lineIndex + 1]
+  }
+
   _setup() {
-    this.subtitleTexts = this._entityConfig.subtitles;
+    this.subtitles = this._entityConfig.subtitles;
 
     this.container = new PIXI.Container();
     this._entityConfig.container.addChild(this.container);
@@ -89,10 +93,9 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     }
     this.container.addChild(this.narratorSubtitle);
 
-    this.key = null;
+    this.name = null;
+    this.lineIndex = null;
     this.timeSincePlay = null;
-    this.lines = null;
-    this.nextLineAt = null;
 
     this._on(
       this._entityConfig.playOptions,
@@ -104,9 +107,10 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   }
 
   _update() {
-    if (!this.key || this._lastFrameInfo.gameState !== "playing") return;
+    if (!this.name || this._lastFrameInfo.gameState !== "playing") return;
 
     this.timeSincePlay += this._lastFrameInfo.timeSinceLastFrame;
+
     this._updateSubtitle();
   }
 
@@ -114,14 +118,14 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._entityConfig.container.removeChild(this.container);
   }
 
-  changeKey(key: string) {
-    if (!_.has(this.subtitleTexts, key)) {
-      console.error("No key", key, "in narration table");
+  playNarration(name: string) {
+    if (!_.has(this.subtitles, name)) {
+      console.error("No key", name, "in narration table");
       return;
     }
 
     this._stopNarration();
-    this._initNarration(key);
+    this._initNarration(name);
   }
 
   stopNarration() {
@@ -132,57 +136,38 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     if (signal === "reset") this._stopNarration();
   }
 
-  _initNarration(key: string) {
-    this.key = key;
+  _initNarration(name: string) {
+    this.name = name;
     this.timeSincePlay = 0;
-    this.lines = breakDialogIntoLines(this.subtitleTexts[key].text);
 
-    if (this.lines[0].start) {
-      // Wait for first line
-      this.lineIndex = -1;
-    } else {
-      // Start first line now
-      this.lineIndex = 0;
-      this.narratorSubtitle.text = this.lines[0].text;
-    }
-    this._updateNextLineAt();
+    this.lineIndex = -1;
   }
 
   _stopNarration() {
-    if (!this.key) return;
+    if (!this.name) return;
 
-    this.emit("done", this.key);
+    this.emit("done", this.name);
 
-    this.key = null;
+    this.name = null;
     this.timeSincePlay = null;
-    this.lines = null;
-    this.nextLineAt = null;
 
     this.narratorSubtitle.text = "";
   }
 
-  // Must be called after his.lines, this.lineIndex, etc.. have been set
-  _updateNextLineAt() {
-    if (
-      this.lineIndex < this.lines.length - 1 &&
-      this.lines[this.lineIndex + 1].start
-    ) {
-      this.nextLineAt = this.lines[this.lineIndex + 1].start;
-    } else {
-      this.nextLineAt =
-        this.timeSincePlay +
-        estimateDuration(this.lines[this.lineIndex].text, TIME_PER_WORD);
-    }
-  }
-
   _updateSubtitle() {
-    if (this.nextLineAt >= this.timeSincePlay) return;
+    const next = this.nextLine
 
-    this.lineIndex++;
-    if (this.lineIndex < this.lines.length) {
-      this._updateNextLineAt();
-      this.narratorSubtitle.text = this.lines[this.lineIndex].text;
+    if(this.timeSincePlay >= this.line.startsAt && this.timeSincePlay < this.line.endsAt) {
+      // is in current
+      this.narratorSubtitle.text = this.line.text
+    } else if (this.timeSincePlay >= this.line.endsAt && (!next || this.timeSincePlay < next.startsAt)) {
+      // is between current and next
+      this.narratorSubtitle.text = "";
+    } else if (next && this.timeSincePlay >= next.startsAt) {
+      // is in next
+      this.lineIndex ++
     } else {
+      // is done
       this._stopNarration();
     }
   }
@@ -454,33 +439,6 @@ export function makeNarrationLoader(
   return Promise.all(narrationLoadPromises).catch((err) => {
     console.error("Error loading narration", err);
   });
-}
-
-export function breakDialogIntoLines(text: string): DialogLine[] {
-  // Regular expression to match dialog lines like "[Malo:481] Ahoy there, matey!"
-  const r = /^(?:\[([^:]+)?(?:\:(\d+))?\])?(.*)/;
-  const rNewLines = /__/g;
-
-  const dialogLines = [];
-  for (const textLine of text.split("--")) {
-    // speaker and start can both be undefined, and will be stripped from the transition
-    let [, speaker, start, dialog] = r.exec(textLine);
-    //@ts-ignore
-    let startAsNumber: number;
-    if (start) startAsNumber = parseInt(start);
-    dialog = dialog.trim();
-
-    if (dialog.length > 0) {
-      const textWithNewLines = dialog.replace(rNewLines, "\n");
-      dialogLines.push({
-        speaker,
-        text: textWithNewLines,
-        start: startAsNumber,
-      });
-    }
-  }
-
-  return dialogLines;
 }
 
 export function estimateDuration(
