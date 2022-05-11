@@ -1,11 +1,10 @@
 import * as PIXI from "pixi.js";
-import { Howl, Howler } from "howler";
+import * as howler from "howler";
 import _ from "underscore";
 
 import * as entity from "./entity";
 import * as audio from "./audio";
 import * as util from "./util";
-import { collapseTextChangeRangesAcrossMultipleVersions } from "typescript";
 
 const TIME_PER_WORD = 60000 / 200; // 200 words per minute
 
@@ -31,11 +30,22 @@ export class SubtitleNarratorOptions {
 }
 
 /**
+ * Record<FilePath, Subtitles>
+ */
+export type ParsedSubtitles = Record<string, ParsedSubtitle[]>
+
+export interface ParsedSubtitle {
+  startsAt: number
+  endsAt: number
+  text: string
+}
+
+/**
  * Events:
  *  done - key (string)
  */
 export class SubtitleNarrator extends entity.CompositeEntity {
-  private subtitleTexts: { [k: string]: { [k: string]: any } };
+  private subtitleTexts: ParsedSubtitles;
   private container: PIXI.Container;
   private narratorSubtitle: PIXI.Text;
   private key: string | null;
@@ -56,7 +66,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   }
 
   _setup() {
-    this.subtitleTexts = this._entityConfig.jsonAssets.subtitles;
+    this.subtitleTexts = this._entityConfig.subtitles;
 
     this.container = new PIXI.Container();
     this._entityConfig.container.addChild(this.container);
@@ -125,7 +135,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   _initNarration(key: string) {
     this.key = key;
     this.timeSincePlay = 0;
-    this.lines = breakDialogIntoLines(this.subtitleTexts[key].text);
+    this.lines = breakDialogIntoLines(this.subtitleTexts[key]);
 
     if (this.lines[0].start) {
       // Wait for first line
@@ -392,11 +402,11 @@ export function loadNarrationAudio(
   }
 
   // Create map of file names to Howl objects
-  const fileToHowl = new Map<string, Howl>();
+  const fileToHowl = new Map<string, howler.Howl>();
   for (let [file, sprites] of fileToSprites) {
     fileToHowl.set(
       file,
-      new Howl({
+      new howler.Howl({
         src: _.map(
           audio.AUDIO_FILE_FORMATS,
           (audioFormat) => `audio/voices/${languageCode}/${file}.${audioFormat}`

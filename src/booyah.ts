@@ -29,6 +29,7 @@ export interface Directives {
   graphicalAssets: string[];
   fontAssets: string[];
   jsonAssets: Array<string | { key: string; url: string }>;
+  subtitleAssets: Array<string>;
   musicAssets: (string | { key: string; url: string })[];
   fxAssets: (string | { key: string; url: string })[];
   extraLoaders: ((entityConfig: entity.EntityConfig) => Promise<any>)[];
@@ -67,6 +68,7 @@ const DEFAULT_DIRECTIVES: any = {
   videoAssets: [], // No directory needed
   fontAssets: [], // Font names. The loading should be done separately via CSS.
   jsonAssets: [], // Starting from the root directory. JSON extension in needed
+  subtitleAssets: [],
 
   // For narration
   speakers: {},
@@ -137,6 +139,7 @@ const rootConfig: entity.EntityConfig = {
   musicAudio: {},
   videoAssets: {},
   jsonAssets: {},
+  subtitles: {},
   fxAudio: null,
   gameStateMachine: null,
   menu: null,
@@ -1113,6 +1116,7 @@ function loadFixedAssets() {
       });
   });
 
+  // load json
   rootConfig.jsonAssets = {};
   const jsonLoaderPromises = _.map(
     rootConfig.directives.jsonAssets,
@@ -1136,6 +1140,17 @@ function loadFixedAssets() {
           )}'`
         );
       }
+    }
+  );
+
+  // load subtitles
+  rootConfig.subtitles = {}
+  const subtitleLoaderPromises = _.map(
+    rootConfig.directives.subtitleAssets,
+    (path: string) => {
+      return util.loadSubtitles(path).then((parsed) => {
+        rootConfig.subtitles[path] = parsed
+      });
     }
   );
 
@@ -1198,6 +1213,7 @@ function loadFixedAssets() {
       fixedAudioLoaderPromises,
       jsonLoaderPromises,
       videoLoaderPromises,
+      subtitleLoaderPromises,
     ],
     true
   );
