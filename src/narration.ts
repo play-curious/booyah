@@ -118,7 +118,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._entityConfig.container.removeChild(this.container);
   }
 
-  playNarration(name: string) {
+  play(name: string) {
     if (!_.has(this.subtitles, name)) {
       console.error("No key", name, "in narration table");
       return;
@@ -128,7 +128,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._initNarration(name);
   }
 
-  stopNarration() {
+  stop() {
     this._stopNarration();
   }
 
@@ -173,8 +173,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   }
 
   _updateShowSubtitles() {
-    const showSubtitles = this._entityConfig.playOptions.options.showSubtitles;
-    this.container.visible = showSubtitles;
+    this.container.visible = this._entityConfig.playOptions.options.showSubtitles;
   }
 }
 
@@ -257,7 +256,7 @@ export class SingleNarration extends entity.EntityBase {
   }
 
   _teardown() {
-    this._entityConfig.narrator.stopNarration();
+    this._entityConfig.narrator.stop();
   }
 }
 
