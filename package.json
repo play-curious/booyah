@@ -7,7 +7,7 @@
     "watch": "tsc --watch",
     "test": "jest",
     "prettier": "npx prettier ./src --write",
-    "prepublish": "yarn build && yarn prettier"
+    "prepublishOnly": "yarn build && yarn prettier"
   },
   "license": "MIT",
   "dependencies": {
@@ -28,6 +28,9 @@
     "ts-jest": "^27.0.3",
     "typescript": "^4.3.2",
     "underscore": "~1.13"
+  },
+  "prettier": {
+    "semi": false
   },
   "repository": "https://github.com/play-curious/booyah.git",
   "author": "drpepper"
