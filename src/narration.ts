@@ -150,24 +150,27 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this.name = null
     this.timeSincePlay = null
 
-    this.narratorSubtitle.text = ""
+    this._write("")
   }
 
   _updateSubtitle() {
     const next = this.nextLine
 
-    if (
+    if (this.timeSincePlay < this.line.startsAt) {
+      // is before current
+      this._write("")
+    } else if (
       this.timeSincePlay >= this.line.startsAt &&
       this.timeSincePlay < this.line.endsAt
     ) {
       // is in current
-      this.narratorSubtitle.text = this.line.text
+      this._write(this.line.text)
     } else if (
       this.timeSincePlay >= this.line.endsAt &&
       (!next || this.timeSincePlay < next.startsAt)
     ) {
       // is between current and next
-      this.narratorSubtitle.text = ""
+      this._write("")
     } else if (next && this.timeSincePlay >= next.startsAt) {
       // is in next
       this.lineIndex++
@@ -180,6 +183,10 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   _updateShowSubtitles() {
     this.container.visible =
       this._entityConfig.playOptions.options.showSubtitles
+  }
+
+  private _write(text: string) {
+    this.narratorSubtitle.text = text
   }
 }
 
