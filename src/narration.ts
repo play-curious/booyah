@@ -57,7 +57,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     )
   }
 
-  get line(): ParsedSubtitle | undefined {
+  get line(): ParsedSubtitle {
     return this.lines[this.lineIndex]
   }
 
@@ -94,8 +94,8 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this.container.addChild(this.narratorSubtitle)
 
     this.name = null
-    this.lineIndex = null
-    this.timeSincePlay = null
+    this.lineIndex = 0
+    this.timeSincePlay = 0
 
     this._on(
       this._entityConfig.playOptions,
