@@ -985,7 +985,9 @@ export class DoneScene extends entity.EntityBase {
       ].texture
     )
     button.anchor.set(0.5)
-    button.position.copyFrom(this._entityConfig.directives.loader.position)
+    button.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
+    )
     this._on(
       button,
       "pointertap",
@@ -1294,7 +1296,7 @@ function doneLoading() {
   changeGameState("playing")
 
   // Remove loading screen
-  loadingScene.teardown(lastFrameInfo)
+  loadingScene?.teardown(lastFrameInfo)
   loadingScene = null
 
   // The new rootEntity will contain all the sub entities
@@ -1474,7 +1476,7 @@ export function go(directives: Partial<Directives> = {}) {
       console.error("Error during load", err)
 
       // Replace loading scene with loading error
-      loadingScene.teardown(frameInfo)
+      loadingScene?.teardown(frameInfo)
       loadingScene = null
 
       loadingErrorScene = new LoadingErrorScene()
