@@ -1296,7 +1296,7 @@ function doneLoading() {
   changeGameState("playing")
 
   // Remove loading screen
-  loadingScene.teardown(lastFrameInfo)
+  loadingScene?.teardown(lastFrameInfo)
   loadingScene = null
 
   // The new rootEntity will contain all the sub entities
@@ -1476,7 +1476,7 @@ export function go(directives: Partial<Directives> = {}) {
       console.error("Error during load", err)
 
       // Replace loading scene with loading error
-      loadingScene.teardown(frameInfo)
+      loadingScene?.teardown(frameInfo)
       loadingScene = null
 
       loadingErrorScene = new LoadingErrorScene()
