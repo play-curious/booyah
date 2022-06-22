@@ -998,7 +998,9 @@ export class DoneScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.copyFrom(this._entityConfig.directives.loadingGauge.position);
+    button.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
+    );
     this._on(
       button,
       "pointertap",
@@ -1328,7 +1330,7 @@ function doneLoading() {
 
   setupVisibilityDetection();
 
-  gameEntity.setup(lastFrameInfo, rootConfig);
+  gameEntity.setup(lastFrameInfo, rootConfig, entity.makeTransition());
 }
 
 /** Detect when the page is not shown, and pause the game */
@@ -1460,7 +1462,7 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene = new LoadingScene();
 
       // The loading scene doesn't get the full entityConfig
-      loadingScene.setup(frameInfo, rootConfig);
+      loadingScene.setup(frameInfo, rootConfig, entity.makeTransition());
 
       rootConfig.app.ticker.add(update);
 
@@ -1478,7 +1480,7 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene = null;
 
       loadingErrorScene = new LoadingErrorScene();
-      getRootEntity().setup(frameInfo, rootConfig);
+      getRootEntity().setup(frameInfo, rootConfig, entity.makeTransition());
 
       throw err;
     });

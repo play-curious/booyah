@@ -11,7 +11,7 @@ export interface IEventListener {
 
 export interface Transition {
   readonly name: string;
-  readonly params: {};
+  readonly params: Record<string, any>;
 }
 
 export function makeTransition(name = "default", params = {}) {
@@ -85,7 +85,11 @@ export interface Entity extends PIXI.utils.EventEmitter {
   readonly transition: Transition;
   readonly children: Entity[];
 
-  setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void;
+  setup(
+    frameInfo: FrameInfo,
+    entityConfig: EntityConfig,
+    enteringTransition: Transition
+  ): void;
   update(frameInfo: FrameInfo): void;
   teardown(frameInfo: FrameInfo): void;
   onSignal(frameInfo: FrameInfo, signal: string, data?: any): void;
@@ -118,21 +122,27 @@ export abstract class EntityBase
   extends PIXI.utils.EventEmitter
   implements Entity
 {
-  protected _eventListeners: IEventListener[] = [];
-  protected _transition: Transition;
   protected _entityConfig: EntityConfig;
   protected _lastFrameInfo: FrameInfo;
+  protected _enteringTransition: Transition;
+  protected _eventListeners: IEventListener[] = [];
+  protected _transition: Transition;
   protected _isSetup = false;
 
   get entityConfig(): EntityConfig {
     return this._entityConfig;
   }
 
-  public setup(frameInfo: FrameInfo, entityConfig: EntityConfig): void {
+  public setup(
+    frameInfo: FrameInfo,
+    entityConfig: EntityConfig,
+    enteringTransition: Transition
+  ): void {
     if (this._isSetup) throw new Error("setup() called twice");
 
     this._entityConfig = entityConfig;
     this._lastFrameInfo = frameInfo;
+    this._enteringTransition = enteringTransition;
     this._isSetup = true;
     this._transition = null;
 
@@ -298,7 +308,8 @@ export abstract class CompositeEntity extends EntityBase {
     this.childEntities.push(entity);
 
     const childConfig = processEntityConfig(this._entityConfig, config);
-    entity.setup(this._lastFrameInfo, childConfig);
+    const enteringTransition = transition ?? makeTransition();
+    entity.setup(this._lastFrameInfo, childConfig, enteringTransition);
 
     this.emit("activatedChildEntity", entity, childConfig, transition);
 
@@ -388,8 +399,12 @@ export class ParallelEntity extends CompositeEntity {
     for (const e of entityContexts) this.addChildEntity(e);
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
-    super.setup(frameInfo, entityConfig);
+  setup(
+    frameInfo: FrameInfo,
+    entityConfig: EntityConfig,
+    enteringTransition: Transition
+  ) {
+    super.setup(frameInfo, entityConfig, enteringTransition);
 
     for (const entityContext of this.childEntityContexts) {
       if (entityContext.activated) this.activateChildEntity(entityContext);
@@ -688,8 +703,12 @@ export class StateMachine extends CompositeEntity {
     }
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
-    super.setup(frameInfo, entityConfig);
+  setup(
+    frameInfo: FrameInfo,
+    entityConfig: EntityConfig,
+    enteringTransition: Transition
+  ) {
+    super.setup(frameInfo, entityConfig, enteringTransition);
 
     this.visitedStates = [];
     this.progress = util.cloneData(this.options.startingProgress);
@@ -748,9 +767,8 @@ export class StateMachine extends CompositeEntity {
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
     if (signal === "reset") {
-      const entityConfig = this._entityConfig;
       this.teardown(frameInfo);
-      this.setup(frameInfo, entityConfig);
+      this.setup(frameInfo, this._entityConfig, this._enteringTransition);
     }
   }
 
@@ -782,7 +800,8 @@ export class StateMachine extends CompositeEntity {
       const nextStateContext = this.states[nextState.name];
       this.state = this._activateChildEntity(
         nextStateContext.entity,
-        nextStateContext.config
+        nextStateContext.config,
+        nextState
       );
     } else {
       throw new Error(`Cannot find state '${nextState.name}'`);
@@ -952,7 +971,11 @@ export class ContainerEntity extends ParallelEntity {
     super(entities);
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
+  setup(
+    frameInfo: FrameInfo,
+    entityConfig: EntityConfig,
+    enteringTransition: Transition
+  ) {
     this.oldConfig = entityConfig;
 
     this.container = new PIXI.Container();
@@ -963,7 +986,7 @@ export class ContainerEntity extends ParallelEntity {
       container: this.container,
     });
 
-    super.setup(frameInfo, this.newConfig);
+    super.setup(frameInfo, this.newConfig, enteringTransition);
   }
 
   teardown(frameInfo: FrameInfo) {
@@ -1071,8 +1094,12 @@ export class ToggleSwitch extends EntityBase {
     });
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: any) {
-    super.setup(frameInfo, entityConfig);
+  setup(
+    frameInfo: FrameInfo,
+    entityConfig: any,
+    enteringTransition: Transition
+  ) {
+    super.setup(frameInfo, entityConfig, enteringTransition);
 
     this.container = new PIXI.Container();
     this.container.position.copyFrom(this.position);
@@ -1226,8 +1253,12 @@ export class SkipButton extends EntityBase {
     this._options = util.fillInOptions(options, new SkipButtonOptions());
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
-    super.setup(frameInfo, entityConfig);
+  setup(
+    frameInfo: FrameInfo,
+    entityConfig: EntityConfig,
+    enteringTransition: Transition
+  ) {
+    super.setup(frameInfo, entityConfig, enteringTransition);
 
     this.sprite = new PIXI.Sprite(
       this._entityConfig.app.loader.resources[
@@ -1282,12 +1313,16 @@ export class DeflatingEntity extends EntityBase {
     });
   }
 
-  setup(frameInfo: FrameInfo, entityConfig: any) {
-    super.setup(frameInfo, entityConfig);
+  setup(
+    frameInfo: FrameInfo,
+    entityConfig: any,
+    enteringTransition: Transition
+  ) {
+    super.setup(frameInfo, entityConfig, enteringTransition);
 
     for (const entity of this.entities) {
       if (!entity.isSetup) {
-        entity.setup(frameInfo, entityConfig);
+        entity.setup(frameInfo, entityConfig, makeTransition());
       }
     }
   }
@@ -1337,7 +1372,7 @@ export class DeflatingEntity extends EntityBase {
   addEntity(entity: Entity) {
     // If we have already been setup, setup this new entity
     if (this.isSetup && !entity.isSetup) {
-      entity.setup(this._lastFrameInfo, this._entityConfig);
+      entity.setup(this._lastFrameInfo, this._entityConfig, makeTransition());
     }
 
     this.entities.push(entity);

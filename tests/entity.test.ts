@@ -17,6 +17,10 @@ function makeFrameInfo(): entity.FrameInfo {
   };
 }
 
+function makeTransition(): entity.Transition {
+  return entity.makeTransition();
+}
+
 // For help mocking, the methods here are public and replaced with mocks
 class MockEntity extends entity.EntityBase {
   constructor() {
@@ -52,7 +56,7 @@ describe("Entity", () => {
 
   test("allows normal execution", () => {
     for (let i = 0; i < 5; i++) {
-      e.setup(makeFrameInfo(), makeEntityConfig());
+      e.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
       e.update(makeFrameInfo());
       e.onSignal(makeFrameInfo(), "signal");
       e.teardown(makeFrameInfo());
@@ -66,8 +70,8 @@ describe("Entity", () => {
 
   test("throws on multiple setup", () => {
     expect(() => {
-      e.setup(makeFrameInfo(), makeEntityConfig());
-      e.setup(makeFrameInfo(), makeEntityConfig());
+      e.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      e.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     }).toThrow();
   });
 
@@ -109,7 +113,7 @@ describe("Entity", () => {
     })();
 
     // Setup the receiver and send one event
-    receiver.setup(makeFrameInfo(), makeEntityConfig());
+    receiver.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     sender.emit("a", 1, 2, 3);
     sender.emit("a", 1, 2, 3);
     sender.emit("b", 1, 2, 3);
@@ -145,7 +149,7 @@ describe("CompositeEntity", () => {
 
   test("runs children", () => {
     for (let i = 0; i < 5; i++) {
-      parent.setup(makeFrameInfo(), makeEntityConfig());
+      parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
       parent.update(makeFrameInfo());
       parent.onSignal(makeFrameInfo(), "signal");
       parent.teardown(makeFrameInfo());
@@ -167,7 +171,7 @@ describe("CompositeEntity", () => {
     });
 
     // Run once
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     parent.update(makeFrameInfo());
 
     // Run again, this time have middle child request transition
@@ -189,7 +193,7 @@ describe("CompositeEntity", () => {
     parent.on("deactivatedChildEntity", deactivatedCallback);
 
     // Run once
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     children[1].transition = entity.makeTransition();
     parent.update(makeFrameInfo());
 
@@ -203,7 +207,7 @@ describe("CompositeEntity", () => {
     const activatedCallback = jest.fn();
     parent.on("activatedChildEntity", activatedCallback);
 
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
 
     expect(activatedCallback).toBeCalledTimes(3);
   });
@@ -215,7 +219,7 @@ describe("ParallelEntity", () => {
     const parent = new entity.ParallelEntity(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.setup(makeFrameInfo(), makeEntityConfig());
+      parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
       parent.update(makeFrameInfo());
       parent.onSignal(makeFrameInfo(), "signal");
       parent.teardown(makeFrameInfo());
@@ -241,7 +245,7 @@ describe("ParallelEntity", () => {
     ]);
 
     // Run once
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     parent.update(makeFrameInfo());
 
     expect(middleChildContext.entity._setup).not.toBeCalled();
@@ -253,7 +257,7 @@ describe("ParallelEntity", () => {
     const parent = new entity.ParallelEntity(children);
 
     // Run once
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     parent.update(makeFrameInfo());
 
     // Deactivate middle child and run
@@ -277,7 +281,7 @@ describe("EntitySequence", () => {
     const parent = new entity.EntitySequence(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.setup(makeFrameInfo(), makeEntityConfig());
+      parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
       parent.update(makeFrameInfo());
       parent.onSignal(makeFrameInfo(), "signal");
       parent.teardown(makeFrameInfo());
@@ -302,7 +306,7 @@ describe("EntitySequence", () => {
     const children = [new MockEntity(), new MockEntity(), new MockEntity()];
     const parent = new entity.EntitySequence(children);
 
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
 
     // Run 1st child twice, then request transition
     parent.update(makeFrameInfo());
@@ -337,7 +341,7 @@ describe("EntitySequence", () => {
     const children = [new MockEntity(), new MockEntity()];
     const parent = new entity.EntitySequence(children, { loop: true });
 
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
 
     // Run 1st child, then request transition
     parent.update(makeFrameInfo());
@@ -370,7 +374,7 @@ describe("EntitySequence", () => {
     const children = [new MockEntity(), new MockEntity()];
     const parent = new entity.EntitySequence(children);
 
-    parent.setup(makeFrameInfo(), makeEntityConfig());
+    parent.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
 
     // Run 1st child, then skip
     parent.update(makeFrameInfo());
@@ -399,7 +403,7 @@ describe("StateMachine", () => {
     const stateMachine = new entity.StateMachine(states);
 
     for (let i = 0; i < 5; i++) {
-      stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+      stateMachine.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
       stateMachine.update(makeFrameInfo());
       stateMachine.onSignal(makeFrameInfo(), "signal");
       stateMachine.teardown(makeFrameInfo());
@@ -417,7 +421,7 @@ describe("StateMachine", () => {
     const stateMachine = new entity.StateMachine(states);
 
     // Run once, then request transition
-    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     stateMachine.update(makeFrameInfo());
     states.start.transition = entity.makeTransition("end");
     stateMachine.update(makeFrameInfo());
@@ -439,7 +443,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request transition
-    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     stateMachine.update(makeFrameInfo());
     states.a.transition = entity.makeTransition("b");
     stateMachine.update(makeFrameInfo());
@@ -462,7 +466,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request transition
-    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     stateMachine.update(makeFrameInfo());
     states.a.transition = entity.makeTransition();
     stateMachine.update(makeFrameInfo());
@@ -485,7 +489,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request transition
-    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     stateMachine.update(makeFrameInfo());
 
     stateMachine.changeState("b");
@@ -509,7 +513,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request transition
-    stateMachine.setup(makeFrameInfo(), makeEntityConfig());
+    stateMachine.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
     stateMachine.update(makeFrameInfo());
 
     const transition = entity.makeTransition("done", { x: "y" });
