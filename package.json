@@ -29,9 +29,6 @@
     "typescript": "^4.3.2",
     "underscore": "~1.13"
   },
-  "prettier": {
-    "semi": false
-  },
   "repository": "https://github.com/play-curious/booyah.git",
   "author": "drpepper"
 }

@@ -1,8 +1,8 @@
-import * as PIXI from "pixi.js"
+import * as PIXI from "pixi.js";
 
-import * as entity from "./entity"
-import * as geom from "./geom"
-import * as util from "./util"
+import * as entity from "./entity";
+import * as geom from "./geom";
+import * as util from "./util";
 
 /**
  * Based on David Fig's pixi-scrollbox https://github.com/davidfig/pixi-scrollbox/, but adapted to Booyah
@@ -12,43 +12,43 @@ import * as util from "./util"
  *  refreshed
  **/
 export class Scrollbox extends entity.EntityBase {
-  public pointerDown: any
-  public container: PIXI.Container
-  public content: PIXI.Container
-  public scrollbar: PIXI.Graphics
-  public onWheelHandler: () => void
-  public _isScrollbarVertical: boolean
-  public scrollbarTop: number
-  public scrollbarHeight: number
-  public scrollbarLeft: number
-  public scrollbarWidth: number
+  public pointerDown: any;
+  public container: PIXI.Container;
+  public content: PIXI.Container;
+  public scrollbar: PIXI.Graphics;
+  public onWheelHandler: () => void;
+  public _isScrollbarVertical: boolean;
+  public scrollbarTop: number;
+  public scrollbarHeight: number;
+  public scrollbarLeft: number;
+  public scrollbarWidth: number;
 
   /**
    * Can be provided with an existing container
    */
   constructor(
     public options: {
-      content?: any
-      boxWidth?: number
-      boxHeight?: number
-      overflowX?: number | string
-      overflowY?: number | string
-      scrollbarOffsetHorizontal?: number
-      scrollbarOffsetVertical?: number
-      scrollbarSize?: number
-      scrollbarBackground?: number
-      scrollbarBackgroundAlpha?: number
-      scrollbarForeground?: number
-      scrollbarForegroundAlpha?: number
-      dragScroll?: boolean
-      dragThreshold?: number
-      stopPropagation?: boolean
-      contentMarginX?: number
-      contentMarginY?: number
-      wheelScroll?: boolean
+      content?: any;
+      boxWidth?: number;
+      boxHeight?: number;
+      overflowX?: number | string;
+      overflowY?: number | string;
+      scrollbarOffsetHorizontal?: number;
+      scrollbarOffsetVertical?: number;
+      scrollbarSize?: number;
+      scrollbarBackground?: number;
+      scrollbarBackgroundAlpha?: number;
+      scrollbarForeground?: number;
+      scrollbarForegroundAlpha?: number;
+      dragScroll?: boolean;
+      dragThreshold?: number;
+      stopPropagation?: boolean;
+      contentMarginX?: number;
+      contentMarginY?: number;
+      wheelScroll?: boolean;
     } = {}
   ) {
-    super()
+    super();
 
     this.options = util.setupOptions({}, options, {
       content: null,
@@ -69,73 +69,76 @@ export class Scrollbox extends entity.EntityBase {
       contentMarginX: 0,
       contentMarginY: 0,
       wheelScroll: true,
-    })
+    });
   }
 
   _setup() {
     // Last pointerdown event
-    this.pointerDown = null
+    this.pointerDown = null;
 
-    this.container = new PIXI.Container()
-    this.container.interactive = true
-    this._on(this.container, "pointermove", this._onMove as any)
-    this._on(this.container, "pointerup", this._onUp as any)
-    this._on(this.container, "pointercancel", this._onUp as any)
-    this._on(this.container, "pointerupoutside", this._onUp as any)
-    this._entityConfig.container.addChild(this.container)
+    this.container = new PIXI.Container();
+    this.container.interactive = true;
+    this._on(this.container, "pointermove", this._onMove as any);
+    this._on(this.container, "pointerup", this._onUp as any);
+    this._on(this.container, "pointercancel", this._onUp as any);
+    this._on(this.container, "pointerupoutside", this._onUp as any);
+    this._entityConfig.container.addChild(this.container);
 
     if (this.options.dragScroll) {
-      const dragBackground = new PIXI.Graphics()
+      const dragBackground = new PIXI.Graphics();
       dragBackground
         .beginFill(0)
         .drawRect(0, 0, this.options.boxWidth, this.options.boxHeight)
-        .endFill()
-      dragBackground.alpha = 0
+        .endFill();
+      dragBackground.alpha = 0;
 
-      this._on(this.container, "pointerdown", this._dragDown as any)
-      this.container.addChild(dragBackground)
+      this._on(this.container, "pointerdown", this._dragDown as any);
+      this.container.addChild(dragBackground);
     }
 
-    this.content = this.options.content || new PIXI.Container()
-    this.container.addChild(this.content)
+    this.content = this.options.content || new PIXI.Container();
+    this.container.addChild(this.content);
 
-    this.scrollbar = new PIXI.Graphics()
-    this.scrollbar.interactive = true
-    this._on(this.scrollbar, "pointerdown", this._scrollbarDown as any)
-    this.container.addChild(this.scrollbar)
+    this.scrollbar = new PIXI.Graphics();
+    this.scrollbar.interactive = true;
+    this._on(this.scrollbar, "pointerdown", this._scrollbarDown as any);
+    this.container.addChild(this.scrollbar);
 
-    const mask = new PIXI.Graphics()
+    const mask = new PIXI.Graphics();
     mask
       .beginFill(0)
       .drawRect(0, 0, this.options.boxWidth, this.options.boxHeight)
-      .endFill()
-    this.content.mask = mask
-    this.container.addChild(mask)
+      .endFill();
+    this.content.mask = mask;
+    this.container.addChild(mask);
 
     if (this.options.wheelScroll) {
-      this.onWheelHandler = this._onWheel.bind(this)
-      this._entityConfig.app.view.addEventListener("wheel", this.onWheelHandler)
+      this.onWheelHandler = this._onWheel.bind(this);
+      this._entityConfig.app.view.addEventListener(
+        "wheel",
+        this.onWheelHandler
+      );
     }
 
-    this.refresh()
+    this.refresh();
   }
 
   _teardown() {
-    this._entityConfig.container.removeChild(this.container)
+    this._entityConfig.container.removeChild(this.container);
 
     if (this.options.wheelScroll) {
       this._entityConfig.app.view.removeEventListener(
         "wheel",
         this.onWheelHandler
-      )
+      );
     }
   }
 
   /** Call when container contents have changed  */
   refresh() {
-    this._drawScrollbars()
+    this._drawScrollbars();
 
-    this.emit("refreshed")
+    this.emit("refreshed");
   }
 
   get isScrollbarHorizontal() {
@@ -143,7 +146,8 @@ export class Scrollbox extends entity.EntityBase {
       ? true
       : ["hidden", "none"].indexOf(String(this.options.overflowX)) !== -1
       ? false
-      : this.content.width + this.options.contentMarginX > this.options.boxWidth
+      : this.content.width + this.options.contentMarginX >
+        this.options.boxWidth;
   }
 
   get isScrollbarVertical() {
@@ -152,47 +156,47 @@ export class Scrollbox extends entity.EntityBase {
       : ["hidden", "none"].indexOf(String(this.options.overflowY)) !== -1
       ? false
       : this.content.height + this.options.contentMarginY >
-        this.options.boxHeight
+        this.options.boxHeight;
   }
 
   // From the same function in pixi-scrollbox
   _drawScrollbars() {
-    this.scrollbar.clear()
-    let options: any = {}
-    options.left = 0
+    this.scrollbar.clear();
+    let options: any = {};
+    options.left = 0;
     options.right =
       this.content.width +
       this.options.contentMarginX +
-      (this._isScrollbarVertical ? this.options.scrollbarSize : 0)
-    options.top = 0
+      (this._isScrollbarVertical ? this.options.scrollbarSize : 0);
+    options.top = 0;
     options.bottom =
       this.content.height +
       this.options.contentMarginY +
-      (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0)
+      (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0);
     const width =
       this.content.width +
       this.options.contentMarginX +
-      (this.isScrollbarVertical ? this.options.scrollbarSize : 0)
+      (this.isScrollbarVertical ? this.options.scrollbarSize : 0);
     const height =
       this.content.height +
       this.options.contentMarginY +
-      (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0)
-    this.scrollbarTop = (-this.content.y / height) * this.options.boxHeight
-    this.scrollbarTop = this.scrollbarTop < 0 ? 0 : this.scrollbarTop
+      (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0);
+    this.scrollbarTop = (-this.content.y / height) * this.options.boxHeight;
+    this.scrollbarTop = this.scrollbarTop < 0 ? 0 : this.scrollbarTop;
     this.scrollbarHeight =
-      (this.options.boxHeight / height) * this.options.boxHeight
+      (this.options.boxHeight / height) * this.options.boxHeight;
     this.scrollbarHeight =
       this.scrollbarTop + this.scrollbarHeight > this.options.boxHeight
         ? this.options.boxHeight - this.scrollbarTop
-        : this.scrollbarHeight
-    this.scrollbarLeft = (-this.content.x / width) * this.options.boxWidth
-    this.scrollbarLeft = this.scrollbarLeft < 0 ? 0 : this.scrollbarLeft
+        : this.scrollbarHeight;
+    this.scrollbarLeft = (-this.content.x / width) * this.options.boxWidth;
+    this.scrollbarLeft = this.scrollbarLeft < 0 ? 0 : this.scrollbarLeft;
     this.scrollbarWidth =
-      (this.options.boxWidth / width) * this.options.boxWidth
+      (this.options.boxWidth / width) * this.options.boxWidth;
     this.scrollbarWidth =
       this.scrollbarWidth + this.scrollbarLeft > this.options.boxWidth
         ? this.options.boxWidth - this.scrollbarLeft
-        : this.scrollbarWidth
+        : this.scrollbarWidth;
     if (this.isScrollbarVertical) {
       this.scrollbar
         .beginFill(
@@ -207,7 +211,7 @@ export class Scrollbox extends entity.EntityBase {
           this.options.scrollbarSize,
           this.options.boxHeight
         )
-        .endFill()
+        .endFill();
     }
     if (this.isScrollbarHorizontal) {
       this.scrollbar
@@ -223,7 +227,7 @@ export class Scrollbox extends entity.EntityBase {
           this.options.boxWidth,
           this.options.scrollbarSize
         )
-        .endFill()
+        .endFill();
     }
     if (this.isScrollbarVertical) {
       this.scrollbar
@@ -239,7 +243,7 @@ export class Scrollbox extends entity.EntityBase {
           this.options.scrollbarSize,
           this.scrollbarHeight
         )
-        .endFill()
+        .endFill();
     }
     if (this.isScrollbarHorizontal) {
       this.scrollbar
@@ -255,24 +259,24 @@ export class Scrollbox extends entity.EntityBase {
           this.scrollbarWidth,
           this.options.scrollbarSize
         )
-        .endFill()
+        .endFill();
     }
   }
 
   _onMove(e: PIXI.InteractionEvent) {
-    if (!this.pointerDown) return
+    if (!this.pointerDown) return;
 
-    if (this.pointerDown.type === "scrollbar") this._scrollbarMove(e)
-    else if (this.pointerDown.type === "drag") this._dragMove(e)
-    else throw new Error("no such type")
+    if (this.pointerDown.type === "scrollbar") this._scrollbarMove(e);
+    else if (this.pointerDown.type === "drag") this._dragMove(e);
+    else throw new Error("no such type");
   }
 
   _onUp(e: PIXI.InteractionEvent) {
-    if (!this.pointerDown) return
+    if (!this.pointerDown) return;
 
-    if (this.pointerDown.type === "scrollbar") this._scrollbarUp()
-    else if (this.pointerDown.type === "drag") this._dragUp()
-    else throw new Error("no such type")
+    if (this.pointerDown.type === "scrollbar") this._scrollbarUp();
+    else if (this.pointerDown.type === "drag") this._dragUp();
+    else throw new Error("no such type");
   }
 
   /**
@@ -281,11 +285,11 @@ export class Scrollbox extends entity.EntityBase {
    * @private
    */
   _scrollbarDown(e: PIXI.InteractionEvent) {
-    if (this.pointerDown) return
+    if (this.pointerDown) return;
 
-    this.content.interactiveChildren = false
+    this.content.interactiveChildren = false;
 
-    const local = this.container.toLocal(e.data.global)
+    const local = this.container.toLocal(e.data.global);
     if (this.isScrollbarHorizontal) {
       if (local.y > this.options.boxHeight - this.options.scrollbarSize) {
         if (
@@ -296,18 +300,18 @@ export class Scrollbox extends entity.EntityBase {
             type: "scrollbar",
             direction: "horizontal",
             last: local,
-          }
+          };
         } else {
           if (local.x > this.scrollbarLeft) {
-            this.scrollBy(new PIXI.Point(-this.options.boxWidth, 0))
+            this.scrollBy(new PIXI.Point(-this.options.boxWidth, 0));
           } else {
-            this.scrollBy(new PIXI.Point(this.options.boxWidth, 0))
+            this.scrollBy(new PIXI.Point(this.options.boxWidth, 0));
           }
         }
         if (this.options.stopPropagation) {
-          e.stopPropagation()
+          e.stopPropagation();
         }
-        return
+        return;
       }
     }
     if (this.isScrollbarVertical) {
@@ -320,18 +324,18 @@ export class Scrollbox extends entity.EntityBase {
             type: "scrollbar",
             direction: "vertical",
             last: local,
-          }
+          };
         } else {
           if (local.y > this.scrollbarTop) {
-            this.scrollBy(new PIXI.Point(0, -this.options.boxHeight))
+            this.scrollBy(new PIXI.Point(0, -this.options.boxHeight));
           } else {
-            this.scrollBy(new PIXI.Point(0, this.options.boxHeight))
+            this.scrollBy(new PIXI.Point(0, this.options.boxHeight));
           }
         }
         if (this.options.stopPropagation) {
-          e.stopPropagation()
+          e.stopPropagation();
         }
-        return
+        return;
       }
     }
   }
@@ -343,23 +347,23 @@ export class Scrollbox extends entity.EntityBase {
    */
   _scrollbarMove(e: PIXI.InteractionEvent) {
     if (this.pointerDown.direction === "horizontal") {
-      const local = this.container.toLocal(e.data.global)
+      const local = this.container.toLocal(e.data.global);
       const fraction =
         ((local.x - this.pointerDown.last.x) / this.options.boxWidth) *
-        (this.content.width + this.options.contentMarginX)
-      this.scrollBy(new PIXI.Point(-fraction, 0))
-      this.pointerDown.last = local
+        (this.content.width + this.options.contentMarginX);
+      this.scrollBy(new PIXI.Point(-fraction, 0));
+      this.pointerDown.last = local;
     } else if (this.pointerDown.direction === "vertical") {
-      const local = this.container.toLocal(e.data.global)
+      const local = this.container.toLocal(e.data.global);
       const fraction =
         ((local.y - this.pointerDown.last.y) / this.options.boxHeight) *
-        (this.content.height + this.options.contentMarginY)
-      this.scrollBy(new PIXI.Point(0, -fraction))
-      this.pointerDown.last = local
+        (this.content.height + this.options.contentMarginY);
+      this.scrollBy(new PIXI.Point(0, -fraction));
+      this.pointerDown.last = local;
     }
 
     if (this.options.stopPropagation) {
-      e.stopPropagation()
+      e.stopPropagation();
     }
   }
 
@@ -368,9 +372,9 @@ export class Scrollbox extends entity.EntityBase {
    * @private
    */
   _scrollbarUp() {
-    this.pointerDown = null
+    this.pointerDown = null;
 
-    this.content.interactiveChildren = true
+    this.content.interactiveChildren = true;
   }
 
   /**
@@ -379,10 +383,10 @@ export class Scrollbox extends entity.EntityBase {
    * @private
    */
   _dragDown(e: PIXI.InteractionEvent) {
-    if (this.pointerDown) return
+    if (this.pointerDown) return;
 
-    const local = this.container.toLocal(e.data.global)
-    this.pointerDown = { type: "drag", last: local }
+    const local = this.container.toLocal(e.data.global);
+    this.pointerDown = { type: "drag", last: local };
 
     // if (this.options.stopPropagation) {
     //   e.stopPropagation();
@@ -396,21 +400,21 @@ export class Scrollbox extends entity.EntityBase {
    */
 
   _dragMove(e: PIXI.InteractionEvent) {
-    const local = this.container.toLocal(e.data.global) as PIXI.Point
+    const local = this.container.toLocal(e.data.global) as PIXI.Point;
     if (
       geom.distance(local, this.pointerDown.last) <= this.options.dragThreshold
     )
-      return
+      return;
 
-    this.content.interactiveChildren = false
+    this.content.interactiveChildren = false;
 
-    const scrollAmount = geom.subtract(local, this.pointerDown.last)
-    if (!this.isScrollbarHorizontal) scrollAmount.x = 0
-    if (!this.isScrollbarVertical) scrollAmount.y = 0
+    const scrollAmount = geom.subtract(local, this.pointerDown.last);
+    if (!this.isScrollbarHorizontal) scrollAmount.x = 0;
+    if (!this.isScrollbarVertical) scrollAmount.y = 0;
 
-    this.scrollBy(scrollAmount)
+    this.scrollBy(scrollAmount);
 
-    this.pointerDown.last = local
+    this.pointerDown.last = local;
 
     // if (this.options.stopPropagation) {
     //   e.stopPropagation();
@@ -422,9 +426,9 @@ export class Scrollbox extends entity.EntityBase {
    * @private
    */
   _dragUp() {
-    this.pointerDown = null
+    this.pointerDown = null;
 
-    this.content.interactiveChildren = true
+    this.content.interactiveChildren = true;
   }
 
   /**
@@ -432,36 +436,39 @@ export class Scrollbox extends entity.EntityBase {
    * @param {WheelEvent} e
    */
   _onWheel(e: WheelEvent) {
-    if (!this.container.worldVisible) return
+    if (!this.container.worldVisible) return;
 
     // Get coordinates of point and test if we touch this container
-    const globalPoint = new PIXI.Point()
+    const globalPoint = new PIXI.Point();
     this._entityConfig.app.renderer.plugins.interaction.mapPositionToPoint(
       globalPoint,
       e.clientX,
       e.clientY
-    )
+    );
     if (
       !this._entityConfig.app.renderer.plugins.interaction.hitTest(
         globalPoint,
         this.container
       )
     )
-      return
+      return;
 
     // Finally, scroll!
-    const scrollAmount = -e.deltaY
+    const scrollAmount = -e.deltaY;
     if (this.isScrollbarHorizontal) {
-      this.scrollBy(new PIXI.Point(scrollAmount, 0))
+      this.scrollBy(new PIXI.Point(scrollAmount, 0));
     } else if (this.isScrollbarVertical) {
-      this.scrollBy(new PIXI.Point(0, scrollAmount))
+      this.scrollBy(new PIXI.Point(0, scrollAmount));
     }
 
-    e.preventDefault()
+    e.preventDefault();
   }
 
   scrollBy(amount: PIXI.Point, reason = "user") {
-    this.scrollTo(geom.add(this.content.position as PIXI.Point, amount), reason)
+    this.scrollTo(
+      geom.add(this.content.position as PIXI.Point, amount),
+      reason
+    );
   }
 
   scrollTo(position: PIXI.Point, reason = "user") {
@@ -470,21 +477,21 @@ export class Scrollbox extends entity.EntityBase {
       this.options.boxWidth -
         (this.content.width + this.options.contentMarginX),
       0
-    )
+    );
     position.y = geom.clamp(
       position.y,
       this.options.boxHeight -
         (this.content.height + this.options.contentMarginY),
       0
-    )
-    this.content.position.copyFrom(position)
+    );
+    this.content.position.copyFrom(position);
 
-    this._drawScrollbars()
+    this._drawScrollbars();
 
-    this.emit("moved", { reason })
+    this.emit("moved", { reason });
   }
 
   get currentScroll() {
-    return this.content.position
+    return this.content.position;
   }
 }
