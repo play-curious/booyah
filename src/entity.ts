@@ -791,8 +791,11 @@ export class StateMachine extends CompositeEntity {
 
     // If reached an ending state, stop here.
     if (_.contains(this.options.endingStates, nextState.name)) {
-      this._transition = nextState;
+      this.lastTransition = nextState;
       this.visitedStates.push(nextState);
+
+      // Request transition
+      this._transition = nextState;
       return;
     }
 
