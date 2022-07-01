@@ -1074,6 +1074,8 @@ export function changeGameState(newGameState: entity.GameState) {
   let previousGameState = gameState;
   gameState = newGameState;
 
+  if (lastFrameInfo) lastFrameInfo.gameState = newGameState;
+
   if (previousGameState !== newGameState) {
     if (previousGameState == "playing" && newGameState == "paused") {
       getRootEntity().onSignal(lastFrameInfo, "pause");
