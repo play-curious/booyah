@@ -11,7 +11,7 @@ export interface JukeboxOptions {
 
 /** 
   A music player, that only plays one track at a time.
-  By default the volume is lowered to not interere with sound effects.
+  By default the volume is lowered to not interfere with sound effects.
 */
 export class Jukebox extends entity.EntityBase {
   public volume: number;
@@ -83,6 +83,10 @@ export class Jukebox extends entity.EntityBase {
       this.musicPlaying.volume(volume ?? this.volume);
       this.musicPlaying.play();
     }
+  }
+
+  stop() {
+    this.play();
   }
 
   setMuted(isMuted: boolean) {
@@ -170,6 +174,10 @@ export class FxMachine extends entity.EntityBase {
     }
 
     this._entityConfig.fxAudio[name].play();
+  }
+
+  stop(name: string) {
+    this._entityConfig.fxAudio[name].stop();
   }
 
   // TODO: stop playing effects when paused or on teardown

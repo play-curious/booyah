@@ -29,6 +29,7 @@ export interface Directives {
   graphicalAssets: string[];
   fontAssets: string[];
   jsonAssets: Array<string | { key: string; url: string }>;
+  subtitleAssets: Array<string>;
   musicAssets: (string | { key: string; url: string })[];
   fxAssets: (string | { key: string; url: string })[];
   extraLoaders: ((entityConfig: entity.EntityConfig) => Promise<any>)[];
@@ -67,6 +68,7 @@ const DEFAULT_DIRECTIVES: any = {
   videoAssets: [], // No directory needed
   fontAssets: [], // Font names. The loading should be done separately via CSS.
   jsonAssets: [], // Starting from the root directory. JSON extension in needed
+  subtitleAssets: [],
 
   // For narration
   speakers: {},
@@ -137,6 +139,7 @@ const rootConfig: entity.EntityConfig = {
   musicAudio: {},
   videoAssets: {},
   jsonAssets: {},
+  subtitles: {},
   fxAudio: null,
   gameStateMachine: null,
   menu: null,
@@ -998,7 +1001,9 @@ export class DoneScene extends entity.EntityBase {
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.copyFrom(this._entityConfig.directives.loader.position);
+    button.position.copyFrom(
+      this._entityConfig.directives.loadingGauge.position
+    );
     this._on(
       button,
       "pointertap",
@@ -1069,6 +1074,8 @@ export function changeGameState(newGameState: entity.GameState) {
   let previousGameState = gameState;
   gameState = newGameState;
 
+  if (lastFrameInfo) lastFrameInfo.gameState = newGameState;
+
   if (previousGameState !== newGameState) {
     if (previousGameState == "playing" && newGameState == "paused") {
       getRootEntity().onSignal(lastFrameInfo, "pause");
@@ -1097,7 +1104,7 @@ function loadFixedAssets() {
   rootConfig.app.loader.add(pixiLoaderResources);
   rootConfig.app.loader.onProgress.add(pixiLoadProgressHandler);
 
-  const fonts = ["Roboto Condensed", ...rootConfig.directives.fontAssets];
+  const fonts = rootConfig.directives.fontAssets;
   const fontLoaderPromises = _.map(fonts, (name) => {
     return new FontFaceObserver(name)
       .load(FONT_OBSERVER_CHARS)
@@ -1106,13 +1113,14 @@ function loadFixedAssets() {
         updateLoadingProgress();
       })
       .catch((e: any) => {
-        console.warn("Cannot load font", name);
+        console.warn("Cannot load font", name, "due to error", e);
 
         // On Firefox, this will randomly timeout although font was loaded correctly
         // throw e;
       });
   });
 
+  // load json
   rootConfig.jsonAssets = {};
   const jsonLoaderPromises = _.map(
     rootConfig.directives.jsonAssets,
@@ -1136,6 +1144,17 @@ function loadFixedAssets() {
           )}'`
         );
       }
+    }
+  );
+
+  // load subtitles
+  rootConfig.subtitles = {};
+  const subtitleLoaderPromises = _.map(
+    rootConfig.directives.subtitleAssets,
+    (name: string) => {
+      return util.loadSubtitles(`subtitles/${name}.srt`).then((parsed) => {
+        rootConfig.subtitles[name] = parsed;
+      });
     }
   );
 
@@ -1198,6 +1217,7 @@ function loadFixedAssets() {
       fixedAudioLoaderPromises,
       jsonLoaderPromises,
       videoLoaderPromises,
+      subtitleLoaderPromises,
     ],
     true
   );
@@ -1294,7 +1314,7 @@ function doneLoading() {
   changeGameState("playing");
 
   // Remove loading screen
-  loadingScene.teardown(lastFrameInfo);
+  loadingScene?.teardown(lastFrameInfo);
   loadingScene = null;
 
   // The new rootEntity will contain all the sub entities
@@ -1328,7 +1348,7 @@ function doneLoading() {
 
   setupVisibilityDetection();
 
-  gameEntity.setup(lastFrameInfo, rootConfig);
+  gameEntity.setup(lastFrameInfo, rootConfig, entity.makeTransition());
 }
 
 /** Detect when the page is not shown, and pause the game */
@@ -1460,7 +1480,7 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene = new LoadingScene();
 
       // The loading scene doesn't get the full entityConfig
-      loadingScene.setup(frameInfo, rootConfig);
+      loadingScene.setup(frameInfo, rootConfig, entity.makeTransition());
 
       rootConfig.app.ticker.add(update);
 
@@ -1474,11 +1494,11 @@ export function go(directives: Partial<Directives> = {}) {
       console.error("Error during load", err);
 
       // Replace loading scene with loading error
-      loadingScene.teardown(frameInfo);
+      loadingScene?.teardown(frameInfo);
       loadingScene = null;
 
       loadingErrorScene = new LoadingErrorScene();
-      getRootEntity().setup(frameInfo, rootConfig);
+      getRootEntity().setup(frameInfo, rootConfig, entity.makeTransition());
 
       throw err;
     });

@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 
 import * as geom from "./geom";
 import * as entity from "./entity";
+import * as narration from "./narration";
 import * as _ from "underscore";
 
 /** Test containment using _.isEqual() */
@@ -253,6 +254,52 @@ export function loadJson(fileName: string): Promise<any> {
     request.onerror = reject;
     request.send();
   });
+}
+
+export async function loadSubtitles(
+  fileName: string
+): Promise<narration.ParsedSubtitle[]> {
+  const plainText = await new Promise<string>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("GET", fileName);
+    request.responseType = "text";
+    request.onload = () => resolve(String(request.response));
+    request.onerror = reject;
+    request.send();
+  });
+
+  const subtitleRegex =
+    /^(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})\n([\S\s]+?)\n\d*\n/gm;
+
+  let match,
+    output: narration.ParsedSubtitle[] = [];
+  while ((match = subtitleRegex.exec(plainText))) {
+    const [
+      fullMatch,
+      start_h,
+      start_m,
+      start_s,
+      start_ms,
+      end_h,
+      end_m,
+      end_s,
+      end_ms,
+      text,
+    ] = match;
+
+    output.push({
+      startsAt:
+        +start_ms +
+        +start_s * 1000 +
+        +start_m * 1000 * 60 +
+        +start_h * 1000 * 60 * 60,
+      endsAt:
+        +end_ms + +end_s * 1000 + +end_m * 1000 * 60 + +end_h * 1000 * 60 * 60,
+      text,
+    });
+  }
+
+  return output;
 }
 
 export function stringToBool(s?: string): boolean {
