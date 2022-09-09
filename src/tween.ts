@@ -74,10 +74,15 @@ export class Tween<
   private _value: Value;
   private _startTime: number;
 
-  constructor(options?: TweenOptions<Value, Obj>) {
+  constructor(options?: Partial<TweenOptions<Value, Obj>>) {
     super();
 
     this.options = util.fillInOptions(options, new TweenOptions());
+
+    if (!this.options.interpolate) {
+      // @ts-ignore
+      this.options.interpolate = interpolation.scalar;
+    }
 
     if (this.options.onUpdate) {
       this._on(this, "updatedValue", this.options.onUpdate);

@@ -37,7 +37,11 @@ export class Simulation extends entity.ParallelEntity {
     });
   }
 
-  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig, enteringTransition: entity.Transition) {
+  setup(
+    frameInfo: entity.FrameInfo,
+    entityConfig: entity.EntityConfig,
+    enteringTransition: entity.Transition
+  ) {
     this.world = new p2.World(this.worldOptions);
     this.oldConfig = entityConfig;
 
@@ -47,7 +51,7 @@ export class Simulation extends entity.ParallelEntity {
     this.container.position.y = entityConfig.app.renderer.height / 2;
 
     this.container.scale.x = this.zoom; // zoom in
-    this.container.scale.y = -this.zoom; // Note: we flip the y axis to make "up" the physics "up"
+    this.container.scale.y = -this.zoom; // Note: we flip the y-axis to make "up" the physics "up"
     this.oldConfig.container.addChild(this.container);
 
     entityConfig = _.extend({}, entityConfig, {
@@ -91,7 +95,11 @@ export class BodyEntity extends entity.ParallelEntity {
     });
   }
 
-  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig, enteringTransition: entity.Transition) {
+  setup(
+    frameInfo: entity.FrameInfo,
+    entityConfig: entity.EntityConfig,
+    enteringTransition: entity.Transition
+  ) {
     super.setup(frameInfo, entityConfig, enteringTransition);
 
     this._entityConfig.world.addBody(this.body);
