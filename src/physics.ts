@@ -37,7 +37,7 @@ export class Simulation extends entity.ParallelEntity {
     });
   }
 
-  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig, enteringTransition: entity.Transition) {
     this.world = new p2.World(this.worldOptions);
     this.oldConfig = entityConfig;
 
@@ -55,7 +55,7 @@ export class Simulation extends entity.ParallelEntity {
       container: this.container,
     });
 
-    super.setup(frameInfo, entityConfig);
+    super.setup(frameInfo, entityConfig, enteringTransition);
   }
 
   update(frameInfo: entity.FrameInfo) {
@@ -75,7 +75,7 @@ export class Simulation extends entity.ParallelEntity {
   }
 }
 
-/** 
+/**
   Meant to be a child of a Simulation.
 */
 export class BodyEntity extends entity.ParallelEntity {
@@ -91,8 +91,8 @@ export class BodyEntity extends entity.ParallelEntity {
     });
   }
 
-  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
-    super.setup(frameInfo, entityConfig);
+  setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig, enteringTransition: entity.Transition) {
+    super.setup(frameInfo, entityConfig, enteringTransition);
 
     this._entityConfig.world.addBody(this.body);
 

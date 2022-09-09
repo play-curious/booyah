@@ -51,7 +51,7 @@ export class TweenOptions<
   to: Value;
   duration: number = 1000;
   easing: easing.EasingFunction = easing.linear;
-  interpolate?: (from: Value, to: Value, easeProgress: number) => Value;
+  interpolate: (from: Value, to: Value, easeProgress: number) => Value;
   onSetup?: () => unknown;
   onUpdate?: (value: Value) => unknown;
   onTeardown?: () => unknown;
