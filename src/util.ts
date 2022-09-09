@@ -365,11 +365,13 @@ export function setPropertyInTree(root: Root, name: string, value: any): void {
   }
 }
 
+export type AnimatedSpriteTransitionCallback = boolean | (() => unknown)
+
 export function makeAnimatedSprite(
   resource: PIXI.LoaderResource,
   options?: {
     resetFrame?: boolean;
-    transitionOnComplete?: boolean;
+    transitionOnComplete?: AnimatedSpriteTransitionCallback;
   }
 ): entity.AnimatedSpriteEntity {
   return new entity.AnimatedSpriteEntity(
