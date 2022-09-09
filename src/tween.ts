@@ -13,8 +13,8 @@ import * as _ from "underscore";
  */
 export function make(
   obj: any,
-  props: { [prop: string]: TweenOptions },
-  options: TweenOptions
+  props: { [prop: string]: Partial<TweenOptions<TweenValue, any>> },
+  options: TweenOptions<TweenValue, any>
 ): entity.ParallelEntity {
   const tweens: any[] = [];
   for (const key in props) {
@@ -28,6 +28,8 @@ export function make(
   return new entity.ParallelEntity(tweens);
 }
 
+export type TweenValue = number | PIXI.IPointData;
+
 /**
  * Tween takes the following options:
  * @obj - an actual object, a function that returns an object, or null (in which case the value is internal only)
@@ -39,17 +41,20 @@ export function make(
  * @interpolate - Function to use for setting a new value.
  *  Depends on data type, such as color, vector, angle, ...
  **/
-export class TweenOptions {
-  obj?: { [k: string]: any };
-  property?: string;
-  from?: any;
-  to: any;
+export class TweenOptions<
+  Value extends TweenValue,
+  Obj extends object = undefined
+> {
+  obj?: Obj;
+  property?: keyof Obj;
+  from?: Value;
+  to: Value;
   duration: number = 1000;
   easing: easing.EasingFunction = easing.linear;
-  interpolate?: (...params: any) => any = interpolation.scalar;
-  onSetup?: () => any;
-  onUpdate?: (value: number) => any;
-  onTeardown?: () => any;
+  interpolate?: (from: Value, to: Value, easeProgress: number) => Value;
+  onSetup?: () => unknown;
+  onUpdate?: (value: Value) => unknown;
+  onTeardown?: () => unknown;
 }
 
 // TODO: add onSetup
@@ -58,15 +63,18 @@ export class TweenOptions {
  * Events:
  *  updatedValue(value)
  */
-export class Tween extends entity.EntityBase {
-  public readonly options: TweenOptions;
+export class Tween<
+  Value extends TweenValue,
+  Obj extends object
+> extends entity.EntityBase {
+  public readonly options: TweenOptions<Value, Obj>;
 
-  private _currentObj: { [k: string]: any };
-  private _startValue: any;
-  private _value: any;
+  private _currentObj: Obj;
+  private _startValue: Value;
+  private _value: Value;
   private _startTime: number;
 
-  constructor(options?: Partial<TweenOptions>) {
+  constructor(options?: TweenOptions<Value, Obj>) {
     super();
 
     this.options = util.fillInOptions(options, new TweenOptions());
@@ -112,6 +120,7 @@ export class Tween extends entity.EntityBase {
         (this._lastFrameInfo.timeSinceStart - this._startTime) /
           this.options.duration
       );
+
       this._value = this.options.interpolate(
         this._startValue,
         this.options.to,
@@ -132,6 +141,7 @@ export class Tween extends entity.EntityBase {
   }
 
   _updateValue() {
+    // @ts-ignore
     if (this._currentObj) this._currentObj[this.options.property] = this._value;
 
     this.emit("updatedValue", this._value);
