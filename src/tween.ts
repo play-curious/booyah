@@ -72,7 +72,7 @@ export class Tween<
   private _currentObj: Obj;
   private _startValue: Value;
   private _value: Value;
-  private _startTime: number;
+  private _timePassed: number;
 
   constructor(options?: Partial<TweenOptions<Value, Obj>>) {
     super();
@@ -103,7 +103,7 @@ export class Tween<
       this._updateValue();
     }
 
-    this._startTime = this._lastFrameInfo.timeSinceStart;
+    this._timePassed = 0;
 
     if (this.options.onSetup) {
       this.options.onSetup();
@@ -111,21 +111,17 @@ export class Tween<
   }
 
   _update() {
-    if (
-      this._lastFrameInfo.timeSinceStart - this._startTime >=
-      this.options.duration
-    ) {
+    if (this._timePassed >= this.options.duration) {
       this._transition = entity.makeTransition();
 
       // Snap to end
       this._value = this.options.to;
       this._updateValue();
     } else {
+      this._timePassed += this._lastFrameInfo.timeSinceLastFrame;
       const easedProgress = this.options.easing(
-        (this._lastFrameInfo.timeSinceStart - this._startTime) /
-          this.options.duration
+        this._timePassed / this.options.duration
       );
-
       this._value = this.options.interpolate(
         this._startValue,
         this.options.to,
