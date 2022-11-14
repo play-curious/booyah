@@ -13,8 +13,8 @@ import * as _ from "underscore";
  */
 export function make(
   obj: any,
-  props: { [prop: string]: Partial<TweenOptions<TweenValue, any>> },
-  options: TweenOptions<TweenValue, any>
+  props: { [prop: string]: Partial<TweenOptions<any, any>> },
+  options: TweenOptions<any, any>
 ): entity.ParallelEntity {
   const tweens: any[] = [];
   for (const key in props) {
@@ -28,8 +28,6 @@ export function make(
   return new entity.ParallelEntity(tweens);
 }
 
-export type TweenValue = number | PIXI.IPointData;
-
 /**
  * Tween takes the following options:
  * @obj - an actual object, a function that returns an object, or null (in which case the value is internal only)
@@ -42,7 +40,7 @@ export type TweenValue = number | PIXI.IPointData;
  *  Depends on data type, such as color, vector, angle, ...
  **/
 export class TweenOptions<
-  Value extends TweenValue,
+  Value,
   Obj extends object = undefined
 > {
   obj?: Obj;
@@ -64,7 +62,7 @@ export class TweenOptions<
  *  updatedValue(value)
  */
 export class Tween<
-  Value extends TweenValue,
+  Value,
   Obj extends object
 > extends entity.EntityBase {
   public readonly options: TweenOptions<Value, Obj>;

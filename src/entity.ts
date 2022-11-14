@@ -1066,6 +1066,7 @@ export class VideoEntity extends EntityBase {
   }
 
   _startVideo() {
+    //@ts-ignore
     const videoResource = new PIXI.resources.VideoResource(this.videoElement);
     //@ts-ignore
     this.videoSprite = PIXI.Sprite.from(videoResource);
@@ -1165,6 +1166,7 @@ export class StreamingVideoEntity extends EntityBase {
   }
 
   _startVideo() {
+    //@ts-ignore
     const videoResource = new PIXI.resources.VideoResource(this.videoElement);
     //@ts-ignore
     this.videoSprite = PIXI.Sprite.from(videoResource);
