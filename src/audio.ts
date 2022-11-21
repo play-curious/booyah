@@ -140,22 +140,25 @@ export class MusicEntity extends entity.EntityBase {
   }
 }
 
+export class FxMachineOptions {
+  volume = 1;
+}
+
 /** 
   Play sounds effects.
 */
 export class FxMachine extends entity.EntityBase {
-  public volume: number;
+  private _volume: number;
 
-  constructor(options: any = {}) {
+  constructor(options?: Partial<FxMachineOptions>) {
     super();
 
-    util.setupOptions(this, options, {
-      volume: 1,
-    });
+    const _options = util.fillInOptions(options, new FxMachineOptions());
+    this._volume = _options.volume;
   }
 
   _setup() {
-    this.changeVolume(this.volume);
+    this.changeVolume(this._volume);
 
     this._updateMuted();
 
@@ -163,7 +166,7 @@ export class FxMachine extends entity.EntityBase {
   }
 
   changeVolume(volume: number) {
-    this.volume = volume;
+    this._volume = volume;
     _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.volume(volume));
   }
 
@@ -198,6 +201,16 @@ export class FxMachine extends entity.EntityBase {
 export function installFxMachine(rootConfig: any, rootEntity: any) {
   rootConfig.fxMachine = new FxMachine();
   rootEntity.addChildEntity(rootConfig.fxMachine);
+}
+
+export function makeInstallFxMachine(options: FxMachineOptions) {
+  return (
+    rootConfig: entity.EntityConfig,
+    rootEntity: entity.ParallelEntity
+  ) => {
+    rootConfig.fxMachine = new FxMachine(options);
+    rootEntity.addChildEntity(rootConfig.fxMachine);
+  };
 }
 
 /** Creates a Promise from the Howl callbacks used for loading */
