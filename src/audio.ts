@@ -215,22 +215,15 @@ export function makeHowls(
   assetDescriptions: (string | { key: string; url: string })[]
 ) {
   const assets: { [key: string]: Howl } = {};
-  for (let assetDescription of assetDescriptions) {
+  for (const assetDescription of assetDescriptions) {
     if (_.isString(assetDescription)) {
       assets[assetDescription] = new Howl({
-        src: _.map(
-          AUDIO_FILE_FORMATS,
-          (audioFormat) =>
-            `audio/${directory}/${assetDescription}.${audioFormat}`
-        ),
+        src: assetDescription,
       });
     } else {
       const url = assetDescription.url;
       assets[assetDescription.key] = new Howl({
-        src: _.map(
-          AUDIO_FILE_FORMATS,
-          (audioFormat) => `audio/${directory}/${url}.${audioFormat}`
-        ),
+        src: assetDescription.url,
       });
     }
   }
