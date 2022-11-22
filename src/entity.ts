@@ -749,7 +749,10 @@ export class StateMachine extends CompositeEntity {
 
       // Unpack the next state
       let nextState: Transition;
-      if (!nextStateDescriptor.params) {
+      if (
+        !nextStateDescriptor.params ||
+        _.isEmpty(nextStateDescriptor.params)
+      ) {
         // By default, pass through the params in the requested transition
         nextState = makeTransition(nextStateDescriptor.name, transition.params);
       } else {
