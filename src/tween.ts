@@ -39,10 +39,7 @@ export function make(
  * @interpolate - Function to use for setting a new value.
  *  Depends on data type, such as color, vector, angle, ...
  **/
-export class TweenOptions<
-  Value,
-  Obj extends object = undefined
-> {
+export class TweenOptions<Value, Obj extends object = undefined> {
   obj?: Obj;
   property?: keyof Obj;
   from?: Value;
@@ -61,10 +58,7 @@ export class TweenOptions<
  * Events:
  *  updatedValue(value)
  */
-export class Tween<
-  Value,
-  Obj extends object
-> extends entity.EntityBase {
+export class Tween<Value, Obj extends object> extends entity.EntityBase {
   public readonly options: TweenOptions<Value, Obj>;
 
   private _currentObj: Obj;
@@ -89,7 +83,7 @@ export class Tween<
 
   _setup() {
     this._currentObj = _.isFunction(this.options.obj)
-      ? this.options.obj
+      ? this.options.obj()
       : this.options.obj;
 
     if (util.isNullish(this.options.from)) {
