@@ -49,7 +49,7 @@ export interface Directives {
   };
 }
 
-const DEFAULT_DIRECTIVES: any = {
+export const DEFAULT_DIRECTIVES: any = {
   screenSize: new PIXI.Point(960, 540), // Screen size as PIXI Point
   canvasId: "pixi-canvas", // ID of element to use for PIXI
 
@@ -172,7 +172,7 @@ let videoLoaderProgress = 0;
 let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
-class FilterPauseEntity extends entity.ParallelEntity {
+export class FilterPauseEntity extends entity.ParallelEntity {
   update(frameInfo: entity.FrameInfo) {
     if (frameInfo.gameState === "playing") super.update(frameInfo);
   }
@@ -1397,7 +1397,7 @@ function setupVisibilityDetection() {
   }
 }
 
-export function makePreloader(additionalAssets: string[]) {
+function makePreloader(additionalAssets: string[]) {
   const loader = new PIXI.Loader();
   loader.add(PRELOADER_ASSETS);
   loader.add(additionalAssets);
