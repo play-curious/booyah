@@ -150,6 +150,8 @@ export class FxMachineOptions {
 export class FxMachine extends entity.EntityBase {
   private _volume: number;
 
+  private _playingSounds: Record<string, { volumeScale: number }>;
+
   constructor(options?: Partial<FxMachineOptions>) {
     super();
 
@@ -163,38 +165,90 @@ export class FxMachine extends entity.EntityBase {
     this._updateMuted();
 
     this._on(this._entityConfig.playOptions, "fxOn", this._updateMuted);
+
+    this._playingSounds = {};
+    for (const name in this._entityConfig.fxAudio) {
+      const howl = this._entityConfig.fxAudio[name];
+
+      // The Howl.on() function doesn't take the same arguments as the event emitter, so we don't use this._on()
+      howl.on("end", () => {
+        delete this._playingSounds[name];
+      });
+    }
+  }
+
+  protected _teardown(frameInfo: entity.FrameInfo): void {
+    this.stopAll();
   }
 
   changeVolume(volume: number) {
     this._volume = volume;
-    _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.volume(volume));
+    for (const name in this._playingSounds) {
+      const howl = this._entityConfig.fxAudio[name];
+      howl.volume(volume * this._playingSounds[name].volumeScale);
+    }
   }
 
-  play(name: string) {
+  /** Returns sound duration in ms */
+  getDuration(name: string): number {
+    return this._entityConfig.fxAudio[name].duration() * 1000;
+  }
+
+  play(name: string, volumeScale = 1) {
     if (!(name in this._entityConfig.fxAudio)) {
       console.error("Missing sound effect", name);
       return;
     }
 
-    this._entityConfig.fxAudio[name].play();
+    const howl = this._entityConfig.fxAudio[name];
+    howl.volume(this._volume * volumeScale);
+    howl.play();
+    this._playingSounds[name] = { volumeScale };
   }
 
-  stop(name: string) {
-    this._entityConfig.fxAudio[name].stop();
+  stop(name: string): void {
+    this._entityConfig.Audio[name].stop();
   }
 
-  // TODO: stop playing effects when paused or on teardown
+  pause(name: string): void {
+    this._entityConfig.Audio[name].pause();
+  }
 
-  // onSignal(signal:string, data?:any) {
-  //   super.onSignal(signal, data);
+  pauseAll(): void {
+    for (const name in this._playingSounds) {
+      const howl = this._entityConfig.fxAudio[name];
+      howl.pause();
+    }
+  }
 
-  //   if(signal === "pause") this.musicPlaying.pause();
-  //   else if(signal === "play") this.musicPlaying.play();
-  // }
+  resume(name: string): void {
+    this._entityConfig.Audio[name].play();
+  }
+
+  resumeAll(): void {
+    for (const name in this._playingSounds) {
+      const howl = this._entityConfig.fxAudio[name];
+      howl.play();
+    }
+  }
+
+  // TODO: stop playing effects when paused
+  protected _onSignal(
+    frameInfo: entity.FrameInfo,
+    signal: string,
+    data?: any
+  ): void {
+    if (signal === "pause") this.pauseAll();
+    if (signal === "play") this.resumeAll();
+  }
 
   _updateMuted() {
     const muted = !this._entityConfig.playOptions.options.fxOn;
     _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.mute(muted));
+  }
+
+  stopAll(): void {
+    _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.stop());
   }
 }
 
