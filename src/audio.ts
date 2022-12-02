@@ -172,7 +172,10 @@ export class FxMachine extends entity.EntityBase {
 
       // The Howl.on() function doesn't take the same arguments as the event emitter, so we don't use this._on()
       howl.on("end", () => {
-        delete this._playingSounds[name];
+        // console.log("fx ended", name);
+
+        // A sound can be looping, so don't remove it from our list until it is really done
+        if (!howl.playing()) delete this._playingSounds[name];
       });
     }
   }
@@ -194,27 +197,31 @@ export class FxMachine extends entity.EntityBase {
     return this._entityConfig.fxAudio[name].duration() * 1000;
   }
 
-  play(name: string, volumeScale = 1) {
+  play(name: string, { volumeScale = 1, loop = false }) {
     if (!(name in this._entityConfig.fxAudio)) {
       console.error("Missing sound effect", name);
       return;
     }
 
+    // console.log("fx playing", name);
+
     const howl = this._entityConfig.fxAudio[name];
     howl.volume(this._volume * volumeScale);
+    howl.loop(loop);
     howl.play();
     this._playingSounds[name] = { volumeScale };
   }
 
   stop(name: string): void {
-    this._entityConfig.Audio[name].stop();
+    this._entityConfig.fxAudio[name].stop();
   }
 
   pause(name: string): void {
-    this._entityConfig.Audio[name].pause();
+    this._entityConfig.fxAudio[name].pause();
   }
 
   pauseAll(): void {
+    // console.log("Pausing all sounds", this._playingSounds);
     for (const name in this._playingSounds) {
       const howl = this._entityConfig.fxAudio[name];
       howl.pause();
@@ -222,7 +229,7 @@ export class FxMachine extends entity.EntityBase {
   }
 
   resume(name: string): void {
-    this._entityConfig.Audio[name].play();
+    this._entityConfig.fxAudio[name].play();
   }
 
   resumeAll(): void {
