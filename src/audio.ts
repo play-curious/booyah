@@ -175,7 +175,9 @@ export class FxMachine extends entity.EntityBase {
         // console.log("fx ended", name);
 
         // A sound can be looping, so don't remove it from our list until it is really done
-        if (!howl.playing()) delete this._playingSounds[name];
+        if (howl.playing()) return;
+
+        delete this._playingSounds[name];
       });
     }
   }
@@ -214,6 +216,13 @@ export class FxMachine extends entity.EntityBase {
 
   stop(name: string): void {
     this._entityConfig.fxAudio[name].stop();
+    delete this._playingSounds[name];
+  }
+
+  stopAll(): void {
+    for (const name in this._playingSounds) {
+      this.stop(name);
+    }
   }
 
   pause(name: string): void {
@@ -223,8 +232,7 @@ export class FxMachine extends entity.EntityBase {
   pauseAll(): void {
     // console.log("Pausing all sounds", this._playingSounds);
     for (const name in this._playingSounds) {
-      const howl = this._entityConfig.fxAudio[name];
-      howl.pause();
+      this.pause(name);
     }
   }
 
@@ -234,8 +242,7 @@ export class FxMachine extends entity.EntityBase {
 
   resumeAll(): void {
     for (const name in this._playingSounds) {
-      const howl = this._entityConfig.fxAudio[name];
-      howl.play();
+      this.resume(name);
     }
   }
 
@@ -252,10 +259,6 @@ export class FxMachine extends entity.EntityBase {
   _updateMuted() {
     const muted = !this._entityConfig.playOptions.options.fxOn;
     _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.mute(muted));
-  }
-
-  stopAll(): void {
-    _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.stop());
   }
 }
 
