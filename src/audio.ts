@@ -199,7 +199,7 @@ export class FxMachine extends entity.EntityBase {
     return this._entityConfig.fxAudio[name].duration() * 1000;
   }
 
-  play(name: string, { volumeScale = 1, loop = false }) {
+  play(name: string, options = { volumeScale: 1, loop: false }) {
     if (!(name in this._entityConfig.fxAudio)) {
       console.error("Missing sound effect", name);
       return;
@@ -208,10 +208,10 @@ export class FxMachine extends entity.EntityBase {
     // console.log("fx playing", name);
 
     const howl = this._entityConfig.fxAudio[name];
-    howl.volume(this._volume * volumeScale);
-    howl.loop(loop);
+    howl.volume(this._volume * options.volumeScale);
+    howl.loop(options.loop);
     howl.play();
-    this._playingSounds[name] = { volumeScale };
+    this._playingSounds[name] = { volumeScale: options.volumeScale };
   }
 
   stop(name: string): void {
