@@ -667,17 +667,15 @@ describe("Hot reloading", () => {
     // Change the values
     child1V1.value = 99;
 
-    const memento = parentV1.makeReloadMemento();
+    let memento = parentV1.makeReloadMemento();
     // Only the activated child will be in the memento
     expect(_.size(memento.children)).toBe(1);
 
     // Reload the entity
-    debugger;
-
     const child1V2 = new ReloadingEntity(1);
     const child2V2 = new ReloadingEntity(2);
-    const parent2 = new entity.EntitySequence([child1V2, child2V2]);
-    parent2.setup(
+    const parentV2 = new entity.EntitySequence([child1V2, child2V2]);
+    parentV2.setup(
       makeFrameInfo(),
       makeEntityConfig(),
       makeTransition(),
@@ -686,6 +684,25 @@ describe("Hot reloading", () => {
 
     expect(child1V2.value).toBe(99);
 
-    // TODO: skip to the next entity and reload, only the 2nd should be activated at start
+    // Skip to the next entity and change its value
+    parentV2.skip();
+    parentV2.update(makeFrameInfo());
+    child2V2.value = 77;
+
+    // Reload
+    memento = parentV2.makeReloadMemento();
+    const child1V3 = new ReloadingEntity(1);
+    const child2V3 = new ReloadingEntity(2);
+    const parentV3 = new entity.EntitySequence([child1V3, child2V3]);
+    parentV3.setup(
+      makeFrameInfo(),
+      makeEntityConfig(),
+      makeTransition(),
+      memento
+    );
+
+    // The 2nd child should be setup and have the correct value
+    expect(child2V3.isSetup).toBe(true);
+    expect(child2V3.value).toBe(77);
   });
 });

@@ -657,7 +657,8 @@ export class EntitySequence extends CompositeEntity {
   }
 
   _setup() {
-    this.currentEntityIndex = 0;
+    this.currentEntityIndex =
+      (this._reloadMemento?.data.currentEntityIndex as number) ?? 0;
     this.currentEntity = null;
 
     if (this.entityContexts.length === 0) {
@@ -701,6 +702,12 @@ export class EntitySequence extends CompositeEntity {
         this._transition = transition;
       }
     }
+  }
+
+  protected _makeReloadMementoData(): ReloadMementoData {
+    return {
+      currentEntityIndex: this.currentEntityIndex,
+    };
   }
 }
 
