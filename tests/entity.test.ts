@@ -656,4 +656,36 @@ describe("Hot reloading", () => {
     expect(child1V2.value).toBe(88);
     expect(child2V2.value).toBe(99);
   });
+
+  test("works with EntitySequence", () => {
+    const child1V1 = new ReloadingEntity(1);
+    const child2V1 = new ReloadingEntity(2);
+    const parentV1 = new entity.EntitySequence([child1V1, child2V1]);
+
+    parentV1.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+
+    // Change the values
+    child1V1.value = 99;
+
+    const memento = parentV1.makeReloadMemento();
+    // Only the activated child will be in the memento
+    expect(_.size(memento.children)).toBe(1);
+
+    // Reload the entity
+    debugger;
+
+    const child1V2 = new ReloadingEntity(1);
+    const child2V2 = new ReloadingEntity(2);
+    const parent2 = new entity.EntitySequence([child1V2, child2V2]);
+    parent2.setup(
+      makeFrameInfo(),
+      makeEntityConfig(),
+      makeTransition(),
+      memento
+    );
+
+    expect(child1V2.value).toBe(99);
+
+    // TODO: skip to the next entity and reload, only the 2nd should be activated at start
+  });
 });

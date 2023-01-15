@@ -63,6 +63,7 @@ export type EntityResolvable = Entity | EntityFactory;
 export interface EntityContext {
   entity: EntityResolvable;
   config?: EntityConfigResolvable;
+  id?: string;
 }
 
 export function isEntity(e: any): e is Entity {
@@ -350,6 +351,8 @@ export abstract class CompositeEntity extends EntityBase {
     if (!this.isSetup) throw new Error("CompositeEntity is not yet active");
 
     options = util.fillInOptions(options, new ActivateChildEntityOptions());
+    if (options.id && options.id in this._childEntities)
+      throw new Error("Duplicate child entity id provided");
 
     const enteringTransition = options.transition ?? makeTransition();
 
@@ -442,11 +445,8 @@ export class ParallelEntityOptions {
   transitionOnCompletion: boolean = true;
 }
 
-export interface ParallelEntityContext {
-  entity: EntityResolvable;
-  config?: EntityConfigResolvable;
+export interface ParallelEntityContext extends EntityContext {
   activated?: boolean;
-  id?: string;
 }
 
 /**
@@ -651,6 +651,7 @@ export class EntitySequence extends CompositeEntity {
       const entityContext = this.entityContexts[this.currentEntityIndex];
       this.currentEntity = this._activateChildEntity(entityContext.entity, {
         config: entityContext.config,
+        id: entityContext.id ?? this.currentEntityIndex.toString(),
       });
     }
   }
