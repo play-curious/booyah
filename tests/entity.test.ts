@@ -531,3 +531,98 @@ describe("StateMachine", () => {
     expect(stateMachine.options.transitions.a).toBeCalledWith(transition);
   });
 });
+
+//// Test hot reload features
+
+class ReloadingEntity extends entity.EntityBase {
+  private _value: number;
+
+  constructor(public readonly defaultValue: number) {
+    super();
+  }
+
+  _setup() {
+    // Either take the provided value in the memento, or use the default
+    if (this._reloadMemento)
+      this._value = this._reloadMemento.data["value"] as number;
+    else this._value = this.defaultValue;
+  }
+
+  protected _makeReloadMementoData(): entity.ReloadMementoData {
+    return {
+      value: this._value,
+    };
+  }
+
+  get value() {
+    return this._value;
+  }
+  set value(value: number) {
+    this._value = value;
+  }
+}
+
+class ReloadingCompositeEntity extends entity.CompositeEntity {
+  constructor(private _child: ReloadingEntity) {
+    super();
+  }
+
+  _setup() {
+    this._activateChildEntity(this._child, { id: "a" });
+  }
+}
+
+describe("Hot reloading", () => {
+  test("Base entity doesn't provide memento", () => {
+    const e = new entity.NullEntity();
+    e.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    expect(e.makeReloadMemento().data).toBeUndefined();
+  });
+
+  test("Reload entity provides memento", () => {
+    // Provide a default value
+    const e1 = new ReloadingEntity(77);
+    e1.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    expect(e1.makeReloadMemento().data.value).toBe(77);
+
+    // Update the value, it should get in the new memento
+    e1.value = 88;
+    expect(e1.makeReloadMemento().data.value).toBe(88);
+
+    // Create a new entity from the previous entities memento. It should have the newer value
+    const e2 = new ReloadingEntity(77);
+    e2.setup(
+      makeFrameInfo(),
+      makeEntityConfig(),
+      makeTransition(),
+      e1.makeReloadMemento()
+    );
+    expect(e2.value).toBe(88);
+  });
+
+  test("Composite entities will reload their children", () => {
+    const child1 = new ReloadingEntity(77);
+    const parent1 = new ReloadingCompositeEntity(child1);
+
+    parent1.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    expect(child1.value).toBe(77);
+
+    // Change the value
+    child1.value = 88;
+
+    const memento = parent1.makeReloadMemento();
+    expect(_.size(memento.children)).toBe(1);
+
+    // Reload the entity
+    const child2 = new ReloadingEntity(77);
+    const parent2 = new ReloadingCompositeEntity(child2);
+    parent2.setup(
+      makeFrameInfo(),
+      makeEntityConfig(),
+      makeTransition(),
+      memento
+    );
+
+    expect(child2.value).toBe(88);
+  });
+});
