@@ -579,7 +579,7 @@ describe("Hot reloading", () => {
     expect(e.makeReloadMemento().data).toBeUndefined();
   });
 
-  test("Reload entity provides memento", () => {
+  test("Custom entity provides memento", () => {
     // Provide a default value
     const e1 = new ReloadingEntity(77);
     e1.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
@@ -624,5 +624,36 @@ describe("Hot reloading", () => {
     );
 
     expect(child2.value).toBe(88);
+  });
+
+  test("works with ParallelEntity", () => {
+    const child1V1 = new ReloadingEntity(1);
+    const child2V1 = new ReloadingEntity(2);
+    const parentV1 = new entity.ParallelEntity([child1V1, child2V1]);
+
+    parentV1.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    expect(child1V1.value).toBe(1);
+    expect(child2V1.value).toBe(2);
+
+    // Change the values
+    child1V1.value = 88;
+    child2V1.value = 99;
+
+    const memento = parentV1.makeReloadMemento();
+    expect(_.size(memento.children)).toBe(2);
+
+    // Reload the entity
+    const child1V2 = new ReloadingEntity(1);
+    const child2V2 = new ReloadingEntity(2);
+    const parent2 = new entity.ParallelEntity([child1V2, child2V2]);
+    parent2.setup(
+      makeFrameInfo(),
+      makeEntityConfig(),
+      makeTransition(),
+      memento
+    );
+
+    expect(child1V2.value).toBe(88);
+    expect(child2V2.value).toBe(99);
   });
 });

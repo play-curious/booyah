@@ -446,6 +446,7 @@ export interface ParallelEntityContext {
   entity: EntityResolvable;
   config?: EntityConfigResolvable;
   activated?: boolean;
+  id?: string;
 }
 
 /**
@@ -552,6 +553,7 @@ export class ParallelEntity extends CompositeEntity {
 
     const entity = this._activateChildEntity(entityContext.entity, {
       config: entityContext.config,
+      id: entityContext.id ?? index.toString(),
     });
     this.contextToEntity.set(entityContext, entity);
     entityContext.activated = true;
