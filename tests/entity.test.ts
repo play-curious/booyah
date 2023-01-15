@@ -600,6 +600,23 @@ describe("Hot reloading", () => {
     expect(e2.value).toBe(88);
   });
 
+  test("Entities check for mismatched class names", () => {
+    class ReloadingEntity2 extends ReloadingEntity {}
+
+    const e1 = new ReloadingEntity(77);
+    e1.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+
+    const e2 = new ReloadingEntity2(88);
+    e2.setup(
+      makeFrameInfo(),
+      makeEntityConfig(),
+      makeTransition(),
+      e1.makeReloadMemento()
+    );
+
+    expect(e2.value).toBe(88);
+  });
+
   test("Composite entities will reload their children", () => {
     const child1 = new ReloadingEntity(77);
     const parent1 = new ReloadingCompositeEntity(child1);
