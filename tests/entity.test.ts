@@ -722,4 +722,44 @@ describe("Hot reloading", () => {
     expect(child2V3.isSetup).toBe(true);
     expect(child2V3.value).toBe(77);
   });
+
+  test("works with StateMachine", () => {
+    const child1V1 = new ReloadingEntity(1);
+    const child2V1 = new ReloadingEntity(2);
+    const parentV1 = new entity.StateMachine({
+      start: child1V1,
+      middle: child2V1,
+    });
+
+    parentV1.setup(makeFrameInfo(), makeEntityConfig(), makeTransition());
+
+    // Skip to another state
+    parentV1.changeState("middle");
+
+    parentV1.update(makeFrameInfo());
+
+    // Change the values
+    child1V1.value = 11;
+    child2V1.value = 22;
+
+    // Reload
+    const child1V2 = new ReloadingEntity(1);
+    const child2V2 = new ReloadingEntity(2);
+    const parentV2 = new entity.StateMachine({
+      start: child1V2,
+      middle: child2V2,
+    });
+    parentV2.setup(
+      makeFrameInfo(),
+      makeEntityConfig(),
+      makeTransition(),
+      parentV1.makeReloadMemento()
+    );
+
+    // Only 2nd child should be setup and have the new value
+    expect(child2V1.isSetup).toBe(false);
+
+    expect(child2V2.isSetup).toBe(true);
+    expect(child2V2.value).toBe(22);
+  });
 });

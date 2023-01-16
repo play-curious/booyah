@@ -785,17 +785,24 @@ export class StateMachine extends CompositeEntity {
   setup(
     frameInfo: FrameInfo,
     entityConfig: EntityConfig,
-    enteringTransition: Transition
+    enteringTransition?: Transition,
+    reloadMemento?: ReloadMemento
   ) {
-    super.setup(frameInfo, entityConfig, enteringTransition);
+    super.setup(frameInfo, entityConfig, enteringTransition, reloadMemento);
 
     this.visitedStates = [];
     this.progress = util.cloneData(this.options.startingProgress);
 
-    const startingState = _.isFunction(this.startingState)
-      ? this.startingState(makeTransition())
-      : this.startingState;
-    this._changeState(startingState);
+    if (this._reloadMemento) {
+      this.visitedStates = this._reloadMemento.data
+        .visitedStates as Transition[];
+      this._changeState(_.last(this.visitedStates));
+    } else {
+      const startingState = _.isFunction(this.startingState)
+        ? this.startingState(makeTransition())
+        : this.startingState;
+      this._changeState(startingState);
+    }
   }
 
   _update() {
@@ -852,6 +859,12 @@ export class StateMachine extends CompositeEntity {
       this.teardown(frameInfo);
       this.setup(frameInfo, this._entityConfig, this._enteringTransition);
     }
+  }
+
+  protected _makeReloadMementoData(): ReloadMementoData {
+    return {
+      visitedStates: this.visitedStates,
+    };
   }
 
   changeState(nextState: string | Transition): void {
