@@ -742,6 +742,8 @@ describe("Hot reloading", () => {
     child1V1.value = 11;
     child2V1.value = 22;
 
+    debugger;
+
     // Reload
     const child1V2 = new ReloadingEntity(1);
     const child2V2 = new ReloadingEntity(2);
@@ -757,7 +759,7 @@ describe("Hot reloading", () => {
     );
 
     // Only 2nd child should be setup and have the new value
-    expect(child2V1.isSetup).toBe(false);
+    expect(child1V1.isSetup).toBe(false);
 
     expect(child2V2.isSetup).toBe(true);
     expect(child2V2.value).toBe(22);

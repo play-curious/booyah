@@ -899,6 +899,7 @@ export class StateMachine extends CompositeEntity {
       this.state = this._activateChildEntity(nextStateContext.entity, {
         config: nextStateContext.config,
         transition: nextState,
+        id: nextState.name,
       });
     } else {
       throw new Error(`Cannot find state '${nextState.name}'`);
