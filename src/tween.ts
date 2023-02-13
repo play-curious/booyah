@@ -111,6 +111,8 @@ export class Tween<
   }
 
   _update() {
+    this._timePassed += this._lastFrameInfo.timeSinceLastFrame;
+
     if (this._timePassed >= this.options.duration) {
       this._transition = entity.makeTransition();
 
@@ -118,7 +120,6 @@ export class Tween<
       this._value = this.options.to;
       this._updateValue();
     } else {
-      this._timePassed += this._lastFrameInfo.timeSinceLastFrame;
       const easedProgress = this.options.easing(
         this._timePassed / this.options.duration
       );
