@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import * as _ from "underscore";
 
 import * as entity from "./entity";
 import * as geom from "./geom";
@@ -46,11 +47,13 @@ export class Scrollbox extends entity.EntityBase {
       contentMarginX?: number;
       contentMarginY?: number;
       wheelScroll?: boolean;
+      contentWidth?: number;
+      contentHeight?: number;
     } = {}
   ) {
     super();
 
-    this.options = util.setupOptions({}, options, {
+    this.options = _.defaults({}, options, {
       content: null,
       boxWidth: 100,
       boxHeight: 100,
@@ -134,6 +137,14 @@ export class Scrollbox extends entity.EntityBase {
     }
   }
 
+  get contentHeight(): number {
+    return this.options.contentHeight ?? this.content.height;
+  }
+
+  get contentWidth(): number {
+    return this.options.contentWidth ?? this.content.width;
+  }
+
   /** Call when container contents have changed  */
   refresh() {
     this._drawScrollbars();
@@ -146,8 +157,7 @@ export class Scrollbox extends entity.EntityBase {
       ? true
       : ["hidden", "none"].indexOf(String(this.options.overflowX)) !== -1
       ? false
-      : this.content.width + this.options.contentMarginX >
-        this.options.boxWidth;
+      : this.contentWidth + this.options.contentMarginX > this.options.boxWidth;
   }
 
   get isScrollbarVertical() {
@@ -155,7 +165,7 @@ export class Scrollbox extends entity.EntityBase {
       ? true
       : ["hidden", "none"].indexOf(String(this.options.overflowY)) !== -1
       ? false
-      : this.content.height + this.options.contentMarginY >
+      : this.contentHeight + this.options.contentMarginY >
         this.options.boxHeight;
   }
 
@@ -165,20 +175,20 @@ export class Scrollbox extends entity.EntityBase {
     let options: any = {};
     options.left = 0;
     options.right =
-      this.content.width +
+      this.contentWidth +
       this.options.contentMarginX +
       (this._isScrollbarVertical ? this.options.scrollbarSize : 0);
     options.top = 0;
     options.bottom =
-      this.content.height +
+      this.contentHeight +
       this.options.contentMarginY +
       (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0);
     const width =
-      this.content.width +
+      this.contentWidth +
       this.options.contentMarginX +
       (this.isScrollbarVertical ? this.options.scrollbarSize : 0);
     const height =
-      this.content.height +
+      this.contentHeight +
       this.options.contentMarginY +
       (this.isScrollbarHorizontal ? this.options.scrollbarSize : 0);
     this.scrollbarTop = (-this.content.y / height) * this.options.boxHeight;
@@ -350,14 +360,14 @@ export class Scrollbox extends entity.EntityBase {
       const local = this.container.toLocal(e.data.global);
       const fraction =
         ((local.x - this.pointerDown.last.x) / this.options.boxWidth) *
-        (this.content.width + this.options.contentMarginX);
+        (this.contentWidth + this.options.contentMarginX);
       this.scrollBy(new PIXI.Point(-fraction, 0));
       this.pointerDown.last = local;
     } else if (this.pointerDown.direction === "vertical") {
       const local = this.container.toLocal(e.data.global);
       const fraction =
         ((local.y - this.pointerDown.last.y) / this.options.boxHeight) *
-        (this.content.height + this.options.contentMarginY);
+        (this.contentHeight + this.options.contentMarginY);
       this.scrollBy(new PIXI.Point(0, -fraction));
       this.pointerDown.last = local;
     }
@@ -474,14 +484,13 @@ export class Scrollbox extends entity.EntityBase {
   scrollTo(position: PIXI.Point, reason = "user") {
     position.x = geom.clamp(
       position.x,
-      this.options.boxWidth -
-        (this.content.width + this.options.contentMarginX),
+      this.options.boxWidth - (this.contentWidth + this.options.contentMarginX),
       0
     );
     position.y = geom.clamp(
       position.y,
       this.options.boxHeight -
-        (this.content.height + this.options.contentMarginY),
+        (this.contentHeight + this.options.contentMarginY),
       0
     );
     this.content.position.copyFrom(position);
