@@ -83,13 +83,13 @@ export class Tween<
       // @ts-ignore
       this.options.interpolate = interpolation.scalar;
     }
-
-    if (this.options.onUpdate) {
-      this._on(this, "updatedValue", this.options.onUpdate);
-    }
   }
 
   _setup() {
+    if (this.options.onUpdate) {
+      this._on(this, "updatedValue", this.options.onUpdate);
+    }
+
     this._currentObj = _.isFunction(this.options.obj)
       ? this.options.obj
       : this.options.obj;
