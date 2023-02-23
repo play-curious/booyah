@@ -10,8 +10,6 @@ import * as entity from "booyah/src/entity";
 import * as util from "booyah/src/util";
 import * as audio from "booyah/src/audio";
 
-//import * as settings from "./settings";
-
 /** String of characters to look for in a font */
 const FONT_OBSERVER_CHARS = "asdf";
 
@@ -31,6 +29,7 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
     scene: any;
     startingProgress: any;
     fpsMeterPosition: string;
+    maxFps?: number;
   };
 
   constructor(directives: Directives, searchUrl: string) {
@@ -72,6 +71,8 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
 
     if (searchParams.has("fps"))
       this.options.fpsMeterPosition = searchParams.get("fps");
+    if (searchParams.has("maxFps"))
+      this.options.maxFps = parseInt(searchParams.get("maxFps"));
   }
 
   setOption(name: string, value: any) {
@@ -87,23 +88,7 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
   }
 }
 
-/** Code adapted from booyah.ts */
 const rootConfig: entity.EntityConfig = {
-  directives: null,
-  app: null,
-  preloader: null,
-  container: null,
-  playOptions: null,
-  musicAudio: {},
-  jsonAssets: {},
-  subtitles: {},
-  fxAudio: null,
-  gameStateMachine: null,
-  menu: null,
-  muted: null,
-  jukebox: null,
-  narrator: null,
-  world: null,
   loadingEventEmitter: new PIXI.utils.EventEmitter(),
 };
 
@@ -174,15 +159,6 @@ const DEFAULT_DIRECTIVES: any = {
   jsonAssets: [], // Starting from the root directory. JSON extension in needed
   subtitleAssets: [],
 
-  // For narration
-  speakers: {},
-  speakerPosition: new PIXI.Point(50, 540),
-
-  // Appearance. These assets are automatically added to "graphicalAssets"
-  splashScreen: null, // Splash screen should be the size of the game
-  gameLogo: null, // Will be displayed in the menu
-  extraLogos: [], // Logos besides Play Curious will be shown in the menu
-
   rootConfig: {}, // Initial value for the rootConfig
   extraLoaders: [], // Will be called after the fixed loading step. Of type function(rootConfig)
   entityInstallers: [], // Will be called when the game is initialized. Of type function(rootConfig, rootEntity)
@@ -190,19 +166,7 @@ const DEFAULT_DIRECTIVES: any = {
   language: null,
   supportedLanguages: [], // If included, will show language switching buttons
 
-  // Standard icons. They will be added to "graphicalAssets"
-  graphics: {
-    menu: "booyah/images/button-mainmenu.png",
-    skip: "booyah/images/button-skip.png",
-    play: "booyah/images/button-play.png",
-  },
-
   fpsMeterPosition: "none",
-
-  loadingGauge: {
-    position: null,
-    scale: 1,
-  },
 };
 
 export function startLoading(directives: Partial<Directives> = {}) {
@@ -279,8 +243,11 @@ export function startLoading(directives: Partial<Directives> = {}) {
         loadingScene.setup(frameInfo, rootConfig, entity.makeTransition());
       }
 
-      // TODO: handle FPS
-      //rootConfig.app.ticker.maxFPS = settings.getMaxFps();
+      // Optionally limit max FPS
+      if (rootConfig.playOptions.maxFps) {
+        rootConfig.app.ticker.maxFPS = rootConfig.playOptions.maxFps;
+      }
+
       rootConfig.app.ticker.add(update);
 
       if (rootConfig.playOptions.options.fpsMeterPosition !== "none")
