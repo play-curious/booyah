@@ -333,7 +333,8 @@ function pixiLoadProgressHandler(loader: unknown, resource?: unknown): void {
 
 function update(timeScale: number) {
   const frameTime = Date.now();
-  const timeSinceLastFrame = frameTime - lastFrameTime;
+  // Clamp time since last frame to be under 60 FPS
+  const timeSinceLastFrame = Math.min(frameTime - lastFrameTime, 1000 / 60);
   lastFrameTime = frameTime;
 
   // Only count "play time" as compared to clock time
@@ -342,7 +343,8 @@ function update(timeScale: number) {
     timeSinceStart += timeSinceLastFrame;
   }
 
-  if (rootEntity) {
+  const entityToUpdate = rootEntity || loadingScene;
+  if (entityToUpdate) {
     lastFrameInfo = {
       playTime,
       timeSinceStart,
@@ -351,7 +353,7 @@ function update(timeScale: number) {
       gameState,
     };
 
-    rootEntity.update(lastFrameInfo);
+    entityToUpdate.update(lastFrameInfo);
 
     rootConfig.app.renderer.render(rootConfig.app.stage);
   }
