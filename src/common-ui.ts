@@ -7,7 +7,9 @@ export class CreditsEntityOptions {
   // @credits like { "Game Design": ["JC", "Jesse"], }
   credits: { [k: string]: string[] | string } = {};
   textSize = 32;
-  fontFamily = "Roboto Condensed";
+  fontFamily: string;
+  closeButtonTexture: PIXI.Texture;
+  closeButtonPosition = new PIXI.Point(50, 50);
 }
 
 export class CreditsEntity extends entity.CompositeEntity {
@@ -61,13 +63,9 @@ export class CreditsEntity extends entity.CompositeEntity {
     mask.interactive = true;
     this.container.addChild(mask);
 
-    const closeButton = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
-        "booyah/images/button-back.png"
-      ].texture
-    );
+    const closeButton = new PIXI.Sprite(this._options.closeButtonTexture);
     closeButton.anchor.set(0.5);
-    closeButton.position.set(50);
+    closeButton.position.copyFrom(this._options.closeButtonPosition);
     closeButton.interactive = true;
     this._on(
       closeButton,
