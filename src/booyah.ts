@@ -9,12 +9,12 @@ import preload from "./preload-it.esm";
 
 import * as _ from "underscore";
 import * as util from "./util";
-import * as entity from "./entity";
+import * as chip from "./chip";
 import * as audio from "./audio";
 
 export interface Directives {
-  rootConfig: entity.EntityConfig;
-  rootEntity: entity.Entity;
+  rootConfig: chip.ChipConfig;
+  rootChip: chip.Chip;
   loadingPromise: any;
   graphics: any;
   startingSceneParams: any;
@@ -32,13 +32,13 @@ export interface Directives {
   subtitleAssets: Array<string>;
   musicAssets: (string | { key: string; url: string })[];
   fxAssets: (string | { key: string; url: string })[];
-  extraLoaders: ((entityConfig: entity.EntityConfig) => Promise<any>)[];
-  entityInstallers: ((
-    entityConfig: entity.EntityConfig,
-    entity: entity.ParallelEntity
+  extraLoaders: ((chipConfig: chip.ChipConfig) => Promise<any>)[];
+  chipInstallers: ((
+    chipConfig: chip.ChipConfig,
+    chip: chip.ParallelChip
   ) => void)[];
-  states: entity.StateTableDescriptor;
-  transitions: entity.TransitionTable;
+  states: chip.StateTableDescriptor;
+  transitions: chip.TransitionTable;
   endingScenes: string[];
   screenSize: PIXI.IPoint;
   canvasId: string;
@@ -81,7 +81,7 @@ export const DEFAULT_DIRECTIVES: any = {
 
   rootConfig: {}, // Initial value for the rootConfig
   extraLoaders: [], // Will be called after the fixed loading step. Of type function(rootConfig)
-  entityInstallers: [], // Will be called when the game is initialized. Of type function(rootConfig, rootEntity)
+  chipInstallers: [], // Will be called when the game is initialized. Of type function(rootConfig, rootChip)
 
   language: null,
   supportedLanguages: [], // If included, will show language switching buttons
@@ -130,7 +130,7 @@ const PRELOADER_ASSETS = [
 ];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
-const rootConfig: entity.EntityConfig = {
+const rootConfig: chip.ChipConfig = {
   directives: null,
   app: null,
   preloader: null,
@@ -151,17 +151,17 @@ const rootConfig: entity.EntityConfig = {
 
 let loadingScene: LoadingScene;
 let loadingErrorScene: LoadingErrorScene;
-let gameEntity: entity.ParallelEntity;
-let lastFrameInfo: entity.FrameInfo;
+let gameChip: chip.ParallelChip;
+let lastFrameInfo: chip.FrameInfo;
 
-function getRootEntity(): entity.Entity {
-  return loadingScene || loadingErrorScene || gameEntity;
+function getRootChip(): chip.Chip {
+  return loadingScene || loadingErrorScene || gameChip;
 }
 
 let lastFrameTime = 0;
 
-let previousGameState: entity.GameState = null;
-let gameState: entity.GameState = "preloading";
+let previousGameState: chip.GameState = null;
+let gameState: chip.GameState = "preloading";
 let playTime = 0;
 let timeSinceStart = 0;
 
@@ -172,8 +172,8 @@ let videoLoaderProgress = 0;
 let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
-export class FilterPauseEntity extends entity.ParallelEntity {
-  tick(frameInfo: entity.FrameInfo) {
+export class FilterPauseChip extends chip.ParallelChip {
+  tick(frameInfo: chip.FrameInfo) {
     if (frameInfo.gameState === "playing") super.tick(frameInfo);
   }
 }
@@ -243,20 +243,20 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
   }
 }
 
-export class CreditsEntityOptions {
+export class CreditsChipOptions {
   // @credits like { "Game Design": ["JC", "Jesse"], }
   credits: { [k: string]: string[] | string } = {};
   textSize = 32;
   fontFamily = "Roboto Condensed";
 }
 
-export class MenuEntityOptions {
+export class MenuChipOptions {
   menuButtonPosition: PIXI.Point = null;
-  creditsEntityOptions: CreditsEntityOptions;
+  creditsChipOptions: CreditsChipOptions;
 }
 
-export class MenuEntity extends entity.CompositeEntity {
-  public readonly options: MenuEntityOptions;
+export class MenuChip extends chip.CompositeChip {
+  public readonly options: MenuChipOptions;
 
   public container: PIXI.Container;
   public menuLayer: PIXI.Container;
@@ -270,33 +270,33 @@ export class MenuEntity extends entity.CompositeEntity {
   public confirmResetButton: PIXI.Sprite;
   public mask: PIXI.Graphics;
   public resetMask: PIXI.Graphics;
-  public creditsEntity: CreditsEntity;
-  public fullScreenButton: entity.ToggleSwitch;
-  public musicButton: entity.ToggleSwitch;
-  public fxButton: entity.ToggleSwitch;
-  public subtitlesButton: entity.ToggleSwitch;
+  public creditsChip: CreditsChip;
+  public fullScreenButton: chip.ToggleSwitch;
+  public musicButton: chip.ToggleSwitch;
+  public fxButton: chip.ToggleSwitch;
+  public subtitlesButton: chip.ToggleSwitch;
 
-  constructor(options?: Partial<MenuEntityOptions>) {
+  constructor(options?: Partial<MenuChipOptions>) {
     super();
 
-    this.options = util.fillInOptions(options, new MenuEntityOptions());
+    this.options = util.fillInOptions(options, new MenuChipOptions());
   }
 
   _onActivate() {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
-    this.creditsEntity = null;
+    this.creditsChip = null;
 
     this.pauseButton = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
-        this._entityConfig.directives.graphics.menu
+      this._chipConfig.app.loader.resources[
+        this._chipConfig.directives.graphics.menu
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
     this.pauseButton.position.copyFrom(
       this.options.menuButtonPosition ??
-        new PIXI.Point(this._entityConfig.app.renderer.width - 50, 50)
+        new PIXI.Point(this._chipConfig.app.renderer.width - 50, 50)
     );
     this.pauseButton.interactive = true;
     this._on(this.pauseButton, "pointertap", this._onPause);
@@ -311,8 +311,8 @@ export class MenuEntity extends entity.CompositeEntity {
     this.mask.drawRect(
       0,
       0,
-      this._entityConfig.app.screen.width,
-      this._entityConfig.app.screen.height
+      this._chipConfig.app.screen.width,
+      this._chipConfig.app.screen.height
     );
     this.mask.endFill();
     this.mask.alpha = 0.8;
@@ -323,27 +323,24 @@ export class MenuEntity extends entity.CompositeEntity {
     this.menuLayer.addChild(this.menuButtonLayer);
 
     this.playButton = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
+      this._chipConfig.app.loader.resources[
         "booyah/images/button-close.png"
       ].texture
     );
     this.playButton.anchor.set(0.5);
-    this.playButton.position.set(
-      this._entityConfig.app.renderer.width - 50,
-      50
-    );
+    this.playButton.position.set(this._chipConfig.app.renderer.width - 50, 50);
     this.playButton.interactive = true;
     this._on(this.playButton, "pointertap", this._onPlay);
     this.menuButtonLayer.addChild(this.playButton);
 
-    const menuButtonLayerConfig = _.extend({}, this._entityConfig, {
+    const menuButtonLayerConfig = _.extend({}, this._chipConfig, {
       container: this.menuButtonLayer,
     });
 
-    if (this._entityConfig.directives.gameLogo) {
+    if (this._chipConfig.directives.gameLogo) {
       const gameLogo = new PIXI.Sprite(
-        this._entityConfig.preloader.resources[
-          this._entityConfig.directives.gameLogo
+        this._chipConfig.preloader.resources[
+          this._chipConfig.directives.gameLogo
         ].texture
       );
       gameLogo.position.set(170, 200);
@@ -352,7 +349,7 @@ export class MenuEntity extends entity.CompositeEntity {
     }
 
     const pcLogo = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
+      this._chipConfig.app.loader.resources[
         "booyah/images/a-playcurious-game.png"
       ].texture
     );
@@ -360,24 +357,20 @@ export class MenuEntity extends entity.CompositeEntity {
     pcLogo.position.set(170, 450);
     this.menuButtonLayer.addChild(pcLogo);
 
-    if (this._entityConfig.directives.extraLogos) {
+    if (this._chipConfig.directives.extraLogos) {
       // Divide space, align to the right
       const spacePerLogo =
-        (this._entityConfig.app.renderer.width - 160 * 2) /
-        this._entityConfig.directives.extraLogos.length;
-      for (
-        let i = 0;
-        i < this._entityConfig.directives.extraLogos.length;
-        i++
-      ) {
+        (this._chipConfig.app.renderer.width - 160 * 2) /
+        this._chipConfig.directives.extraLogos.length;
+      for (let i = 0; i < this._chipConfig.directives.extraLogos.length; i++) {
         const logoSprite = new PIXI.Sprite(
-          this._entityConfig.app.loader.resources[
-            this._entityConfig.directives.extraLogos[i]
+          this._chipConfig.app.loader.resources[
+            this._chipConfig.directives.extraLogos[i]
           ].texture
         );
         logoSprite.anchor.set(0.5, 1);
         logoSprite.position.set(
-          this._entityConfig.app.renderer.width - 160 - spacePerLogo * i,
+          this._chipConfig.app.renderer.width - 160 - spacePerLogo * i,
           420
         );
         this.menuButtonLayer.addChild(logoSprite);
@@ -385,13 +378,13 @@ export class MenuEntity extends entity.CompositeEntity {
     }
 
     if (util.supportsFullscreen()) {
-      this.fullScreenButton = new entity.ToggleSwitch({
+      this.fullScreenButton = new chip.ToggleSwitch({
         onTexture:
-          this._entityConfig.app.loader.resources[
+          this._chipConfig.app.loader.resources[
             "booyah/images/fullscreen-on.png"
           ].texture,
         offTexture:
-          this._entityConfig.app.loader.resources[
+          this._chipConfig.app.loader.resources[
             "booyah/images/fullscreen-off.png"
           ].texture,
         isOn: false,
@@ -402,12 +395,12 @@ export class MenuEntity extends entity.CompositeEntity {
         "change",
         this._onChangeFullScreen as any
       );
-      this._activateChildEntity(this.fullScreenButton, menuButtonLayerConfig);
+      this._activateChildChip(this.fullScreenButton, menuButtonLayerConfig);
 
       // TODO: use event listener to check if full screen was exited manually with ESC key
     } else {
       const fullScreenButton = new PIXI.Sprite(
-        this._entityConfig.app.loader.resources[
+        this._chipConfig.app.loader.resources[
           "booyah/images/fullscreen-disabled.png"
         ].texture
       );
@@ -415,44 +408,42 @@ export class MenuEntity extends entity.CompositeEntity {
       this.menuButtonLayer.addChild(fullScreenButton);
     }
 
-    this.musicButton = new entity.ToggleSwitch({
+    this.musicButton = new chip.ToggleSwitch({
       onTexture:
-        this._entityConfig.app.loader.resources["booyah/images/music-on.png"]
+        this._chipConfig.app.loader.resources["booyah/images/music-on.png"]
           .texture,
       offTexture:
-        this._entityConfig.app.loader.resources["booyah/images/music-off.png"]
+        this._chipConfig.app.loader.resources["booyah/images/music-off.png"]
           .texture,
-      isOn: this._entityConfig.playOptions.options.musicOn,
+      isOn: this._chipConfig.playOptions.options.musicOn,
       position: new PIXI.Point(405, 230),
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
-    this._activateChildEntity(this.musicButton, menuButtonLayerConfig);
+    this._activateChildChip(this.musicButton, menuButtonLayerConfig);
 
     // TODO prevent being able to turn both subtitles and sound off
 
-    this.fxButton = new entity.ToggleSwitch({
+    this.fxButton = new chip.ToggleSwitch({
       onTexture:
-        this._entityConfig.app.loader.resources["booyah/images/voices-on.png"]
+        this._chipConfig.app.loader.resources["booyah/images/voices-on.png"]
           .texture,
       offTexture:
-        this._entityConfig.app.loader.resources["booyah/images/voices-off.png"]
+        this._chipConfig.app.loader.resources["booyah/images/voices-off.png"]
           .texture,
-      isOn: this._entityConfig.playOptions.options.fxOn,
+      isOn: this._chipConfig.playOptions.options.fxOn,
       position: new PIXI.Point(630, 230),
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
-    this._activateChildEntity(this.fxButton, menuButtonLayerConfig);
+    this._activateChildChip(this.fxButton, menuButtonLayerConfig);
 
-    this.subtitlesButton = new entity.ToggleSwitch({
+    this.subtitlesButton = new chip.ToggleSwitch({
       onTexture:
-        this._entityConfig.app.loader.resources[
-          "booyah/images/subtitles-on.png"
-        ].texture,
+        this._chipConfig.app.loader.resources["booyah/images/subtitles-on.png"]
+          .texture,
       offTexture:
-        this._entityConfig.app.loader.resources[
-          "booyah/images/subtitles-off.png"
-        ].texture,
-      isOn: this._entityConfig.playOptions.options.showSubtitles,
+        this._chipConfig.app.loader.resources["booyah/images/subtitles-off.png"]
+          .texture,
+      isOn: this._chipConfig.playOptions.options.showSubtitles,
       position: new PIXI.Point(630, 130),
     });
     this._on(
@@ -460,7 +451,7 @@ export class MenuEntity extends entity.CompositeEntity {
       "change",
       this._onChangeShowSubtitles as any
     );
-    this._activateChildEntity(this.subtitlesButton, menuButtonLayerConfig);
+    this._activateChildChip(this.subtitlesButton, menuButtonLayerConfig);
 
     const creditLink = new PIXI.Text("Credits", {
       fontFamily: "Roboto Condensed",
@@ -469,25 +460,22 @@ export class MenuEntity extends entity.CompositeEntity {
       strokeThickness: 4,
     });
     creditLink.anchor.set(0.5, 0.5);
-    creditLink.position.set(
-      this._entityConfig.app.renderer.width / 2 - 10,
-      492
-    );
+    creditLink.position.set(this._chipConfig.app.renderer.width / 2 - 10, 492);
     creditLink.interactive = true;
     this._on(creditLink, "pointertap", this._showCredits);
     this.menuButtonLayer.addChild(creditLink);
 
     // Language switching buttons
-    if (this._entityConfig.directives.supportedLanguages) {
+    if (this._chipConfig.directives.supportedLanguages) {
       for (
         let i = 0;
-        i < this._entityConfig.directives.supportedLanguages.length;
+        i < this._chipConfig.directives.supportedLanguages.length;
         i++
       ) {
-        const language = this._entityConfig.directives.supportedLanguages[i];
-        const isSelected = language === this._entityConfig.directives.language;
+        const language = this._chipConfig.directives.supportedLanguages[i];
+        const isSelected = language === this._chipConfig.directives.language;
         const sprite = new PIXI.Sprite(
-          this._entityConfig.app.loader.resources[
+          this._chipConfig.app.loader.resources[
             `booyah/images/lang-${language}-${isSelected ? "off" : "on"}.png`
           ].texture
         );
@@ -512,8 +500,8 @@ export class MenuEntity extends entity.CompositeEntity {
       mask.drawRect(
         0,
         0,
-        this._entityConfig.app.screen.width,
-        this._entityConfig.app.screen.height
+        this._chipConfig.app.screen.width,
+        this._chipConfig.app.screen.height
       );
       mask.endFill();
       mask.alpha = 0.8;
@@ -524,15 +512,15 @@ export class MenuEntity extends entity.CompositeEntity {
       this.confirmLanguageButton.anchor.set(0.5);
       this.confirmLanguageButton.scale.set(1.5);
       this.confirmLanguageButton.position.set(
-        this._entityConfig.app.renderer.width / 2,
-        this._entityConfig.app.renderer.height / 2
+        this._chipConfig.app.renderer.width / 2,
+        this._chipConfig.app.renderer.height / 2
       );
       this.confirmLanguageButton.interactive = true;
       // Event handler is added later, in _onSwitchLanguage()
       this.switchLanguageConfirmLayer.addChild(this.confirmLanguageButton);
 
       const cancelSwitchLanguageButton = new PIXI.Sprite(
-        this._entityConfig.app.loader.resources[
+        this._chipConfig.app.loader.resources[
           "booyah/images/button-back.png"
         ].texture
       );
@@ -550,7 +538,7 @@ export class MenuEntity extends entity.CompositeEntity {
     // Restart button
     {
       this.resetButton = new PIXI.Sprite(
-        this._entityConfig.app.loader.resources[
+        this._chipConfig.app.loader.resources[
           "booyah/images/button-replay.png"
         ].texture
       );
@@ -570,8 +558,8 @@ export class MenuEntity extends entity.CompositeEntity {
       this.resetMask.drawRect(
         0,
         0,
-        this._entityConfig.app.screen.width,
-        this._entityConfig.app.screen.height
+        this._chipConfig.app.screen.width,
+        this._chipConfig.app.screen.height
       );
       this.resetMask.endFill();
       this.resetMask.alpha = 0.8;
@@ -579,21 +567,21 @@ export class MenuEntity extends entity.CompositeEntity {
       this.resetConfirmLayer.addChild(this.resetMask);
 
       this.confirmResetButton = new PIXI.Sprite(
-        this._entityConfig.app.loader.resources[
+        this._chipConfig.app.loader.resources[
           "booyah/images/button-replay.png"
         ].texture
       );
       this.confirmResetButton.anchor.set(0.5);
       this.confirmResetButton.position.set(
-        this._entityConfig.app.renderer.width / 2,
-        this._entityConfig.app.renderer.height / 2
+        this._chipConfig.app.renderer.width / 2,
+        this._chipConfig.app.renderer.height / 2
       );
       this.confirmResetButton.interactive = true;
       this._on(this.confirmResetButton, "pointertap", this._onConfirmReset);
       this.resetConfirmLayer.addChild(this.confirmResetButton);
 
       const cancelResetButton = new PIXI.Sprite(
-        this._entityConfig.app.loader.resources[
+        this._chipConfig.app.loader.resources[
           "booyah/images/button-back.png"
         ].texture
       );
@@ -604,20 +592,20 @@ export class MenuEntity extends entity.CompositeEntity {
       this.resetConfirmLayer.addChild(cancelResetButton);
     }
 
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
   }
 
-  _onTick(frameInfo: entity.FrameInfo) {
-    if (this.creditsEntity) {
-      if (this.creditsEntity.transition) {
-        this._deactivateChildEntity(this.creditsEntity);
-        this.creditsEntity = null;
+  _onTick(frameInfo: chip.FrameInfo) {
+    if (this.creditsChip) {
+      if (this.creditsChip.transition) {
+        this._deactivateChildChip(this.creditsChip);
+        this.creditsChip = null;
       }
     }
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
   }
 
   _onPause() {
@@ -640,15 +628,15 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 
   _onChangeMusicIsOn(isOn: boolean) {
-    this._entityConfig.playOptions.setOption("musicOn", isOn);
+    this._chipConfig.playOptions.setOption("musicOn", isOn);
   }
 
   _onChangeFxIsOn(isOn: boolean) {
-    this._entityConfig.playOptions.setOption("fxOn", isOn);
+    this._chipConfig.playOptions.setOption("fxOn", isOn);
   }
 
   _onChangeShowSubtitles(showSubtitles: boolean) {
-    this._entityConfig.playOptions.setOption("showSubtitles", showSubtitles);
+    this._chipConfig.playOptions.setOption("showSubtitles", showSubtitles);
   }
 
   _onReset() {
@@ -668,13 +656,13 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 
   _showCredits() {
-    this.creditsEntity = new CreditsEntity(this.options.creditsEntityOptions);
-    this._activateChildEntity(this.creditsEntity);
+    this.creditsChip = new CreditsChip(this.options.creditsChipOptions);
+    this._activateChildChip(this.creditsChip);
   }
 
   _onSwitchLanguage(language: string) {
     this.confirmLanguageButton.texture =
-      this._entityConfig.app.loader.resources[
+      this._chipConfig.app.loader.resources[
         `booyah/images/lang-${language}-on.png`
       ].texture;
     this._on(this.confirmLanguageButton, "pointertap", () =>
@@ -698,28 +686,28 @@ export class MenuEntity extends entity.CompositeEntity {
   }
 }
 
-export function makeInstallMenu(options?: Partial<MenuEntityOptions>) {
-  return (rootConfig: any, rootEntity: any) => {
-    rootConfig.menu = new MenuEntity(options);
-    rootEntity.addChildEntity(rootConfig.menu);
+export function makeInstallMenu(options?: Partial<MenuChipOptions>) {
+  return (rootConfig: any, rootChip: any) => {
+    rootConfig.menu = new MenuChip(options);
+    rootChip.addChildChip(rootConfig.menu);
   };
 }
 
-export function installMenu(rootConfig: any, rootEntity: any) {
-  rootConfig.menu = new MenuEntity();
-  rootEntity.addChildEntity(rootConfig.menu);
+export function installMenu(rootConfig: any, rootChip: any) {
+  rootConfig.menu = new MenuChip();
+  rootChip.addChildChip(rootConfig.menu);
 }
 
-export class CreditsEntity extends entity.CompositeEntity {
+export class CreditsChip extends chip.CompositeChip {
   public container: PIXI.Container;
   public mask: PIXI.Graphics;
 
-  private _options: CreditsEntityOptions;
+  private _options: CreditsChipOptions;
 
-  constructor(options: Partial<CreditsEntityOptions>) {
+  constructor(options: Partial<CreditsChipOptions>) {
     super();
 
-    this._options = util.fillInOptions(options, new CreditsEntityOptions());
+    this._options = util.fillInOptions(options, new CreditsChipOptions());
   }
 
   _onActivate() {
@@ -753,8 +741,8 @@ export class CreditsEntity extends entity.CompositeEntity {
     mask.drawRect(
       0,
       0,
-      this._entityConfig.app.screen.width,
-      this._entityConfig.app.screen.height
+      this._chipConfig.app.screen.width,
+      this._chipConfig.app.screen.height
     );
     mask.endFill();
     mask.alpha = 0.8;
@@ -762,7 +750,7 @@ export class CreditsEntity extends entity.CompositeEntity {
     this.container.addChild(mask);
 
     const closeButton = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
+      this._chipConfig.app.loader.resources[
         "booyah/images/button-back.png"
       ].texture
     );
@@ -772,7 +760,7 @@ export class CreditsEntity extends entity.CompositeEntity {
     this._on(
       closeButton,
       "pointertap",
-      () => (this._transition = entity.makeTransition())
+      () => (this._transition = chip.makeTransition())
     );
     this.container.addChild(closeButton);
 
@@ -784,8 +772,8 @@ export class CreditsEntity extends entity.CompositeEntity {
     });
     roles.anchor.set(1, 0.5);
     roles.position.set(
-      this._entityConfig.app.renderer.width / 2 - 10,
-      this._entityConfig.app.renderer.height / 2
+      this._chipConfig.app.renderer.width / 2 - 10,
+      this._chipConfig.app.renderer.height / 2
     );
     this.container.addChild(roles);
 
@@ -797,20 +785,20 @@ export class CreditsEntity extends entity.CompositeEntity {
     });
     people.anchor.set(0, 0.5);
     people.position.set(
-      this._entityConfig.app.renderer.width / 2 + 10,
-      this._entityConfig.app.renderer.height / 2
+      this._chipConfig.app.renderer.width / 2 + 10,
+      this._chipConfig.app.renderer.height / 2
     );
     this.container.addChild(people);
 
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
   }
 }
 
-export class LoadingScene extends entity.EntityBase {
+export class LoadingScene extends chip.ChipBase {
   progress: number;
   shouldUpdateProgress: boolean;
   container: PIXI.Container;
@@ -824,19 +812,19 @@ export class LoadingScene extends entity.EntityBase {
 
     this.container = new PIXI.Container();
 
-    if (this._entityConfig.directives.splashScreen) {
+    if (this._chipConfig.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._entityConfig.preloader.resources[
-            this._entityConfig.directives.splashScreen
+          this._chipConfig.preloader.resources[
+            this._chipConfig.directives.splashScreen
           ].texture
         )
       );
     }
 
     const centerPos: PIXI.IPoint =
-      this._entityConfig.directives.loadingGauge.position;
-    const scale: number = this._entityConfig.directives.loadingGauge.scale;
+      this._chipConfig.directives.loadingGauge.position;
+    const scale: number = this._chipConfig.directives.loadingGauge.scale;
 
     this.loadingContainer = new PIXI.Container();
     this.container.addChild(this.loadingContainer);
@@ -858,20 +846,20 @@ export class LoadingScene extends entity.EntityBase {
     this.loadingFill.mask = loadingFillMask;
 
     this.loadingCircle = new PIXI.Sprite(
-      this._entityConfig.preloader.resources[
+      this._chipConfig.preloader.resources[
         "booyah/images/loader-circle.png"
       ].texture
     );
     this.loadingCircle.anchor.set(0.5);
     this.loadingCircle.scale.set(
-      this._entityConfig.directives.loadingGauge.scale
+      this._chipConfig.directives.loadingGauge.scale
     );
     this.loadingCircle.position.copyFrom(
-      this._entityConfig.directives.loadingGauge.position
+      this._chipConfig.directives.loadingGauge.position
     );
     this.loadingContainer.addChild(this.loadingCircle);
 
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
   }
 
   _onTick() {
@@ -879,7 +867,7 @@ export class LoadingScene extends entity.EntityBase {
       LOADING_SCENE_SPIN_SPEED * this._lastFrameInfo.timeScale;
 
     if (this.shouldUpdateProgress) {
-      const scale: number = this._entityConfig.directives.loadingGauge.scale;
+      const scale: number = this._chipConfig.directives.loadingGauge.scale;
       const height = this.progress * 100; // Because the graphic happens to be 100px tall
 
       this.loadingFill.clear();
@@ -891,8 +879,8 @@ export class LoadingScene extends entity.EntityBase {
     }
   }
 
-  _onTerminate(frameInfo: entity.FrameInfo) {
-    this._entityConfig.container.removeChild(this.container);
+  _onTerminate(frameInfo: chip.FrameInfo) {
+    this._chipConfig.container.removeChild(this.container);
   }
 
   updateProgress(fraction: number) {
@@ -901,122 +889,116 @@ export class LoadingScene extends entity.EntityBase {
   }
 }
 
-export class ReadyScene extends entity.EntityBase {
+export class ReadyScene extends chip.ChipBase {
   container: PIXI.Container;
 
   _onActivate() {
     this.container = new PIXI.Container();
 
-    if (this._entityConfig.directives.splashScreen) {
+    if (this._chipConfig.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._entityConfig.preloader.resources[
-            this._entityConfig.directives.splashScreen
+          this._chipConfig.preloader.resources[
+            this._chipConfig.directives.splashScreen
           ].texture
         )
       );
     }
 
     const button = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
-        this._entityConfig.directives.graphics.play
+      this._chipConfig.app.loader.resources[
+        this._chipConfig.directives.graphics.play
       ].texture
     );
     button.anchor.set(0.5);
-    button.scale.set(this._entityConfig.directives.loadingGauge.scale);
-    button.position.copyFrom(
-      this._entityConfig.directives.loadingGauge.position
-    );
+    button.scale.set(this._chipConfig.directives.loadingGauge.scale);
+    button.position.copyFrom(this._chipConfig.directives.loadingGauge.position);
     this._on(
       button,
       "pointertap",
-      () => (this._transition = entity.makeTransition())
+      () => (this._transition = chip.makeTransition())
     );
     button.interactive = true;
     this.container.addChild(button);
 
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
   }
 }
 
-export class LoadingErrorScene extends entity.EntityBase {
+export class LoadingErrorScene extends chip.ChipBase {
   container: PIXI.Container;
 
   _onActivate() {
     this.container = new PIXI.Container();
 
-    if (this._entityConfig.directives.splashScreen) {
+    if (this._chipConfig.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._entityConfig.preloader.resources[
-            this._entityConfig.directives.splashScreen
+          this._chipConfig.preloader.resources[
+            this._chipConfig.directives.splashScreen
           ].texture
         )
       );
     }
 
     const button = new PIXI.Sprite(
-      this._entityConfig.preloader.resources[
+      this._chipConfig.preloader.resources[
         "booyah/images/loader-error.png"
       ].texture
     );
     button.anchor.set(0.5);
-    button.scale.set(this._entityConfig.directives.loadingGauge.scale);
-    button.position.copyFrom(
-      this._entityConfig.directives.loadingGauge.position
-    );
+    button.scale.set(this._chipConfig.directives.loadingGauge.scale);
+    button.position.copyFrom(this._chipConfig.directives.loadingGauge.position);
     this.container.addChild(button);
 
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
   }
 }
 
-export class DoneScene extends entity.EntityBase {
+export class DoneScene extends chip.ChipBase {
   container: PIXI.Container;
 
   _onActivate() {
     this.container = new PIXI.Container();
 
-    if (this._entityConfig.directives.splashScreen) {
+    if (this._chipConfig.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._entityConfig.preloader.resources[
-            this._entityConfig.directives.splashScreen
+          this._chipConfig.preloader.resources[
+            this._chipConfig.directives.splashScreen
           ].texture
         )
       );
     }
 
     const button = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
+      this._chipConfig.app.loader.resources[
         "booyah/images/button-replay.png"
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.copyFrom(
-      this._entityConfig.directives.loadingGauge.position
-    );
+    button.position.copyFrom(this._chipConfig.directives.loadingGauge.position);
     this._on(
       button,
       "pointertap",
-      () => (this._transition = entity.makeTransition())
+      () => (this._transition = chip.makeTransition())
     );
     button.interactive = true;
     this.container.addChild(button);
 
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
   }
 }
 
@@ -1063,12 +1045,12 @@ function tick(timeScale: number) {
     gameState,
   };
 
-  getRootEntity().tick(lastFrameInfo);
+  getRootChip().tick(lastFrameInfo);
 
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
 
-export function changeGameState(newGameState: entity.GameState) {
+export function changeGameState(newGameState: chip.GameState) {
   console.log("switching from game state", gameState, "to", newGameState);
 
   let previousGameState = gameState;
@@ -1078,9 +1060,9 @@ export function changeGameState(newGameState: entity.GameState) {
 
   if (previousGameState !== newGameState) {
     if (previousGameState == "playing" && newGameState == "paused") {
-      getRootEntity().onSignal(lastFrameInfo, "pause");
+      getRootChip().onSignal(lastFrameInfo, "pause");
     } else if (previousGameState == "paused" && newGameState == "playing") {
-      getRootEntity().onSignal(lastFrameInfo, "play");
+      getRootChip().onSignal(lastFrameInfo, "play");
     }
   }
 
@@ -1317,38 +1299,38 @@ function doneLoading() {
   loadingScene?.terminate(lastFrameInfo);
   loadingScene = null;
 
-  // The new rootEntity will contain all the sub entities
-  gameEntity = new entity.ParallelEntity();
+  // The new rootChip will contain all the sub entities
+  gameChip = new chip.ParallelChip();
 
   // gameSequence will have the ready and done scenes
-  const gameSequence = new entity.EntitySequence(
+  const gameSequence = new chip.ChipSequence(
     [new ReadyScene(), rootConfig.gameStateMachine, new DoneScene()],
     { loop: true }
   );
 
   // Filter out the pause event for the game sequence
-  gameEntity.addChildEntity(
-    new FilterPauseEntity([
-      new entity.ContainerEntity([gameSequence], "gameSequence"),
+  gameChip.addChildChip(
+    new FilterPauseChip([
+      new chip.ContainerChip([gameSequence], "gameSequence"),
     ])
   );
 
-  for (const installer of rootConfig.directives.entityInstallers) {
-    installer(rootConfig, gameEntity);
+  for (const installer of rootConfig.directives.chipInstallers) {
+    installer(rootConfig, gameChip);
   }
 
   if (rootConfig.menu) {
     rootConfig.menu.on("pause", () => changeGameState("paused"));
     rootConfig.menu.on("play", () => changeGameState("playing"));
     rootConfig.menu.on("reset", () => {
-      gameEntity.onSignal(rootConfig.menu.lastFrameInfo, "reset");
+      gameChip.onSignal(rootConfig.menu.lastFrameInfo, "reset");
       changeGameState("playing");
     });
   }
 
   setupVisibilityDetection();
 
-  gameEntity.activate(lastFrameInfo, rootConfig, entity.makeTransition());
+  gameChip.activate(lastFrameInfo, rootConfig, chip.makeTransition());
 }
 
 /** Detect when the page is not shown, and pause the game */
@@ -1377,10 +1359,10 @@ function setupVisibilityDetection() {
     if (d[hiddenProperty]) {
       console.log("Lost visibility. Hiding the game");
 
-      getRootEntity().onSignal(lastFrameInfo, "lostVisibility");
+      getRootChip().onSignal(lastFrameInfo, "lostVisibility");
       changeGameState("paused");
     } else {
-      getRootEntity().onSignal(lastFrameInfo, "gainedVisibility");
+      getRootChip().onSignal(lastFrameInfo, "gainedVisibility");
       // Let the game handle unpausing
     }
   }
@@ -1426,11 +1408,11 @@ export function go(directives: Partial<Directives> = {}) {
     window.location.search
   );
 
-  rootConfig.gameStateMachine = new entity.StateMachine(
+  rootConfig.gameStateMachine = new chip.StateMachine(
     rootConfig.directives.states,
     {
       transitions: rootConfig.directives.transitions,
-      startingState: entity.makeTransition(
+      startingState: chip.makeTransition(
         rootConfig.playOptions.options.scene,
         rootConfig.playOptions.options.sceneParams
       ),
@@ -1464,7 +1446,7 @@ export function go(directives: Partial<Directives> = {}) {
     ])
   );
 
-  const frameInfo: entity.FrameInfo = {
+  const frameInfo: chip.FrameInfo = {
     playTime: 0,
     timeSinceStart: 0,
     timeSinceLastFrame: 0,
@@ -1479,8 +1461,8 @@ export function go(directives: Partial<Directives> = {}) {
       // Show loading screen as soon as preloader is done
       loadingScene = new LoadingScene();
 
-      // The loading scene doesn't get the full entityConfig
-      loadingScene.activate(frameInfo, rootConfig, entity.makeTransition());
+      // The loading scene doesn't get the full chipConfig
+      loadingScene.activate(frameInfo, rootConfig, chip.makeTransition());
 
       rootConfig.app.ticker.add(tick);
 
@@ -1498,14 +1480,14 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene = null;
 
       loadingErrorScene = new LoadingErrorScene();
-      getRootEntity().activate(frameInfo, rootConfig, entity.makeTransition());
+      getRootChip().activate(frameInfo, rootConfig, chip.makeTransition());
 
       throw err;
     });
 
   return {
     rootConfig,
-    rootEntity: getRootEntity(),
+    rootChip: getRootChip(),
     loadingPromise,
   };
 }

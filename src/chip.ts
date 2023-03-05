@@ -44,46 +44,46 @@ export function makeTransition(name = "default", params = {}) {
   return { name, params };
 }
 
-export type EntityConfig = {
+export type ChipConfig = {
   readonly [k: string]: any;
 };
 
-export type EntityConfigFactory = (config: EntityConfig) => EntityConfig;
-export type EntityConfigResolvable = EntityConfig | EntityConfigFactory;
+export type ChipConfigFactory = (config: ChipConfig) => ChipConfig;
+export type ChipConfigResolvable = ChipConfig | ChipConfigFactory;
 
-export function processEntityConfig(
-  entityConfig: EntityConfig,
-  alteredConfig: EntityConfigResolvable
-): EntityConfig {
-  if (!alteredConfig) return entityConfig;
-  if (typeof alteredConfig == "function") return alteredConfig(entityConfig);
+export function processChipConfig(
+  chipConfig: ChipConfig,
+  alteredConfig: ChipConfigResolvable
+): ChipConfig {
+  if (!alteredConfig) return chipConfig;
+  if (typeof alteredConfig == "function") return alteredConfig(chipConfig);
 
-  return Object.assign({}, entityConfig, alteredConfig);
+  return Object.assign({}, chipConfig, alteredConfig);
 }
 
 export function extendConfig(values: {}): (
-  entityConfig: EntityConfig
-) => EntityConfig {
-  return (entityConfig) => _.extend({}, entityConfig, values);
+  chipConfig: ChipConfig
+) => ChipConfig {
+  return (chipConfig) => _.extend({}, chipConfig, values);
 }
 
 export interface FrameInfo {
   timeSinceLastFrame: number;
 }
 
-export type EntityFactory = (transition: Transition) => Entity;
+export type ChipFactory = (transition: Transition) => Chip;
 
-export type EntityResolvable = Entity | EntityFactory;
+export type ChipResolvable = Chip | ChipFactory;
 
-export interface EntityContext {
-  entity: EntityResolvable;
-  config?: EntityConfigResolvable;
+export interface ChipContext {
+  chip: ChipResolvable;
+  config?: ChipConfigResolvable;
   id?: string;
 }
 
-export type EntityState = "inactive" | "active" | "paused";
+export type ChipState = "inactive" | "active" | "paused";
 
-export function isEntity(e: any): e is Entity {
+export function isChip(e: any): e is Chip {
   return (
     typeof e.activate === "function" &&
     typeof e.tick === "function" &&
@@ -91,10 +91,10 @@ export function isEntity(e: any): e is Entity {
   );
 }
 
-export function isEntityResolvable(
-  e: EntityResolvable | EntityContext
-): e is EntityResolvable {
-  return typeof e === "function" || isEntity(e);
+export function isChipResolvable(
+  e: ChipResolvable | ChipContext
+): e is ChipResolvable {
+  return typeof e === "function" || isChip(e);
 }
 
 export type ReloadMementoData = Record<string, unknown>;
@@ -107,17 +107,17 @@ export type ReloadMemento = {
 
 /**
  * In Booyah, the game is structured as a tree of entities. This is the interface for all entities.
- * When creating a new entity, you most likely want to extend EntityBase or CompositeEntity,
+ * When creating a new chip, you most likely want to extend ChipBase or CompositeChip,
  * which both implement this interface and do the busywork for you.
  **/
-export interface Entity extends NodeEventSource {
-  readonly state: EntityState;
+export interface Chip extends NodeEventSource {
+  readonly state: ChipState;
   readonly transition: Transition;
-  readonly children: Record<string, Entity>;
+  readonly children: Record<string, Chip>;
 
   activate(
     frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
+    chipConfig: ChipConfig,
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void;
@@ -131,49 +131,49 @@ export interface Entity extends NodeEventSource {
 /**
  In Booyah, the game is structured as a tree of entities. This is the base class for all entities.
 
- An entity has the following lifecycle:
+ An chip has the following lifecycle:
  1. It is instantiated using the contructor.
- Only parameters specific to the entity should be passed here.
- The entity should not make any changes to the environment here, it should wait for activate().
+ Only parameters specific to the chip should be passed here.
+ The chip should not make any changes to the environment here, it should wait for activate().
  2. activate() is called just once, with a configuration.
- This is when the entity should add dispaly objects  to the scene, or subscribe to events.
- The typical entityConfig contains { app, preloader, narrator, jukebox, container }
+ This is when the chip should add dispaly objects  to the scene, or subscribe to events.
+ The typical chipConfig contains { app, preloader, narrator, jukebox, container }
  3. tick() is called one or more times, with options.
- It could also never be called, in case the entity is torn down directly.
- If the entity wishes to be terminated, it should set this._transition to a truthy value.
+ It could also never be called, in case the chip is torn down directly.
+ If the chip wishes to be terminated, it should set this._transition to a truthy value.
  Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
  For more complicated transitions, it can return an object like { name: "", params: {} }
  4. terminate() is called just once.
- The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
+ The chip should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
 
  The base class will check that this lifecyle is respected, and will log errors to signal any problems.
 
  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _onActivate(), _onTick(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
-export abstract class EntityBase extends EventEmitter implements Entity {
-  protected _entityConfig: EntityConfig;
+export abstract class ChipBase extends EventEmitter implements Chip {
+  protected _chipConfig: ChipConfig;
   protected _lastFrameInfo: FrameInfo;
   protected _enteringTransition: Transition;
   protected _reloadMemento?: ReloadMemento;
   protected _eventListeners: IEventListener[] = [];
   protected _transition: Transition;
-  protected _state: EntityState = "inactive";
+  protected _state: ChipState = "inactive";
 
-  get entityConfig(): EntityConfig {
-    return this._entityConfig;
+  get chipConfig(): ChipConfig {
+    return this._chipConfig;
   }
 
   public activate(
     frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
+    chipConfig: ChipConfig,
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void {
     if (this._state !== "inactive")
       throw new Error(`activate() called from state ${this._state}`);
 
-    this._entityConfig = entityConfig;
+    this._chipConfig = chipConfig;
     this._lastFrameInfo = frameInfo;
     this._enteringTransition = enteringTransition;
     this._state = "active";
@@ -271,13 +271,13 @@ export abstract class EntityBase extends EventEmitter implements Entity {
     this._eventListeners = listenersToKeep;
   }
 
-  public get children(): Record<string, Entity> {
+  public get children(): Record<string, Chip> {
     return {};
   }
   public get transition(): Transition {
     return this._transition;
   }
-  public get state(): EntityState {
+  public get state(): ChipState {
     return this._state;
   }
   public makeReloadMemento(): ReloadMemento {
@@ -303,17 +303,17 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   protected _onPause() {}
   protected _onResume() {}
 
-  /** By default, an entity be automatically reloaded */
+  /** By default, an chip be automatically reloaded */
   protected _makeReloadMementoData(): ReloadMementoData {
     return undefined;
   }
 }
 
-/** Empty class just to indicate an entity that does nothing and never requests a transition  */
-export class NullEntity extends EntityBase {}
+/** Empty class just to indicate an chip that does nothing and never requests a transition  */
+export class NullChip extends ChipBase {}
 
-/** An entity that returns the requested transition immediately  */
-export class TransitoryEntity extends EntityBase {
+/** An chip that returns the requested transition immediately  */
+export class TransitoryChip extends ChipBase {
   constructor(readonly requestTransition = makeTransition()) {
     super();
   }
@@ -323,8 +323,8 @@ export class TransitoryEntity extends EntityBase {
   }
 }
 
-export class ActivateChildEntityOptions {
-  config?: EntityConfigResolvable;
+export class ActivateChildChipOptions {
+  config?: ChipConfigResolvable;
   transition?: Transition;
   id?: string;
   reloadMemento?: ReloadMemento;
@@ -333,19 +333,19 @@ export class ActivateChildEntityOptions {
 /** Base class for entities that contain other entities
  *
  * Events:
- * - activatedChildEntity(entity: Entity, config: EntityConfig, transition: Transition)
- * - deactivatedChildEntity(entity: Entity)
+ * - activatedChildChip(chip: Chip, config: ChipConfig, transition: Transition)
+ * - deactivatedChildChip(chip: Chip)
  */
-export abstract class CompositeEntity extends EntityBase {
-  protected _childEntities: Record<string, Entity> = {};
+export abstract class CompositeChip extends ChipBase {
+  protected _childEntities: Record<string, Chip> = {};
 
   public activate(
     frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
+    chipConfig: ChipConfig,
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void {
-    super.activate(frameInfo, entityConfig, enteringTransition, reloadMemento);
+    super.activate(frameInfo, chipConfig, enteringTransition, reloadMemento);
   }
   /**
    * By default, updates all child entities and remove those that have a transition
@@ -379,28 +379,27 @@ export abstract class CompositeEntity extends EntityBase {
     }
   }
 
-  public get children(): Record<string, Entity> {
+  public get children(): Record<string, Chip> {
     return this._childEntities;
   }
 
-  protected _activateChildEntity(
-    entityResolvable: EntityResolvable,
-    options?: Partial<ActivateChildEntityOptions>
-  ): Entity {
-    if (this.state === "inactive")
-      throw new Error("CompositeEntity is inactive");
+  protected _activateChildChip(
+    chipResolvable: ChipResolvable,
+    options?: Partial<ActivateChildChipOptions>
+  ): Chip {
+    if (this.state === "inactive") throw new Error("CompositeChip is inactive");
 
-    options = fillInOptions(options, new ActivateChildEntityOptions());
+    options = fillInOptions(options, new ActivateChildChipOptions());
     if (options.id && options.id in this._childEntities)
-      throw new Error("Duplicate child entity id provided");
+      throw new Error("Duplicate child chip id provided");
 
     const enteringTransition = options.transition ?? makeTransition();
 
-    let entity;
-    if (_.isFunction(entityResolvable)) {
-      entity = entityResolvable(enteringTransition);
+    let chip;
+    if (_.isFunction(chipResolvable)) {
+      chip = chipResolvable(enteringTransition);
     } else {
-      entity = entityResolvable;
+      chip = chipResolvable;
     }
 
     // Look for reload memento, if an id is provided
@@ -412,40 +411,39 @@ export abstract class CompositeEntity extends EntityBase {
     // If no childId is provided, use a random temporary value
     const childId =
       options.id ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
-    this._childEntities[childId] = entity;
+    this._childEntities[childId] = chip;
 
-    const childConfig = processEntityConfig(this._entityConfig, options.config);
-    entity.activate(
+    const childConfig = processChipConfig(this._chipConfig, options.config);
+    chip.activate(
       this._lastFrameInfo,
       childConfig,
       enteringTransition,
       reloadMemento
     );
 
-    this.emit("activatedChildEntity", entity, childConfig, enteringTransition);
+    this.emit("activatedChildChip", chip, childConfig, enteringTransition);
 
-    return entity;
+    return chip;
   }
 
-  protected _deactivateChildEntity(entity: Entity): void {
-    if (this.state === "inactive")
-      throw new Error("CompositeEntity is inactive");
+  protected _deactivateChildChip(chip: Chip): void {
+    if (this.state === "inactive") throw new Error("CompositeChip is inactive");
 
     // Try to find value
     let childId: string;
     for (const id in this._childEntities) {
-      if (this._childEntities[id] === entity) {
+      if (this._childEntities[id] === chip) {
         childId = id;
         break;
       }
     }
-    if (!childId) throw new Error("Cannot find entity to remove");
+    if (!childId) throw new Error("Cannot find chip to remove");
 
-    entity.terminate(this._lastFrameInfo);
+    chip.terminate(this._lastFrameInfo);
 
     delete this._childEntities[childId];
 
-    this.emit("deactivatedChildEntity", entity);
+    this.emit("deactivatedChildChip", chip);
   }
 
   /**
@@ -456,16 +454,16 @@ export abstract class CompositeEntity extends EntityBase {
     let needDeactivation = false;
 
     for (const id in this._childEntities) {
-      const childEntity = this._childEntities[id];
+      const childChip = this._childEntities[id];
 
-      if (childEntity.transition) {
-        childEntity.terminate(this._lastFrameInfo);
+      if (childChip.transition) {
+        childChip.terminate(this._lastFrameInfo);
         delete this._childEntities[id];
-        this.emit("deactivatedChildEntity", childEntity);
+        this.emit("deactivatedChildChip", childChip);
 
         needDeactivation = true;
       } else {
-        childEntity.tick(this._lastFrameInfo);
+        childChip.tick(this._lastFrameInfo);
       }
     }
 
@@ -473,20 +471,20 @@ export abstract class CompositeEntity extends EntityBase {
   }
 
   protected _deactivateAllChildEntities() {
-    for (const childEntity of Object.values(this._childEntities)) {
-      childEntity.terminate(this._lastFrameInfo);
-      this.emit("deactivatedChildEntity", childEntity);
+    for (const childChip of Object.values(this._childEntities)) {
+      childChip.terminate(this._lastFrameInfo);
+      this.emit("deactivatedChildChip", childChip);
     }
 
     this._childEntities = {};
   }
 }
 
-export class ParallelEntityOptions {
+export class ParallelChipOptions {
   transitionOnCompletion: boolean = true;
 }
 
-export interface ParallelEntityContext extends EntityContext {
+export interface ParallelChipContext extends ChipContext {
   activated?: boolean;
 }
 
@@ -495,33 +493,33 @@ export interface ParallelEntityContext extends EntityContext {
  Updates child entities until they ask for a transition, at which point they are torn down.
  Requests a transition when all child entities have completed.
 */
-export class ParallelEntity extends CompositeEntity {
-  public readonly options: ParallelEntityOptions;
+export class ParallelChip extends CompositeChip {
+  public readonly options: ParallelChipOptions;
 
-  protected childEntityContexts: ParallelEntityContext[] = [];
-  protected contextToEntity = new Map<ParallelEntityContext, Entity>();
+  protected childChipContexts: ParallelChipContext[] = [];
+  protected contextToChip = new Map<ParallelChipContext, Chip>();
 
   constructor(
-    entityContexts: Array<EntityResolvable | ParallelEntityContext> = [],
-    options?: Partial<ParallelEntityOptions>
+    chipContexts: Array<ChipResolvable | ParallelChipContext> = [],
+    options?: Partial<ParallelChipOptions>
   ) {
     super();
 
-    this.options = fillInOptions(options, new ParallelEntityOptions());
+    this.options = fillInOptions(options, new ParallelChipOptions());
 
-    for (const e of entityContexts) this.addChildEntity(e);
+    for (const e of chipContexts) this.addChildChip(e);
   }
 
   activate(
     frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
+    chipConfig: ChipConfig,
     enteringTransition?: Transition,
     reloadMemento?: ReloadMemento
   ) {
-    super.activate(frameInfo, entityConfig, enteringTransition, reloadMemento);
+    super.activate(frameInfo, chipConfig, enteringTransition, reloadMemento);
 
-    for (const entityContext of this.childEntityContexts) {
-      if (entityContext.activated) this.activateChildEntity(entityContext);
+    for (const chipContext of this.childChipContexts) {
+      if (chipContext.activated) this.activateChildChip(chipContext);
     }
   }
 
@@ -532,146 +530,140 @@ export class ParallelEntity extends CompositeEntity {
       this._transition = makeTransition();
   }
 
-  addChildEntity(entity: ParallelEntityContext | EntityResolvable) {
-    const index = this.indexOfChildEntityContext(entity);
-    if (index !== -1) throw new Error("Entity context already added");
+  addChildChip(chip: ParallelChipContext | ChipResolvable) {
+    const index = this.indexOfChildChipContext(chip);
+    if (index !== -1) throw new Error("Chip context already added");
 
-    let entityContext: ParallelEntityContext;
-    if (isEntityResolvable(entity)) {
-      entityContext = { entity, activated: true };
+    let chipContext: ParallelChipContext;
+    if (isChipResolvable(chip)) {
+      chipContext = { chip, activated: true };
     } else {
-      entityContext = entity;
+      chipContext = chip;
     }
 
-    this.childEntityContexts.push(entityContext);
+    this.childChipContexts.push(chipContext);
 
-    // Automatically activate the child entity
-    if (this.state !== "inactive" && entityContext.activated) {
-      const entity = this._activateChildEntity(entityContext.entity, {
-        config: entityContext.config,
+    // Automatically activate the child chip
+    if (this.state !== "inactive" && chipContext.activated) {
+      const chip = this._activateChildChip(chipContext.chip, {
+        config: chipContext.config,
       });
-      this.contextToEntity.set(entityContext, entity);
+      this.contextToChip.set(chipContext, chip);
     }
   }
 
-  removeChildEntity(e: ParallelEntityContext | EntityResolvable): void {
-    const index = this.indexOfChildEntityContext(e);
-    if (index === -1) throw new Error("Cannot find entity context");
+  removeChildChip(e: ParallelChipContext | ChipResolvable): void {
+    const index = this.indexOfChildChipContext(e);
+    if (index === -1) throw new Error("Cannot find chip context");
 
-    const entityContext = this.childEntityContexts[index];
-    this.childEntityContexts.splice(index, 1);
+    const chipContext = this.childChipContexts[index];
+    this.childChipContexts.splice(index, 1);
 
-    const entity = this.contextToEntity.get(entityContext);
-    if (entity) {
-      this._deactivateChildEntity(entity);
-      this.contextToEntity.delete(entityContext);
+    const chip = this.contextToChip.get(chipContext);
+    if (chip) {
+      this._deactivateChildChip(chip);
+      this.contextToChip.delete(chipContext);
     }
   }
 
   removeAllChildEntities(): void {
     this._deactivateAllChildEntities();
 
-    this.childEntityContexts = [];
-    this.contextToEntity.clear();
+    this.childChipContexts = [];
+    this.contextToChip.clear();
   }
 
-  activateChildEntity(
-    e: number | ParallelEntityContext | EntityResolvable
-  ): void {
+  activateChildChip(e: number | ParallelChipContext | ChipResolvable): void {
     let index: number;
     if (typeof e === "number") {
       index = e;
-      if (index < 0 || index >= this.childEntityContexts.length)
+      if (index < 0 || index >= this.childChipContexts.length)
         throw new Error("Invalid index");
     } else {
-      index = this.indexOfChildEntityContext(e);
-      if (index === -1) throw new Error("Cannot find entity context");
+      index = this.indexOfChildChipContext(e);
+      if (index === -1) throw new Error("Cannot find chip context");
     }
 
-    const entityContext = this.childEntityContexts[index];
-    if (this.contextToEntity.has(entityContext))
-      throw new Error("Entity is already activated");
+    const chipContext = this.childChipContexts[index];
+    if (this.contextToChip.has(chipContext))
+      throw new Error("Chip is already activated");
 
-    const entity = this._activateChildEntity(entityContext.entity, {
-      config: entityContext.config,
-      id: entityContext.id ?? index.toString(),
+    const chip = this._activateChildChip(chipContext.chip, {
+      config: chipContext.config,
+      id: chipContext.id ?? index.toString(),
     });
-    this.contextToEntity.set(entityContext, entity);
-    entityContext.activated = true;
+    this.contextToChip.set(chipContext, chip);
+    chipContext.activated = true;
   }
 
-  deactivateChildEntity(
-    e: ParallelEntityContext | EntityResolvable | number
-  ): void {
+  deactivateChildChip(e: ParallelChipContext | ChipResolvable | number): void {
     let index: number;
     if (typeof e === "number") {
       index = e;
-      if (index < 0 || index >= this.childEntityContexts.length)
+      if (index < 0 || index >= this.childChipContexts.length)
         throw new Error("Invalid index");
     } else {
-      index = this.indexOfChildEntityContext(e);
-      if (index === -1) throw new Error("Cannot find entity context");
+      index = this.indexOfChildChipContext(e);
+      if (index === -1) throw new Error("Cannot find chip context");
     }
 
-    const entityContext = this.childEntityContexts[index];
-    const entity = this.contextToEntity.get(entityContext);
-    if (!entity) throw new Error("Entity not yet activated");
+    const chipContext = this.childChipContexts[index];
+    const chip = this.contextToChip.get(chipContext);
+    if (!chip) throw new Error("Chip not yet activated");
 
-    this._deactivateChildEntity(entity);
-    entityContext.activated = false;
-    this.contextToEntity.delete(entityContext);
+    this._deactivateChildChip(chip);
+    chipContext.activated = false;
+    this.contextToChip.delete(chipContext);
   }
 
-  indexOfChildEntityContext(
-    entity: ParallelEntityContext | EntityResolvable
-  ): number {
-    if (isEntityResolvable(entity)) {
-      return _.indexOf(this.childEntityContexts, { entity });
+  indexOfChildChipContext(chip: ParallelChipContext | ChipResolvable): number {
+    if (isChipResolvable(chip)) {
+      return _.indexOf(this.childChipContexts, { chip });
     } else {
-      return this.childEntityContexts.indexOf(entity);
+      return this.childChipContexts.indexOf(chip);
     }
   }
 
   terminate(frameInfo: FrameInfo): void {
-    this.contextToEntity.clear();
+    this.contextToChip.clear();
 
     super.terminate(frameInfo);
   }
 }
 
-export class EntitySequenceOptions {
+export class ChipSequenceOptions {
   loop = false;
   transitionOnCompletion = true;
 }
 
 /**
-  Runs one child entity after another. 
+  Runs one child chip after another. 
   When done, requestes the last transition demanded.
-  Optionally can loop back to the first entity.
+  Optionally can loop back to the first chip.
 */
-export class EntitySequence extends CompositeEntity {
-  public readonly options: EntitySequenceOptions;
+export class ChipSequence extends CompositeChip {
+  public readonly options: ChipSequenceOptions;
 
-  private entityContexts: EntityContext[] = [];
-  private currentEntityIndex = 0;
-  private currentEntity: Entity = null;
+  private chipContexts: ChipContext[] = [];
+  private currentChipIndex = 0;
+  private currentChip: Chip = null;
 
   constructor(
-    entityContexts: Array<EntityContext | EntityResolvable>,
-    options?: Partial<EntitySequenceOptions>
+    chipContexts: Array<ChipContext | ChipResolvable>,
+    options?: Partial<ChipSequenceOptions>
   ) {
     super();
 
-    this.options = fillInOptions(options, new EntitySequenceOptions());
+    this.options = fillInOptions(options, new ChipSequenceOptions());
 
-    for (const e of entityContexts) this.addChildEntity(e);
+    for (const e of chipContexts) this.addChildChip(e);
   }
 
-  addChildEntity(entity: EntityContext | EntityResolvable) {
-    if (isEntityResolvable(entity)) {
-      this.entityContexts.push({ entity: entity });
+  addChildChip(chip: ChipContext | ChipResolvable) {
+    if (isChipResolvable(chip)) {
+      this.chipContexts.push({ chip: chip });
     } else {
-      this.entityContexts.push(entity);
+      this.chipContexts.push(chip);
     }
   }
 
@@ -679,65 +671,65 @@ export class EntitySequence extends CompositeEntity {
     this._advance(makeTransition("skip"));
   }
 
-  private _switchEntity() {
-    // Stop current entity
-    if (this.currentEntity) {
-      // The current entity may have already been deactivated, if it requested a transition
+  private _switchChip() {
+    // Stop current chip
+    if (this.currentChip) {
+      // The current chip may have already been deactivated, if it requested a transition
       if (_.size(this._childEntities) > 0)
-        this._deactivateChildEntity(this.currentEntity);
-      this.currentEntity = null;
+        this._deactivateChildChip(this.currentChip);
+      this.currentChip = null;
     }
 
-    if (this.currentEntityIndex < this.entityContexts.length) {
-      const entityContext = this.entityContexts[this.currentEntityIndex];
-      this.currentEntity = this._activateChildEntity(entityContext.entity, {
-        config: entityContext.config,
-        id: entityContext.id ?? this.currentEntityIndex.toString(),
+    if (this.currentChipIndex < this.chipContexts.length) {
+      const chipContext = this.chipContexts[this.currentChipIndex];
+      this.currentChip = this._activateChildChip(chipContext.chip, {
+        config: chipContext.config,
+        id: chipContext.id ?? this.currentChipIndex.toString(),
       });
     }
   }
 
   _onActivate() {
-    this.currentEntityIndex =
-      (this._reloadMemento?.data.currentEntityIndex as number) ?? 0;
-    this.currentEntity = null;
+    this.currentChipIndex =
+      (this._reloadMemento?.data.currentChipIndex as number) ?? 0;
+    this.currentChip = null;
 
-    if (this.entityContexts.length === 0) {
+    if (this.chipContexts.length === 0) {
       // Empty sequence, stop immediately
       if (this.options.transitionOnCompletion)
         this._transition = makeTransition();
     } else {
       // Start the sequence
-      this._switchEntity();
+      this._switchChip();
     }
   }
 
   _onTick() {
-    if (!this.currentEntity) return;
+    if (!this.currentChip) return;
 
-    const transition = this.currentEntity.transition;
+    const transition = this.currentChip.transition;
     if (transition) this._advance(transition);
   }
 
   _onTerminate() {
-    this.currentEntity = null;
+    this.currentChip = null;
   }
 
   restart() {
-    this.currentEntityIndex = 0;
-    this._switchEntity();
+    this.currentChipIndex = 0;
+    this._switchChip();
   }
 
   private _advance(transition: Transition) {
-    this.currentEntityIndex++;
-    this._switchEntity();
+    this.currentChipIndex++;
+    this._switchChip();
 
     // If we've reached the end of the sequence...
-    if (this.currentEntityIndex >= this.entityContexts.length) {
+    if (this.currentChipIndex >= this.chipContexts.length) {
       if (this.options.loop) {
         // ... and we loop, go back to start
-        this.currentEntityIndex = 0;
-        this._switchEntity();
+        this.currentChipIndex = 0;
+        this._switchChip();
       } else if (this.options.transitionOnCompletion) {
         // otherwise request this transition
         this._transition = transition;
@@ -747,14 +739,14 @@ export class EntitySequence extends CompositeEntity {
 
   protected _makeReloadMementoData(): ReloadMementoData {
     return {
-      currentEntityIndex: this.currentEntityIndex,
+      currentChipIndex: this.currentChipIndex,
     };
   }
 }
 
-export type StateTable = { [n: string]: EntityContext };
+export type StateTable = { [n: string]: ChipContext };
 export type StateTableDescriptor = {
-  [n: string]: EntityContext | EntityResolvable;
+  [n: string]: ChipContext | ChipResolvable;
 };
 
 export type TransitionFunction = (transition: Transition) => Transition;
@@ -769,7 +761,7 @@ export class StateMachineOptions {
 }
 
 /** 
-  Represents a state machine, where each state has a name, and is represented by an entity.
+  Represents a state machine, where each state has a name, and is represented by an chip.
   Only one state is active at a time. 
   The state machine has one starting state, but can have multiple ending states.
   When the machine reaches an ending state, it requests a transition with a name equal to the name of the ending state.
@@ -778,7 +770,7 @@ export class StateMachineOptions {
   The transitions are not provided directly by the states (entities) by rather by a transition table provided in the constructor.
   To use have a transition table within a transition table, use the function makeTransitionTable()
 */
-export class StateMachine extends CompositeEntity {
+export class StateMachine extends CompositeChip {
   public readonly options: StateMachineOptions;
 
   public states: StateTable = {};
@@ -786,7 +778,7 @@ export class StateMachine extends CompositeEntity {
   public startingState: TransitionDescriptor;
   public visitedStates: Transition[];
   public progress: {};
-  public activeChildEntity: Entity;
+  public activeChildChip: Chip;
   public stateParams: {};
   private lastTransition: Transition;
 
@@ -799,8 +791,8 @@ export class StateMachine extends CompositeEntity {
     // Create state table
     for (const name in states) {
       const state = states[name];
-      if (isEntityResolvable(state)) {
-        this.states[name] = { entity: state };
+      if (isChipResolvable(state)) {
+        this.states[name] = { chip: state };
       } else {
         this.states[name] = state;
       }
@@ -825,11 +817,11 @@ export class StateMachine extends CompositeEntity {
 
   activate(
     frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
+    chipConfig: ChipConfig,
     enteringTransition?: Transition,
     reloadMemento?: ReloadMemento
   ) {
-    super.activate(frameInfo, entityConfig, enteringTransition, reloadMemento);
+    super.activate(frameInfo, chipConfig, enteringTransition, reloadMemento);
 
     this.visitedStates = [];
     this.progress = cloneData(this.options.startingProgress);
@@ -847,9 +839,9 @@ export class StateMachine extends CompositeEntity {
   }
 
   _onTick() {
-    if (!this.activeChildEntity) return;
+    if (!this.activeChildChip) return;
 
-    const transition = this.activeChildEntity.transition;
+    const transition = this.activeChildChip.transition;
     if (transition) {
       let nextStateDescriptor: Transition;
       // The transition could directly be the name of another state, or ending state
@@ -891,14 +883,14 @@ export class StateMachine extends CompositeEntity {
   }
 
   _onTerminate() {
-    this.activeChildEntity = null;
+    this.activeChildChip = null;
     this.lastTransition = null;
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
     if (signal === "reset") {
       this.terminate(frameInfo);
-      this.activate(frameInfo, this._entityConfig, this._enteringTransition);
+      this.activate(frameInfo, this._chipConfig, this._enteringTransition);
     }
   }
 
@@ -918,11 +910,11 @@ export class StateMachine extends CompositeEntity {
 
   private _changeState(nextState: Transition): void {
     // Stop current state
-    if (this.activeChildEntity) {
+    if (this.activeChildChip) {
       // The state may have already been deactivated, if it requested a transition
       if (_.size(this._childEntities) > 0)
-        this._deactivateChildEntity(this.activeChildEntity);
-      this.activeChildEntity = null;
+        this._deactivateChildChip(this.activeChildChip);
+      this.activeChildChip = null;
     }
 
     // If reached an ending state, stop here.
@@ -937,14 +929,11 @@ export class StateMachine extends CompositeEntity {
 
     if (nextState.name in this.states) {
       const nextStateContext = this.states[nextState.name];
-      this.activeChildEntity = this._activateChildEntity(
-        nextStateContext.entity,
-        {
-          config: nextStateContext.config,
-          transition: nextState,
-          id: nextState.name,
-        }
-      );
+      this.activeChildChip = this._activateChildChip(nextStateContext.chip, {
+        config: nextStateContext.config,
+        transition: nextState,
+        id: nextState.name,
+      });
     } else {
       throw new Error(`Cannot find state '${nextState.name}'`);
     }
@@ -962,7 +951,7 @@ export class StateMachine extends CompositeEntity {
   Creates a transition table for use with StateMachine.
   Example: 
     const transitions = {
-      start: entity.makeTransitionTable({ 
+      start: chip.makeTransitionTable({ 
         win: "end",
         lose: "start",
       }),
@@ -989,29 +978,29 @@ export function makeTransitionTable(table: {
   return f;
 }
 
-export interface FunctionalEntityFunctions {
-  activate: (entity: FunctionalEntity) => void;
-  tick: (entity: FunctionalEntity) => void;
-  pause: (entity: FunctionalEntity) => void;
-  resume: (entity: FunctionalEntity) => void;
-  terminate: (entity: FunctionalEntity) => void;
-  requestTransition: (entity: FunctionalEntity) => Transition | boolean;
+export interface FunctionalChipFunctions {
+  activate: (chip: FunctionalChip) => void;
+  tick: (chip: FunctionalChip) => void;
+  pause: (chip: FunctionalChip) => void;
+  resume: (chip: FunctionalChip) => void;
+  terminate: (chip: FunctionalChip) => void;
+  requestTransition: (chip: FunctionalChip) => Transition | boolean;
   makeReloadMemento(): ReloadMemento;
 }
 
 /**
-  An entity that gets its behavior from functions provided inline in the constructor.
+  An chip that gets its behavior from functions provided inline in the constructor.
   Useful for small entities that don't require their own class definition.
-  Additionally, a function called requestTransition(options, entity), called after tick(), can set the requested transition 
+  Additionally, a function called requestTransition(options, chip), called after tick(), can set the requested transition 
 
   Example usage:
-    new FunctionalEntity({
-      activate: (entityConfig) => console.log("activate", entityConfig),
+    new FunctionalChip({
+      activate: (chipConfig) => console.log("activate", chipConfig),
       terminate: () => console.log("terminate"),
     });
 */
-export class FunctionalEntity extends CompositeEntity {
-  constructor(public readonly functions: Partial<FunctionalEntityFunctions>) {
+export class FunctionalChip extends CompositeChip {
+  constructor(public readonly functions: Partial<FunctionalChipFunctions>) {
     super();
   }
 
@@ -1057,12 +1046,12 @@ export class FunctionalEntity extends CompositeEntity {
   }
 }
 
-// TODO: rename to lambda entity?
+// TODO: rename to lambda chip?
 /**
-  An entity that calls a provided function just once (in activate), and immediately requests a transition.
+  An chip that calls a provided function just once (in activate), and immediately requests a transition.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
-export class FunctionCallEntity extends EntityBase {
+export class FunctionCallChip extends ChipBase {
   constructor(public f: (arg: any) => any, public that?: any) {
     super();
     this.that = that || this;
@@ -1076,7 +1065,7 @@ export class FunctionCallEntity extends EntityBase {
 }
 
 // Waits until time is up, then requests transition
-export class WaitingEntity extends EntityBase {
+export class WaitingChip extends ChipBase {
   private _accumulatedTime: number;
 
   /** @wait is in milliseconds */
@@ -1100,7 +1089,7 @@ export class WaitingEntity extends EntityBase {
 /**
  * Does not request a transition until done() is called with a given transition
  */
-export class Block extends EntityBase {
+export class Block extends ChipBase {
   done(transition = makeTransition()) {
     this._transition = transition;
   }
@@ -1109,7 +1098,7 @@ export class Block extends EntityBase {
 /**
  * Executes a function once and requests a transition equal to its value.
  */
-export class Decision extends EntityBase {
+export class Decision extends ChipBase {
   constructor(private f: () => Transition | undefined) {
     super();
   }
@@ -1123,7 +1112,7 @@ export class Decision extends EntityBase {
  * Waits for an event to be delivered, and decides to request a transition depending on the event value.
  * @handler is a function of the event arguments, and should return either a transition or a boolean as to whether to transition or not
  */
-export class WaitForEvent extends EntityBase {
+export class WaitForEvent extends ChipBase {
   constructor(
     public emitter: NodeEventSource,
     public eventName: string,
@@ -1149,32 +1138,32 @@ export class WaitForEvent extends EntityBase {
   }
 }
 
-export interface AlternativeEntityContext extends EntityContext {
+export interface AlternativeChipContext extends ChipContext {
   transition?: Transition;
 }
 
 /**
- *  Entity that requests a transition as soon as one of it's children requests one
+ *  Chip that requests a transition as soon as one of it's children requests one
  */
-export class Alternative extends CompositeEntity {
-  private readonly entityContexts: AlternativeEntityContext[];
+export class Alternative extends CompositeChip {
+  private readonly chipContexts: AlternativeChipContext[];
 
   // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-  constructor(entityContexts: AlternativeEntityContext[]) {
+  constructor(chipContexts: AlternativeChipContext[]) {
     super();
 
     // Set default transition as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-    this.entityContexts = _.map(entityContexts, (entityContext, key) =>
-      _.defaults({}, entityContext, {
+    this.chipContexts = _.map(chipContexts, (chipContext, key) =>
+      _.defaults({}, chipContext, {
         transition: key.toString(),
       })
     );
   }
 
   _onActivate() {
-    for (const entityContext of this.entityContexts) {
-      this._activateChildEntity(entityContext.entity, {
-        config: entityContext.config,
+    for (const chipContext of this.chipContexts) {
+      this._activateChildChip(chipContext.chip, {
+        config: chipContext.config,
       });
     }
 
@@ -1186,9 +1175,9 @@ export class Alternative extends CompositeEntity {
   }
 
   private _checkForTransition(): void {
-    for (let i = 0; i < this.entityContexts.length; i++) {
+    for (let i = 0; i < this.chipContexts.length; i++) {
       if (this._childEntities[i].transition) {
-        this._transition = this.entityContexts[i].transition;
+        this._transition = this.chipContexts[i].transition;
         break;
       }
     }

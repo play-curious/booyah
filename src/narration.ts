@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 import * as howler from "howler";
 import _ from "underscore";
 
-import * as entity from "./entity";
+import * as chip from "./chip";
 import * as audio from "./audio";
 import * as util from "./util";
 
@@ -38,7 +38,7 @@ export interface ParsedSubtitle {
  * Events:
  *  done - key (string)
  */
-export class SubtitleNarrator extends entity.CompositeEntity {
+export class SubtitleNarrator extends chip.CompositeChip {
   private subtitles: ParsedSubtitles;
   private container: PIXI.Container;
   private narratorSubtitle: PIXI.Text;
@@ -62,7 +62,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   }
 
   get lines(): ParsedSubtitle[] {
-    return this._entityConfig.subtitles[this.name];
+    return this._chipConfig.subtitles[this.name];
   }
 
   get nextLine(): ParsedSubtitle | undefined {
@@ -70,14 +70,14 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   }
 
   _onActivate() {
-    this.subtitles = this._entityConfig.subtitles;
+    this.subtitles = this._chipConfig.subtitles;
 
     this.container = new PIXI.Container();
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
 
     const styleOptions = _.defaults(this._options.textStyle, {
       wordWrap: true,
-      wordWrapWidth: this._entityConfig.app.screen.width - 150,
+      wordWrapWidth: this._chipConfig.app.screen.width - 150,
     });
 
     this.narratorSubtitle = new PIXI.Text("", styleOptions);
@@ -87,8 +87,8 @@ export class SubtitleNarrator extends entity.CompositeEntity {
       this.narratorSubtitle.position.copyFrom(this._options.position);
     } else {
       this.narratorSubtitle.position.set(
-        this._entityConfig.app.screen.width / 2,
-        this._entityConfig.app.screen.height - 75
+        this._chipConfig.app.screen.width / 2,
+        this._chipConfig.app.screen.height - 75
       );
     }
     this.container.addChild(this.narratorSubtitle);
@@ -98,7 +98,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this.timeSincePlay = 0;
 
     this._on(
-      this._entityConfig.playOptions,
+      this._chipConfig.playOptions,
       "showSubtitles",
       this._updateShowSubtitles
     );
@@ -115,7 +115,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
   }
 
   play(name: string) {
@@ -132,7 +132,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._stopNarration();
   }
 
-  _onSignal(frameInfo: entity.FrameInfo, signal: string) {
+  _onSignal(frameInfo: chip.FrameInfo, signal: string) {
     if (signal === "reset") this._stopNarration();
   }
 
@@ -181,8 +181,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
   }
 
   _updateShowSubtitles() {
-    this.container.visible =
-      this._entityConfig.playOptions.options.showSubtitles;
+    this.container.visible = this._chipConfig.playOptions.options.showSubtitles;
   }
 
   private _write(text: string) {
@@ -194,17 +193,17 @@ export function makeInstallSubtitleNarrator(
   options?: Partial<SubtitleNarratorOptions>
 ) {
   function installSubtitleNarrator(
-    rootConfig: entity.EntityConfig,
-    rootEntity: entity.ParallelEntity
+    rootConfig: chip.ChipConfig,
+    rootChip: chip.ParallelChip
   ) {
     rootConfig.narrator = new SubtitleNarrator(options);
-    rootEntity.addChildEntity(rootConfig.narrator);
+    rootChip.addChildChip(rootConfig.narrator);
   }
 
   return installSubtitleNarrator;
 }
 
-export class SpeakerDisplay extends entity.EntityBase {
+export class SpeakerDisplay extends chip.ChipBase {
   public container: PIXI.Container;
   public namesToSprites: { [name: string]: PIXI.Sprite };
   public currentSpeakerName: string;
@@ -216,14 +215,14 @@ export class SpeakerDisplay extends entity.EntityBase {
     super();
   }
 
-  _onActivate(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  _onActivate(frameInfo: chip.FrameInfo, chipConfig: chip.ChipConfig) {
     this.container = new PIXI.Container();
     this.container.position.copyFrom(this.position);
 
     // Make a hidden sprite for each texture, add it to the container
     this.namesToSprites = _.mapObject(this.namesToImages, (image) => {
       const sprite = new PIXI.Sprite(
-        this._entityConfig.app.loader.resources[image].texture
+        this._chipConfig.app.loader.resources[image].texture
       );
       sprite.anchor.set(0, 1); // lower-left
       sprite.visible = false;
@@ -233,17 +232,13 @@ export class SpeakerDisplay extends entity.EntityBase {
 
     this.currentSpeakerName = null;
 
-    this._on(
-      this._entityConfig.narrator,
-      "changeSpeaker",
-      this._onChangeSpeaker
-    );
+    this._on(this._chipConfig.narrator, "changeSpeaker", this._onChangeSpeaker);
 
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
   }
 
   _onChangeSpeaker(speaker?: any) {
@@ -254,26 +249,26 @@ export class SpeakerDisplay extends entity.EntityBase {
   }
 }
 
-export class SingleNarration extends entity.EntityBase {
+export class SingleNarration extends chip.ChipBase {
   constructor(public narrationKey: string) {
     super();
   }
 
   _onActivate() {
-    this._entityConfig.narrator.changeKey(this.narrationKey);
-    this._on(this._entityConfig.narrator, "done", this._onNarrationDone);
+    this._chipConfig.narrator.changeKey(this.narrationKey);
+    this._on(this._chipConfig.narrator, "done", this._onNarrationDone);
   }
 
   _onNarrationDone(key?: string) {
-    if (key === this.narrationKey) this._transition = entity.makeTransition();
+    if (key === this.narrationKey) this._transition = chip.makeTransition();
   }
 
   _onTerminate() {
-    this._entityConfig.narrator.stop();
+    this._chipConfig.narrator.stop();
   }
 }
 
-export class RandomNarration extends entity.EntityBase {
+export class RandomNarration extends chip.ChipBase {
   public narrationPlaylist: any[] = [];
   public currentKey: string = null;
 
@@ -289,15 +284,15 @@ export class RandomNarration extends entity.EntityBase {
 
     // Pick the next key in the list
     this.currentKey = this.narrationPlaylist.shift();
-    this._entityConfig.narrator.changeKey(this.currentKey, this.priority);
+    this._chipConfig.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  _onTick(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: chip.FrameInfo) {
     if (
       frameInfo.timeSinceStart >=
-      this._entityConfig.narrator.narrationDuration(this.currentKey)
+      this._chipConfig.narrator.narrationDuration(this.currentKey)
     ) {
-      this._transition = entity.makeTransition();
+      this._transition = chip.makeTransition();
     }
   }
 
@@ -309,21 +304,21 @@ export class RandomNarration extends entity.EntityBase {
 export class VideoSceneOptions {
   video: string;
   streamVideo = false;
-  videoOptions: Partial<entity.VideoEntityOptions>;
+  videoOptions: Partial<chip.VideoChipOptions>;
   narration: string;
   music: string;
   musicVolume: number;
-  skipButtonOptions: Partial<entity.SkipButtonOptions>;
+  skipButtonOptions: Partial<chip.SkipButtonOptions>;
 }
 
 /** 
   Launches a complete video scene, complete with a video, narration, music, and skip button.
   Terminates when either the video completes, or the skip button is pressed. 
  */
-export class VideoScene extends entity.CompositeEntity {
+export class VideoScene extends chip.CompositeChip {
   public narration: SingleNarration;
-  public video: entity.VideoEntity | entity.StreamingVideoEntity;
-  public skipButton: entity.SkipButton;
+  public video: chip.VideoChip | chip.StreamingVideoChip;
+  public skipButton: chip.SkipButton;
   public previousMusic: string;
 
   private _options: VideoSceneOptions;
@@ -334,46 +329,46 @@ export class VideoScene extends entity.CompositeEntity {
     this._options = util.fillInOptions(options, new VideoSceneOptions());
   }
 
-  _onActivate(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  _onActivate(frameInfo: chip.FrameInfo, chipConfig: chip.ChipConfig) {
     if (this._options.narration) {
       this.narration = new SingleNarration(this._options.narration);
-      this._activateChildEntity(this.narration);
+      this._activateChildChip(this.narration);
     }
 
     if (this._options.video) {
-      this.video = new entity.VideoEntity(
+      this.video = new chip.VideoChip(
         this._options.video,
         this._options.videoOptions
       );
-      this._activateChildEntity(this.video);
+      this._activateChildChip(this.video);
     }
 
-    this.previousMusic = this._entityConfig.jukebox.musicName;
-    this._entityConfig.jukebox.stop();
+    this.previousMusic = this._chipConfig.jukebox.musicName;
+    this._chipConfig.jukebox.stop();
 
     if (this._options.music) {
-      this.previousMusic = this._entityConfig.jukebox.musicName;
-      this._entityConfig.jukebox.play(
+      this.previousMusic = this._chipConfig.jukebox.musicName;
+      this._chipConfig.jukebox.play(
         this._options.music,
         this._options.musicVolume
       );
     }
 
-    this.skipButton = new entity.SkipButton(this._options.skipButtonOptions);
-    this._activateChildEntity(this.skipButton);
+    this.skipButton = new chip.SkipButton(this._options.skipButtonOptions);
+    this._activateChildChip(this.skipButton);
   }
 
-  _onTick(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: chip.FrameInfo) {
     if (
       (this._options.video && this.video.transition) ||
       this.skipButton.transition
     ) {
-      this._transition = entity.makeTransition();
+      this._transition = chip.makeTransition();
     }
   }
 
   _onTerminate() {
-    if (this.previousMusic) this._entityConfig.jukebox.play(this.previousMusic);
+    if (this.previousMusic) this._chipConfig.jukebox.play(this.previousMusic);
   }
 }
 

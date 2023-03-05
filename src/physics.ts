@@ -3,7 +3,7 @@ import p2 from "p2";
 import _ from "underscore";
 
 import * as util from "./util";
-import * as entity from "./entity";
+import * as chip from "./chip";
 
 export type p2Vec = [number, number];
 
@@ -21,7 +21,7 @@ export function distanceBetweenBodies(a: any, b: any): number {
   return Math.sqrt(x * x + y * y);
 }
 
-export class Simulation extends entity.ParallelEntity {
+export class Simulation extends chip.ParallelChip {
   public world: p2.World;
   public worldOptions: p2.WorldOptions;
   public oldConfig: any;
@@ -38,31 +38,31 @@ export class Simulation extends entity.ParallelEntity {
   }
 
   activate(
-    frameInfo: entity.FrameInfo,
-    entityConfig: entity.EntityConfig,
-    enteringTransition: entity.Transition
+    frameInfo: chip.FrameInfo,
+    chipConfig: chip.ChipConfig,
+    enteringTransition: chip.Transition
   ) {
     this.world = new p2.World(this.worldOptions);
-    this.oldConfig = entityConfig;
+    this.oldConfig = chipConfig;
 
     this.container = new PIXI.Container();
     // center at origin
-    this.container.position.x = entityConfig.app.renderer.width / 2;
-    this.container.position.y = entityConfig.app.renderer.height / 2;
+    this.container.position.x = chipConfig.app.renderer.width / 2;
+    this.container.position.y = chipConfig.app.renderer.height / 2;
 
     this.container.scale.x = this.zoom; // zoom in
     this.container.scale.y = -this.zoom; // Note: we flip the y-axis to make "up" the physics "up"
     this.oldConfig.container.addChild(this.container);
 
-    entityConfig = _.extend({}, entityConfig, {
+    chipConfig = _.extend({}, chipConfig, {
       world: this.world,
       container: this.container,
     });
 
-    super.activate(frameInfo, entityConfig, enteringTransition);
+    super.activate(frameInfo, chipConfig, enteringTransition);
   }
 
-  tick(frameInfo: entity.FrameInfo) {
+  tick(frameInfo: chip.FrameInfo) {
     super.tick(frameInfo);
 
     // Limit how fast the physics can catch up
@@ -70,7 +70,7 @@ export class Simulation extends entity.ParallelEntity {
     this.world.step(stepTime);
   }
 
-  terminate(frameInfo: entity.FrameInfo) {
+  terminate(frameInfo: chip.FrameInfo) {
     this.world.clear();
 
     this.oldConfig.container.removeChild(this.container);
@@ -82,7 +82,7 @@ export class Simulation extends entity.ParallelEntity {
 /**
   Meant to be a child of a Simulation.
 */
-export class BodyEntity extends entity.ParallelEntity {
+export class BodyChip extends chip.ParallelChip {
   public body: any;
   public display: any;
 
@@ -96,18 +96,18 @@ export class BodyEntity extends entity.ParallelEntity {
   }
 
   activate(
-    frameInfo: entity.FrameInfo,
-    entityConfig: entity.EntityConfig,
-    enteringTransition: entity.Transition
+    frameInfo: chip.FrameInfo,
+    chipConfig: chip.ChipConfig,
+    enteringTransition: chip.Transition
   ) {
-    super.activate(frameInfo, entityConfig, enteringTransition);
+    super.activate(frameInfo, chipConfig, enteringTransition);
 
-    this._entityConfig.world.addBody(this.body);
+    this._chipConfig.world.addBody(this.body);
 
-    if (this.display) this._entityConfig.container.addChild(this.display);
+    if (this.display) this._chipConfig.container.addChild(this.display);
   }
 
-  tick(frameInfo: entity.FrameInfo) {
+  tick(frameInfo: chip.FrameInfo) {
     super.tick(frameInfo);
 
     // Transfer positions of the physics objects to Pixi.js
@@ -119,10 +119,10 @@ export class BodyEntity extends entity.ParallelEntity {
     }
   }
 
-  terminate(frameInfo: entity.FrameInfo) {
-    this._entityConfig.world.removeBody(this.body);
+  terminate(frameInfo: chip.FrameInfo) {
+    this._chipConfig.world.removeBody(this.body);
 
-    if (this.display) this._entityConfig.container.removeChild(this.display);
+    if (this.display) this._chipConfig.container.removeChild(this.display);
 
     super.terminate(frameInfo);
   }

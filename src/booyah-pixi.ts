@@ -1,20 +1,20 @@
 import * as PIXI from "pixi.js";
 
-import * as entity from "./entity";
+import * as chip from "./chip";
 
-export class DisplayObjectEntity<
+export class DisplayObjectChip<
   DisplayObjectType extends PIXI.DisplayObject
-> extends entity.EntityBase {
+> extends chip.ChipBase {
   constructor(public readonly displayObject: DisplayObjectType) {
     super();
   }
 
   _onActivate() {
-    this._entityConfig.container.addChild(this.displayObject);
+    this._chipConfig.container.addChild(this.displayObject);
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.displayObject);
+    this._chipConfig.container.removeChild(this.displayObject);
   }
 }
 
@@ -26,7 +26,7 @@ export class DisplayObjectEntity<
  Emits:
  - beforeTearDown
 */
-export class AnimatedSpriteEntityOptions {
+export class AnimatedSpriteChipOptions {
   loop = false;
 
   animationSpeed?: number;
@@ -36,28 +36,28 @@ export class AnimatedSpriteEntityOptions {
   startingFrame?: number;
 }
 
-export class AnimatedSpriteEntity extends entity.EntityBase {
+export class AnimatedSpriteChip extends chip.ChipBase {
   private _spritesheetName: string;
-  private _options: AnimatedSpriteEntityOptions;
+  private _options: AnimatedSpriteChipOptions;
 
   private _sprite: PIXI.AnimatedSprite;
 
   constructor(
     spritesheetName: string,
-    options?: Partial<AnimatedSpriteEntityOptions>
+    options?: Partial<AnimatedSpriteChipOptions>
   ) {
     super();
 
     this._spritesheetName = spritesheetName;
-    this._options = entity.fillInOptions(
+    this._options = chip.fillInOptions(
       options,
-      new AnimatedSpriteEntityOptions()
+      new AnimatedSpriteChipOptions()
     );
   }
 
   _onActivate() {
     const resource =
-      this._entityConfig.app.loader.resources[this._spritesheetName];
+      this._chipConfig.app.loader.resources[this._spritesheetName];
     if (!resource)
       throw new Error(
         `Cannot find resource for spritesheet: ${this._spritesheetName}`
@@ -67,7 +67,7 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
       Object.values(resource.textures) as PIXI.Texture[],
       false
     );
-    this._entityConfig.container.addChild(this._sprite);
+    this._chipConfig.container.addChild(this._sprite);
 
     if (!this._options.loop) {
       // PIXI.AnimatedSprite loops by default
@@ -87,11 +87,11 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
     }
   }
 
-  _onTick(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: chip.FrameInfo) {
     this._sprite.tick(frameInfo.timeSinceLastFrame);
   }
 
-  onSignal(frameInfo: entity.FrameInfo, signal: string) {
+  onSignal(frameInfo: chip.FrameInfo, signal: string) {
     switch (signal) {
       case "pause":
         this._sprite.stop();
@@ -103,11 +103,11 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this._sprite);
+    this._chipConfig.container.removeChild(this._sprite);
     delete this._sprite;
   }
 
   private _onAnimationComplete() {
-    this._transition = entity.makeTransition();
+    this._transition = chip.makeTransition();
   }
 }

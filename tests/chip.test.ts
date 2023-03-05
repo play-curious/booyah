@@ -1,24 +1,24 @@
 import * as PIXI from "pixi.js";
 import * as _ from "underscore";
 
-import * as entity from "../src/entity";
+import * as chip from "../src/chip";
 
-function makeEntityConfig(): entity.EntityConfig {
+function makeChipConfig(): chip.ChipConfig {
   return {};
 }
 
-function makeFrameInfo(): entity.FrameInfo {
+function makeFrameInfo(): chip.FrameInfo {
   return {
     timeSinceLastFrame: 1 / 60,
   };
 }
 
-function makeTransition(): entity.Transition {
-  return entity.makeTransition();
+function makeTransition(): chip.Transition {
+  return chip.makeTransition();
 }
 
 // For help mocking, the methods here are public and replaced with mocks
-class MockEntity extends entity.EntityBase {
+class MockChip extends chip.ChipBase {
   constructor() {
     super();
     this._onActivate = jest.fn();
@@ -30,10 +30,10 @@ class MockEntity extends entity.EntityBase {
 
   // Allow the tests to set the transition directly
   // Need to rewrite the getter as well to make TypeScript happy
-  public get transition(): entity.Transition {
+  public get transition(): chip.Transition {
     return this._transition;
   }
-  public set transition(transition: entity.Transition) {
+  public set transition(transition: chip.Transition) {
     this._transition = transition;
   }
 
@@ -45,16 +45,16 @@ class MockEntity extends entity.EntityBase {
   public _onResume() {}
 }
 
-describe("Entity", () => {
-  let e: MockEntity;
+describe("Chip", () => {
+  let e: MockChip;
 
   beforeEach(() => {
-    e = new MockEntity();
+    e = new MockChip();
   });
 
   test("allows normal execution", () => {
     for (let i = 0; i < 5; i++) {
-      e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
       e.tick(makeFrameInfo());
       e.pause(makeFrameInfo());
       e.resume(makeFrameInfo());
@@ -70,8 +70,8 @@ describe("Entity", () => {
 
   test("throws on multiple activate", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-      e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     }).toThrow();
   });
 
@@ -101,7 +101,7 @@ describe("Entity", () => {
 
   test("throws on multiple pause", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
       e.pause(makeFrameInfo());
       e.pause(makeFrameInfo());
@@ -110,7 +110,7 @@ describe("Entity", () => {
 
   test("throws on mulitple resume", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
       e.pause(makeFrameInfo());
 
       e.resume(makeFrameInfo());
@@ -119,8 +119,8 @@ describe("Entity", () => {
   });
 
   test("receives events", () => {
-    const sender = new MockEntity();
-    const receiver = new (class extends entity.EntityBase {
+    const sender = new MockChip();
+    const receiver = new (class extends chip.ChipBase {
       constructor() {
         super();
 
@@ -138,7 +138,7 @@ describe("Entity", () => {
     })();
 
     // Setup the receiver and send one event
-    receiver.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    receiver.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     sender.emit("a", 1, 2, 3);
     sender.emit("a", 1, 2, 3);
     sender.emit("b", 1, 2, 3);
@@ -157,24 +157,24 @@ describe("Entity", () => {
   });
 });
 
-describe("CompositeEntity", () => {
-  let parent: entity.CompositeEntity;
-  let children: MockEntity[];
+describe("CompositeChip", () => {
+  let parent: chip.CompositeChip;
+  let children: MockChip[];
 
   beforeEach(() => {
-    children = [new MockEntity(), new MockEntity(), new MockEntity()];
+    children = [new MockChip(), new MockChip(), new MockChip()];
 
     // Anonymous subclass
-    parent = new (class extends entity.CompositeEntity {
+    parent = new (class extends chip.CompositeChip {
       _onActivate() {
-        for (let i = 0; i < 3; i++) this._activateChildEntity(children[i]);
+        for (let i = 0; i < 3; i++) this._activateChildChip(children[i]);
       }
     })();
   });
 
   test("runs children", () => {
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -194,11 +194,11 @@ describe("CompositeEntity", () => {
     // Have middle child request transition on 2nd call
     let requestTransition = false;
     children[1]._onTick = jest.fn(() => {
-      if (requestTransition) children[1].transition = entity.makeTransition();
+      if (requestTransition) children[1].transition = chip.makeTransition();
     });
 
     // Run once
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     parent.tick(makeFrameInfo());
 
     // Run again, this time have middle child request transition
@@ -217,11 +217,11 @@ describe("CompositeEntity", () => {
 
   test("send activation events", () => {
     const deactivatedCallback = jest.fn();
-    parent.on("deactivatedChildEntity", deactivatedCallback);
+    parent.on("deactivatedChildChip", deactivatedCallback);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-    children[1].transition = entity.makeTransition();
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    children[1].transition = chip.makeTransition();
     parent.tick(makeFrameInfo());
 
     expect(deactivatedCallback).toBeCalledTimes(1);
@@ -232,21 +232,21 @@ describe("CompositeEntity", () => {
     expect(deactivatedCallback).toBeCalledTimes(3);
 
     const activatedCallback = jest.fn();
-    parent.on("activatedChildEntity", activatedCallback);
+    parent.on("activatedChildChip", activatedCallback);
 
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
     expect(activatedCallback).toBeCalledTimes(3);
   });
 });
 
-describe("ParallelEntity", () => {
+describe("ParallelChip", () => {
   test("runs children", () => {
-    const children = [new MockEntity(), new MockEntity(), new MockEntity()];
-    const parent = new entity.ParallelEntity(children);
+    const children = [new MockChip(), new MockChip(), new MockChip()];
+    const parent = new chip.ParallelChip(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -264,38 +264,38 @@ describe("ParallelEntity", () => {
 
   test("children can be inactive at start", () => {
     const middleChildContext = {
-      entity: new MockEntity(),
+      chip: new MockChip(),
       activated: false,
     };
-    const parent = new entity.ParallelEntity([
-      new MockEntity(),
+    const parent = new chip.ParallelChip([
+      new MockChip(),
       middleChildContext,
-      new MockEntity(),
+      new MockChip(),
     ]);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     parent.tick(makeFrameInfo());
 
-    expect(middleChildContext.entity._onActivate).not.toBeCalled();
-    expect((parent.children[0] as MockEntity)._onActivate).toBeCalled();
+    expect(middleChildContext.chip._onActivate).not.toBeCalled();
+    expect((parent.children[0] as MockChip)._onActivate).toBeCalled();
   });
 
   test("can activate and terminate children", () => {
-    const children = [new MockEntity(), new MockEntity(), new MockEntity()];
-    const parent = new entity.ParallelEntity(children);
+    const children = [new MockChip(), new MockChip(), new MockChip()];
+    const parent = new chip.ParallelChip(children);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     parent.tick(makeFrameInfo());
 
     // Deactivate middle child and run
-    parent.deactivateChildEntity(1);
+    parent.deactivateChildChip(1);
     parent.tick(makeFrameInfo());
 
     // Reactivate middle child, terminate third child, and run
-    parent.activateChildEntity(1);
-    parent.deactivateChildEntity(2);
+    parent.activateChildChip(1);
+    parent.deactivateChildChip(2);
     parent.tick(makeFrameInfo());
 
     expect(children[0]._onTick).toBeCalledTimes(3);
@@ -304,13 +304,13 @@ describe("ParallelEntity", () => {
   });
 });
 
-describe("EntitySequence", () => {
+describe("ChipSequence", () => {
   test("runs only one child at a time", () => {
-    const children = [new MockEntity(), new MockEntity(), new MockEntity()];
-    const parent = new entity.EntitySequence(children);
+    const children = [new MockChip(), new MockChip(), new MockChip()];
+    const parent = new chip.ChipSequence(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -335,27 +335,27 @@ describe("EntitySequence", () => {
   });
 
   test("runs only one child after another", () => {
-    const children = [new MockEntity(), new MockEntity(), new MockEntity()];
-    const parent = new entity.EntitySequence(children);
+    const children = [new MockChip(), new MockChip(), new MockChip()];
+    const parent = new chip.ChipSequence(children);
 
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
     // Run 1st child twice, then request transition
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[0].transition = entity.makeTransition();
+    children[0].transition = chip.makeTransition();
     parent.tick(makeFrameInfo());
 
     // Run 2nd child twice, then request transition
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[1].transition = entity.makeTransition();
+    children[1].transition = chip.makeTransition();
     parent.tick(makeFrameInfo());
 
     // Run 3rd child twice, then request transition
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[2].transition = entity.makeTransition("third");
+    children[2].transition = chip.makeTransition("third");
     parent.tick(makeFrameInfo());
 
     // Each child should be updated three times
@@ -370,19 +370,19 @@ describe("EntitySequence", () => {
   });
 
   test("loops", () => {
-    const children = [new MockEntity(), new MockEntity()];
-    const parent = new entity.EntitySequence(children, { loop: true });
+    const children = [new MockChip(), new MockChip()];
+    const parent = new chip.ChipSequence(children, { loop: true });
 
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
     // Run 1st child, then request transition
     parent.tick(makeFrameInfo());
-    children[0].transition = entity.makeTransition();
+    children[0].transition = chip.makeTransition();
     parent.tick(makeFrameInfo());
 
     // Run 2nd child, then request transition
     parent.tick(makeFrameInfo());
-    children[1].transition = entity.makeTransition();
+    children[1].transition = chip.makeTransition();
     parent.tick(makeFrameInfo());
 
     // Run 1st child again
@@ -403,10 +403,10 @@ describe("EntitySequence", () => {
   });
 
   test("skips", () => {
-    const children = [new MockEntity(), new MockEntity()];
-    const parent = new entity.EntitySequence(children);
+    const children = [new MockChip(), new MockChip()];
+    const parent = new chip.ChipSequence(children);
 
-    parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
     // Run 1st child, then skip
     parent.tick(makeFrameInfo());
@@ -431,13 +431,13 @@ describe("EntitySequence", () => {
 
 describe("StateMachine", () => {
   test("runs start state", () => {
-    const states = { start: new MockEntity() };
-    const stateMachine = new entity.StateMachine(states);
+    const states = { start: new MockChip() };
+    const stateMachine = new chip.StateMachine(states);
 
     for (let i = 0; i < 5; i++) {
       stateMachine.activate(
         makeFrameInfo(),
-        makeEntityConfig(),
+        makeChipConfig(),
         makeTransition()
       );
       stateMachine.tick(makeFrameInfo());
@@ -455,17 +455,13 @@ describe("StateMachine", () => {
   });
 
   test("goes from start to end", () => {
-    const states = { start: new MockEntity() };
-    const stateMachine = new entity.StateMachine(states);
+    const states = { start: new MockChip() };
+    const stateMachine = new chip.StateMachine(states);
 
     // Run once, then request transition
-    stateMachine.activate(
-      makeFrameInfo(),
-      makeEntityConfig(),
-      makeTransition()
-    );
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     stateMachine.tick(makeFrameInfo());
-    states.start.transition = entity.makeTransition("end");
+    states.start.transition = chip.makeTransition("end");
     stateMachine.tick(makeFrameInfo());
 
     expect(states.start._onActivate).toBeCalledTimes(1);
@@ -474,24 +470,20 @@ describe("StateMachine", () => {
 
     expect(stateMachine.transition.name).toBe("end");
     expect(stateMachine.visitedStates).toContainEqual(
-      entity.makeTransition("start")
+      chip.makeTransition("start")
     );
   });
 
   test("transitions without state table", () => {
-    const states = { a: new MockEntity(), b: new MockEntity() };
-    const stateMachine = new entity.StateMachine(states, {
-      startingState: entity.makeTransition("a"),
+    const states = { a: new MockChip(), b: new MockChip() };
+    const stateMachine = new chip.StateMachine(states, {
+      startingState: chip.makeTransition("a"),
     });
 
     // Run once, then request transition
-    stateMachine.activate(
-      makeFrameInfo(),
-      makeEntityConfig(),
-      makeTransition()
-    );
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     stateMachine.tick(makeFrameInfo());
-    states.a.transition = entity.makeTransition("b");
+    states.a.transition = chip.makeTransition("b");
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
@@ -502,9 +494,9 @@ describe("StateMachine", () => {
   });
 
   test("transitions with state table", () => {
-    const states = { a: new MockEntity(), b: new MockEntity() };
-    const stateMachine = new entity.StateMachine(states, {
-      startingState: entity.makeTransition("a"),
+    const states = { a: new MockChip(), b: new MockChip() };
+    const stateMachine = new chip.StateMachine(states, {
+      startingState: chip.makeTransition("a"),
       transitions: {
         a: "b",
         b: "a",
@@ -512,17 +504,13 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request transition
-    stateMachine.activate(
-      makeFrameInfo(),
-      makeEntityConfig(),
-      makeTransition()
-    );
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     stateMachine.tick(makeFrameInfo());
-    states.a.transition = entity.makeTransition();
+    states.a.transition = chip.makeTransition();
     stateMachine.tick(makeFrameInfo());
 
     // Transition back again
-    states.b.transition = entity.makeTransition();
+    states.b.transition = chip.makeTransition();
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(2);
@@ -533,17 +521,13 @@ describe("StateMachine", () => {
   });
 
   test("manual transitions", () => {
-    const states = { a: new MockEntity(), b: new MockEntity() };
-    const stateMachine = new entity.StateMachine(states, {
-      startingState: entity.makeTransition("a"),
+    const states = { a: new MockChip(), b: new MockChip() };
+    const stateMachine = new chip.StateMachine(states, {
+      startingState: chip.makeTransition("a"),
     });
 
     // Run once, then request transition
-    stateMachine.activate(
-      makeFrameInfo(),
-      makeEntityConfig(),
-      makeTransition()
-    );
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     stateMachine.tick(makeFrameInfo());
 
     stateMachine.changeState("b");
@@ -558,23 +542,19 @@ describe("StateMachine", () => {
   });
 
   test("transitions with functions", () => {
-    const states = { a: new MockEntity(), b: new MockEntity() };
-    const stateMachine = new entity.StateMachine(states, {
-      startingState: entity.makeTransition("a"),
+    const states = { a: new MockChip(), b: new MockChip() };
+    const stateMachine = new chip.StateMachine(states, {
+      startingState: chip.makeTransition("a"),
       transitions: {
-        a: jest.fn(() => entity.makeTransition("b")),
+        a: jest.fn(() => chip.makeTransition("b")),
       },
     });
 
     // Run once, then request transition
-    stateMachine.activate(
-      makeFrameInfo(),
-      makeEntityConfig(),
-      makeTransition()
-    );
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     stateMachine.tick(makeFrameInfo());
 
-    const transition = entity.makeTransition("done", { x: "y" });
+    const transition = chip.makeTransition("done", { x: "y" });
     states.a.transition = transition;
 
     stateMachine.tick(makeFrameInfo());
@@ -592,7 +572,7 @@ describe("StateMachine", () => {
 
 //// Test hot reload features
 
-class ReloadingEntity extends entity.EntityBase {
+class ReloadingChip extends chip.ChipBase {
   private _value: number;
 
   constructor(public readonly defaultValue: number) {
@@ -606,7 +586,7 @@ class ReloadingEntity extends entity.EntityBase {
     else this._value = this.defaultValue;
   }
 
-  protected _makeReloadMementoData(): entity.ReloadMementoData {
+  protected _makeReloadMementoData(): chip.ReloadMementoData {
     return {
       value: this._value,
     };
@@ -620,38 +600,38 @@ class ReloadingEntity extends entity.EntityBase {
   }
 }
 
-class ReloadingCompositeEntity extends entity.CompositeEntity {
-  constructor(private _child: ReloadingEntity) {
+class ReloadingCompositeChip extends chip.CompositeChip {
+  constructor(private _child: ReloadingChip) {
     super();
   }
 
   _onActivate() {
-    this._activateChildEntity(this._child, { id: "a" });
+    this._activateChildChip(this._child, { id: "a" });
   }
 }
 
 describe("Hot reloading", () => {
-  test("Base entity doesn't provide memento", () => {
-    const e = new entity.NullEntity();
-    e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+  test("Base chip doesn't provide memento", () => {
+    const e = new chip.NullChip();
+    e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     expect(e.makeReloadMemento().data).toBeUndefined();
   });
 
-  test("Custom entity provides memento", () => {
+  test("Custom chip provides memento", () => {
     // Provide a default value
-    const e1 = new ReloadingEntity(77);
-    e1.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    const e1 = new ReloadingChip(77);
+    e1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     expect(e1.makeReloadMemento().data.value).toBe(77);
 
     // Update the value, it should get in the new memento
     e1.value = 88;
     expect(e1.makeReloadMemento().data.value).toBe(88);
 
-    // Create a new entity from the previous entities memento. It should have the newer value
-    const e2 = new ReloadingEntity(77);
+    // Create a new chip from the previous entities memento. It should have the newer value
+    const e2 = new ReloadingChip(77);
     e2.activate(
       makeFrameInfo(),
-      makeEntityConfig(),
+      makeChipConfig(),
       makeTransition(),
       e1.makeReloadMemento()
     );
@@ -659,15 +639,15 @@ describe("Hot reloading", () => {
   });
 
   test("Entities check for mismatched class names", () => {
-    class ReloadingEntity2 extends ReloadingEntity {}
+    class ReloadingChip2 extends ReloadingChip {}
 
-    const e1 = new ReloadingEntity(77);
-    e1.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    const e1 = new ReloadingChip(77);
+    e1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
-    const e2 = new ReloadingEntity2(88);
+    const e2 = new ReloadingChip2(88);
     e2.activate(
       makeFrameInfo(),
-      makeEntityConfig(),
+      makeChipConfig(),
       makeTransition(),
       e1.makeReloadMemento()
     );
@@ -676,10 +656,10 @@ describe("Hot reloading", () => {
   });
 
   test("Composite entities will reload their children", () => {
-    const child1 = new ReloadingEntity(77);
-    const parent1 = new ReloadingCompositeEntity(child1);
+    const child1 = new ReloadingChip(77);
+    const parent1 = new ReloadingCompositeChip(child1);
 
-    parent1.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parent1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     expect(child1.value).toBe(77);
 
     // Change the value
@@ -688,12 +668,12 @@ describe("Hot reloading", () => {
     const memento = parent1.makeReloadMemento();
     expect(_.size(memento.children)).toBe(1);
 
-    // Reload the entity
-    const child2 = new ReloadingEntity(77);
-    const parent2 = new ReloadingCompositeEntity(child2);
+    // Reload the chip
+    const child2 = new ReloadingChip(77);
+    const parent2 = new ReloadingCompositeChip(child2);
     parent2.activate(
       makeFrameInfo(),
-      makeEntityConfig(),
+      makeChipConfig(),
       makeTransition(),
       memento
     );
@@ -701,12 +681,12 @@ describe("Hot reloading", () => {
     expect(child2.value).toBe(88);
   });
 
-  test("works with ParallelEntity", () => {
-    const child1V1 = new ReloadingEntity(1);
-    const child2V1 = new ReloadingEntity(2);
-    const parentV1 = new entity.ParallelEntity([child1V1, child2V1]);
+  test("works with ParallelChip", () => {
+    const child1V1 = new ReloadingChip(1);
+    const child2V1 = new ReloadingChip(2);
+    const parentV1 = new chip.ParallelChip([child1V1, child2V1]);
 
-    parentV1.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
     expect(child1V1.value).toBe(1);
     expect(child2V1.value).toBe(2);
 
@@ -717,13 +697,13 @@ describe("Hot reloading", () => {
     const memento = parentV1.makeReloadMemento();
     expect(_.size(memento.children)).toBe(2);
 
-    // Reload the entity
-    const child1V2 = new ReloadingEntity(1);
-    const child2V2 = new ReloadingEntity(2);
-    const parent2 = new entity.ParallelEntity([child1V2, child2V2]);
+    // Reload the chip
+    const child1V2 = new ReloadingChip(1);
+    const child2V2 = new ReloadingChip(2);
+    const parent2 = new chip.ParallelChip([child1V2, child2V2]);
     parent2.activate(
       makeFrameInfo(),
-      makeEntityConfig(),
+      makeChipConfig(),
       makeTransition(),
       memento
     );
@@ -732,12 +712,12 @@ describe("Hot reloading", () => {
     expect(child2V2.value).toBe(99);
   });
 
-  test("works with EntitySequence", () => {
-    const child1V1 = new ReloadingEntity(1);
-    const child2V1 = new ReloadingEntity(2);
-    const parentV1 = new entity.EntitySequence([child1V1, child2V1]);
+  test("works with ChipSequence", () => {
+    const child1V1 = new ReloadingChip(1);
+    const child2V1 = new ReloadingChip(2);
+    const parentV1 = new chip.ChipSequence([child1V1, child2V1]);
 
-    parentV1.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
     // Change the values
     child1V1.value = 99;
@@ -746,32 +726,32 @@ describe("Hot reloading", () => {
     // Only the activated child will be in the memento
     expect(_.size(memento.children)).toBe(1);
 
-    // Reload the entity
-    const child1V2 = new ReloadingEntity(1);
-    const child2V2 = new ReloadingEntity(2);
-    const parentV2 = new entity.EntitySequence([child1V2, child2V2]);
+    // Reload the chip
+    const child1V2 = new ReloadingChip(1);
+    const child2V2 = new ReloadingChip(2);
+    const parentV2 = new chip.ChipSequence([child1V2, child2V2]);
     parentV2.activate(
       makeFrameInfo(),
-      makeEntityConfig(),
+      makeChipConfig(),
       makeTransition(),
       memento
     );
 
     expect(child1V2.value).toBe(99);
 
-    // Skip to the next entity and change its value
+    // Skip to the next chip and change its value
     parentV2.skip();
     parentV2.tick(makeFrameInfo());
     child2V2.value = 77;
 
     // Reload
     memento = parentV2.makeReloadMemento();
-    const child1V3 = new ReloadingEntity(1);
-    const child2V3 = new ReloadingEntity(2);
-    const parentV3 = new entity.EntitySequence([child1V3, child2V3]);
+    const child1V3 = new ReloadingChip(1);
+    const child2V3 = new ReloadingChip(2);
+    const parentV3 = new chip.ChipSequence([child1V3, child2V3]);
     parentV3.activate(
       makeFrameInfo(),
-      makeEntityConfig(),
+      makeChipConfig(),
       makeTransition(),
       memento
     );
@@ -782,14 +762,14 @@ describe("Hot reloading", () => {
   });
 
   test("works with StateMachine", () => {
-    const child1V1 = new ReloadingEntity(1);
-    const child2V1 = new ReloadingEntity(2);
-    const parentV1 = new entity.StateMachine({
+    const child1V1 = new ReloadingChip(1);
+    const child2V1 = new ReloadingChip(2);
+    const parentV1 = new chip.StateMachine({
       start: child1V1,
       middle: child2V1,
     });
 
-    parentV1.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
 
     // Skip to another state
     parentV1.changeState("middle");
@@ -803,15 +783,15 @@ describe("Hot reloading", () => {
     debugger;
 
     // Reload
-    const child1V2 = new ReloadingEntity(1);
-    const child2V2 = new ReloadingEntity(2);
-    const parentV2 = new entity.StateMachine({
+    const child1V2 = new ReloadingChip(1);
+    const child2V2 = new ReloadingChip(2);
+    const parentV2 = new chip.StateMachine({
       start: child1V2,
       middle: child2V2,
     });
     parentV2.activate(
       makeFrameInfo(),
-      makeEntityConfig(),
+      makeChipConfig(),
       makeTransition(),
       parentV1.makeReloadMemento()
     );

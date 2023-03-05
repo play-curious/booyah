@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 
 import * as geom from "./geom";
-import * as entity from "./entity";
+import * as chip from "./chip";
 import * as narration from "./narration";
 import * as _ from "underscore";
 

@@ -1,11 +1,11 @@
 import * as util from "./util";
 import * as geom from "./geom";
-import * as entity from "./entity";
+import * as chip from "./chip";
 import * as easing from "./easing";
 import * as _ from "underscore";
 
 /**
- * Creates a ParallelEntity that carries out multiple tweens on the same object.
+ * Creates a ParallelChip that carries out multiple tweens on the same object.
  * Usage: tween.make(filter, { brightness: { to: 5 } }, { duration: 2000 })
  * @obj Object on which to carry out the tween
  * @props Map of property names to options for that property (like Tween() would take)
@@ -15,7 +15,7 @@ export function make(
   obj: any,
   props: { [prop: string]: Partial<TweenOptions<any, any>> },
   options: TweenOptions<any, any>
-): entity.ParallelEntity {
+): chip.ParallelChip {
   const tweens: any[] = [];
   for (const key in props) {
     const tweenOptions = _.defaults(
@@ -25,7 +25,7 @@ export function make(
     );
     tweens.push(new Tween(tweenOptions));
   }
-  return new entity.ParallelEntity(tweens);
+  return new chip.ParallelChip(tweens);
 }
 
 /**
@@ -58,7 +58,7 @@ export class TweenOptions<Value, Obj extends object = undefined> {
  * Events:
  *  updatedValue(value)
  */
-export class Tween<Value, Obj extends object> extends entity.EntityBase {
+export class Tween<Value, Obj extends object> extends chip.ChipBase {
   public readonly options: TweenOptions<Value, Obj>;
 
   private _currentObj: Obj;
@@ -104,7 +104,7 @@ export class Tween<Value, Obj extends object> extends entity.EntityBase {
 
   _onTick() {
     if (this._timePassed >= this.options.duration) {
-      this._transition = entity.makeTransition();
+      this._transition = chip.makeTransition();
 
       // Snap to end
       this._value = this.options.to;

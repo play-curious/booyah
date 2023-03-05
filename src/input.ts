@@ -1,8 +1,8 @@
 import * as util from "./util";
-import * as entity from "./entity";
+import * as chip from "./chip";
 import _ from "underscore";
 
-export class Keyboard extends entity.EntityBase {
+export class Keyboard extends chip.ChipBase {
   public keysDown: { [key: string]: number } = {};
   public keysJustDown: { [key: string]: boolean } = {};
   public keysJustUp: { [key: string]: boolean } = {};
@@ -13,18 +13,18 @@ export class Keyboard extends entity.EntityBase {
   private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
   _onActivate() {
-    this._entityConfig.app.view.addEventListener(
+    this._chipConfig.app.view.addEventListener(
       "keydown",
       this._onKeyDownWrapper
     );
-    this._entityConfig.app.view.addEventListener("keyup", this._onKeyUpWrapper);
-    this._entityConfig.app.view.addEventListener(
+    this._chipConfig.app.view.addEventListener("keyup", this._onKeyUpWrapper);
+    this._chipConfig.app.view.addEventListener(
       "focusout",
       this._onFocusOutWrapper
     );
   }
 
-  _onTick(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: chip.FrameInfo) {
     const keyDownSet = _.keys(this.keysDown);
     const lastKeyDownSet = _.keys(this._lastKeysDown);
 
@@ -40,15 +40,15 @@ export class Keyboard extends entity.EntityBase {
   }
 
   terminate() {
-    this._entityConfig.app.view.removeEventListener(
+    this._chipConfig.app.view.removeEventListener(
       "keydown",
       this._onKeyDownWrapper
     );
-    this._entityConfig.app.view.removeEventListener(
+    this._chipConfig.app.view.removeEventListener(
       "keyup",
       this._onKeyUpWrapper
     );
-    this._entityConfig.app.view.removeEventListener(
+    this._chipConfig.app.view.removeEventListener(
       "focusout",
       this._onFocusOutWrapper
     );
@@ -77,10 +77,10 @@ export const GAMEPAD_DEAD_ZONE = 0.15;
 
 export function countGamepads(): number {
   //@ts-ignore
-  return _.filter(navigator.getGamepads(), _.identity).length;
+  return _.filter(navigator.getGamepads(), _.idchip).length;
 }
 
-export class Gamepad extends entity.EntityBase {
+export class Gamepad extends chip.ChipBase {
   public state: any;
   public buttonsDown: { [key: string]: number };
   public buttonsJustDown: { [key: string]: boolean };
@@ -107,15 +107,13 @@ export class Gamepad extends entity.EntityBase {
     // TODO: track events of disconnecting gamepads
   }
 
-  _onTick(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: chip.FrameInfo) {
     this._updateState();
   }
 
   _updateState() {
     //@ts-ignore
-    this.state = _.filter(navigator.getGamepads(), _.identity)[
-      this.gamepadIndex
-    ];
+    this.state = _.filter(navigator.getGamepads(), _.idchip)[this.gamepadIndex];
     if (!this.state) return; // Gamepad must have been disconnected
 
     this.axes = [];

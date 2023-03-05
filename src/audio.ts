@@ -1,5 +1,5 @@
 import * as util from "./util";
-import * as entity from "./entity";
+import * as chip from "./chip";
 import { Howl, Howler } from "howler";
 import _ from "underscore";
 
@@ -13,7 +13,7 @@ export interface JukeboxOptions {
   A music player, that only plays one track at a time.
   By default the volume is lowered to not interfere with sound effects.
 */
-export class Jukebox extends entity.EntityBase {
+export class Jukebox extends chip.ChipBase {
   public volume: number;
   public musicName: string;
   public musicPlaying: Howl;
@@ -31,14 +31,14 @@ export class Jukebox extends entity.EntityBase {
     this.musicName = null;
     this.musicPlaying = null;
 
-    _.each(this._entityConfig.musicAudio, (howl: Howl) => {
+    _.each(this._chipConfig.musicAudio, (howl: Howl) => {
       howl.loop(true);
     });
 
-    this.muted = this._entityConfig.muted;
+    this.muted = this._chipConfig.muted;
     this._updateMuted();
 
-    this._on(this._entityConfig.playOptions, "musicOn", this._updateMuted);
+    this._on(this._chipConfig.playOptions, "musicOn", this._updateMuted);
   }
 
   _onTerminate() {
@@ -47,7 +47,7 @@ export class Jukebox extends entity.EntityBase {
     this.musicName = null;
   }
 
-  _onSignal(frameInfo: entity.FrameInfo, signal: string, data?: any) {
+  _onSignal(frameInfo: chip.FrameInfo, signal: string, data?: any) {
     if (!this.musicPlaying) return;
 
     if (signal === "pause") this.musicPlaying.pause();
@@ -72,14 +72,14 @@ export class Jukebox extends entity.EntityBase {
     // If no new music is requested, stop
     if (!name) return;
 
-    if (!(name in this._entityConfig.musicAudio)) {
+    if (!(name in this._chipConfig.musicAudio)) {
       console.error("Missing music", name);
       return;
     }
 
     if (name) {
       this.musicName = name;
-      this.musicPlaying = this._entityConfig.musicAudio[name];
+      this.musicPlaying = this._chipConfig.musicAudio[name];
       this.musicPlaying.volume(volume ?? this.volume);
       this.musicPlaying.play();
     }
@@ -95,47 +95,44 @@ export class Jukebox extends entity.EntityBase {
   }
 
   _updateMuted() {
-    const muted = !this._entityConfig.playOptions.options.musicOn;
-    _.each(this._entityConfig.musicAudio, (howl: Howl) => howl.mute(muted));
+    const muted = !this._chipConfig.playOptions.options.musicOn;
+    _.each(this._chipConfig.musicAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 
 export function installJukebox(
-  rootConfig: entity.EntityConfig,
-  rootEntity: entity.ParallelEntity
+  rootConfig: chip.ChipConfig,
+  rootChip: chip.ParallelChip
 ) {
   rootConfig.jukebox = new Jukebox();
-  rootEntity.addChildEntity(rootConfig.jukebox);
+  rootChip.addChildChip(rootConfig.jukebox);
 }
 
 export function makeInstallJukebox(options: JukeboxOptions) {
-  return (
-    rootConfig: entity.EntityConfig,
-    rootEntity: entity.ParallelEntity
-  ) => {
+  return (rootConfig: chip.ChipConfig, rootChip: chip.ParallelChip) => {
     rootConfig.jukebox = new Jukebox(options);
-    rootEntity.addChildEntity(rootConfig.jukebox);
+    rootChip.addChildChip(rootConfig.jukebox);
   };
 }
 
 /** 
-  Am entity that requests the music be changed upon activate.
+  Am chip that requests the music be changed upon activate.
   Optionally can stop the music on terminate.
 */
-export class MusicEntity extends entity.EntityBase {
+export class MusicChip extends chip.ChipBase {
   constructor(public trackName: string, public stopOnTeardown = false) {
     super();
   }
 
-  _onActivate(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
-    this._entityConfig.jukebox.play(this.trackName);
+  _onActivate(frameInfo: chip.FrameInfo, chipConfig: chip.ChipConfig) {
+    this._chipConfig.jukebox.play(this.trackName);
 
-    this._transition = entity.makeTransition();
+    this._transition = chip.makeTransition();
   }
 
   _onTerminate() {
     if (this.stopOnTeardown) {
-      this._entityConfig.jukebox.play();
+      this._chipConfig.jukebox.play();
     }
   }
 }
@@ -147,7 +144,7 @@ export class FxMachineOptions {
 /** 
   Play sounds effects.
 */
-export class FxMachine extends entity.EntityBase {
+export class FxMachine extends chip.ChipBase {
   private _volume: number;
 
   private _playingSounds: Record<string, { volumeScale: number }>;
@@ -164,11 +161,11 @@ export class FxMachine extends entity.EntityBase {
 
     this._updateMuted();
 
-    this._on(this._entityConfig.playOptions, "fxOn", this._updateMuted);
+    this._on(this._chipConfig.playOptions, "fxOn", this._updateMuted);
 
     this._playingSounds = {};
-    for (const name in this._entityConfig.fxAudio) {
-      const howl = this._entityConfig.fxAudio[name];
+    for (const name in this._chipConfig.fxAudio) {
+      const howl = this._chipConfig.fxAudio[name];
 
       // The Howl.on() function doesn't take the same arguments as the event emitter, so we don't use this._on()
       howl.on("end", () => {
@@ -182,32 +179,32 @@ export class FxMachine extends entity.EntityBase {
     }
   }
 
-  protected _onTerminate(frameInfo: entity.FrameInfo): void {
+  protected _onTerminate(frameInfo: chip.FrameInfo): void {
     this.stopAll();
   }
 
   changeVolume(volume: number) {
     this._volume = volume;
     for (const name in this._playingSounds) {
-      const howl = this._entityConfig.fxAudio[name];
+      const howl = this._chipConfig.fxAudio[name];
       howl.volume(volume * this._playingSounds[name].volumeScale);
     }
   }
 
   /** Returns sound duration in ms */
   getDuration(name: string): number {
-    return this._entityConfig.fxAudio[name].duration() * 1000;
+    return this._chipConfig.fxAudio[name].duration() * 1000;
   }
 
   play(name: string, options = { volumeScale: 1, loop: false }) {
-    if (!(name in this._entityConfig.fxAudio)) {
+    if (!(name in this._chipConfig.fxAudio)) {
       console.error("Missing sound effect", name);
       return;
     }
 
     // console.log("fx playing", name);
 
-    const howl = this._entityConfig.fxAudio[name];
+    const howl = this._chipConfig.fxAudio[name];
     howl.volume(this._volume * options.volumeScale);
     howl.loop(options.loop);
     howl.play();
@@ -215,7 +212,7 @@ export class FxMachine extends entity.EntityBase {
   }
 
   stop(name: string): void {
-    this._entityConfig.fxAudio[name].stop();
+    this._chipConfig.fxAudio[name].stop();
     delete this._playingSounds[name];
   }
 
@@ -226,7 +223,7 @@ export class FxMachine extends entity.EntityBase {
   }
 
   pause(name: string): void {
-    this._entityConfig.fxAudio[name].pause();
+    this._chipConfig.fxAudio[name].pause();
   }
 
   pauseAll(): void {
@@ -237,7 +234,7 @@ export class FxMachine extends entity.EntityBase {
   }
 
   resume(name: string): void {
-    this._entityConfig.fxAudio[name].play();
+    this._chipConfig.fxAudio[name].play();
   }
 
   resumeAll(): void {
@@ -248,7 +245,7 @@ export class FxMachine extends entity.EntityBase {
 
   // TODO: stop playing effects when paused
   protected _onSignal(
-    frameInfo: entity.FrameInfo,
+    frameInfo: chip.FrameInfo,
     signal: string,
     data?: any
   ): void {
@@ -257,23 +254,20 @@ export class FxMachine extends entity.EntityBase {
   }
 
   _updateMuted() {
-    const muted = !this._entityConfig.playOptions.options.fxOn;
-    _.each(this._entityConfig.fxAudio, (howl: Howl) => howl.mute(muted));
+    const muted = !this._chipConfig.playOptions.options.fxOn;
+    _.each(this._chipConfig.fxAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 
-export function installFxMachine(rootConfig: any, rootEntity: any) {
+export function installFxMachine(rootConfig: any, rootChip: any) {
   rootConfig.fxMachine = new FxMachine();
-  rootEntity.addChildEntity(rootConfig.fxMachine);
+  rootChip.addChildChip(rootConfig.fxMachine);
 }
 
 export function makeInstallFxMachine(options: FxMachineOptions) {
-  return (
-    rootConfig: entity.EntityConfig,
-    rootEntity: entity.ParallelEntity
-  ) => {
+  return (rootConfig: chip.ChipConfig, rootChip: chip.ParallelChip) => {
     rootConfig.fxMachine = new FxMachine(options);
-    rootEntity.addChildEntity(rootConfig.fxMachine);
+    rootChip.addChildChip(rootConfig.fxMachine);
   };
 }
 

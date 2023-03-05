@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import * as entity from "./entity";
+import * as chip from "./chip";
 import * as geom from "./geom";
 import * as util from "./util";
 
@@ -11,7 +11,7 @@ import * as util from "./util";
  *  moved ({ reason })
  *  refreshed
  **/
-export class Scrollbox extends entity.EntityBase {
+export class Scrollbox extends chip.ChipBase {
   public pointerDown: any;
   public container: PIXI.Container;
   public content: PIXI.Container;
@@ -82,7 +82,7 @@ export class Scrollbox extends entity.EntityBase {
     this._on(this.container, "pointerup", this._onUp as any);
     this._on(this.container, "pointercancel", this._onUp as any);
     this._on(this.container, "pointerupoutside", this._onUp as any);
-    this._entityConfig.container.addChild(this.container);
+    this._chipConfig.container.addChild(this.container);
 
     if (this.options.dragScroll) {
       const dragBackground = new PIXI.Graphics();
@@ -114,20 +114,17 @@ export class Scrollbox extends entity.EntityBase {
 
     if (this.options.wheelScroll) {
       this.onWheelHandler = this._onWheel.bind(this);
-      this._entityConfig.app.view.addEventListener(
-        "wheel",
-        this.onWheelHandler
-      );
+      this._chipConfig.app.view.addEventListener("wheel", this.onWheelHandler);
     }
 
     this.refresh();
   }
 
   _onTerminate() {
-    this._entityConfig.container.removeChild(this.container);
+    this._chipConfig.container.removeChild(this.container);
 
     if (this.options.wheelScroll) {
-      this._entityConfig.app.view.removeEventListener(
+      this._chipConfig.app.view.removeEventListener(
         "wheel",
         this.onWheelHandler
       );
@@ -440,13 +437,13 @@ export class Scrollbox extends entity.EntityBase {
 
     // Get coordinates of point and test if we touch this container
     const globalPoint = new PIXI.Point();
-    this._entityConfig.app.renderer.plugins.interaction.mapPositionToPoint(
+    this._chipConfig.app.renderer.plugins.interaction.mapPositionToPoint(
       globalPoint,
       e.clientX,
       e.clientY
     );
     if (
-      !this._entityConfig.app.renderer.plugins.interaction.hitTest(
+      !this._chipConfig.app.renderer.plugins.interaction.hitTest(
         globalPoint,
         this.container
       )
