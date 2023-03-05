@@ -62,20 +62,20 @@ export class Simulation extends entity.ParallelEntity {
     super.activate(frameInfo, entityConfig, enteringTransition);
   }
 
-  update(frameInfo: entity.FrameInfo) {
-    super.update(frameInfo);
+  tick(frameInfo: entity.FrameInfo) {
+    super.tick(frameInfo);
 
     // Limit how fast the physics can catch up
     const stepTime = Math.min(frameInfo.timeSinceLastFrame / 1000, 1 / 30);
     this.world.step(stepTime);
   }
 
-  deactivate(frameInfo: entity.FrameInfo) {
+  terminate(frameInfo: entity.FrameInfo) {
     this.world.clear();
 
     this.oldConfig.container.removeChild(this.container);
 
-    super.deactivate(frameInfo);
+    super.terminate(frameInfo);
   }
 }
 
@@ -107,8 +107,8 @@ export class BodyEntity extends entity.ParallelEntity {
     if (this.display) this._entityConfig.container.addChild(this.display);
   }
 
-  update(frameInfo: entity.FrameInfo) {
-    super.update(frameInfo);
+  tick(frameInfo: entity.FrameInfo) {
+    super.tick(frameInfo);
 
     // Transfer positions of the physics objects to Pixi.js
     // OPT: no need to do this for static bodies (mass = 0) except for the first framce
@@ -119,11 +119,11 @@ export class BodyEntity extends entity.ParallelEntity {
     }
   }
 
-  deactivate(frameInfo: entity.FrameInfo) {
+  terminate(frameInfo: entity.FrameInfo) {
     this._entityConfig.world.removeBody(this.body);
 
     if (this.display) this._entityConfig.container.removeChild(this.display);
 
-    super.deactivate(frameInfo);
+    super.terminate(frameInfo);
   }
 }

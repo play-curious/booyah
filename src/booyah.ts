@@ -173,8 +173,8 @@ let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 export class FilterPauseEntity extends entity.ParallelEntity {
-  update(frameInfo: entity.FrameInfo) {
-    if (frameInfo.gameState === "playing") super.update(frameInfo);
+  tick(frameInfo: entity.FrameInfo) {
+    if (frameInfo.gameState === "playing") super.tick(frameInfo);
   }
 }
 
@@ -607,7 +607,7 @@ export class MenuEntity extends entity.CompositeEntity {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _onUpdate(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: entity.FrameInfo) {
     if (this.creditsEntity) {
       if (this.creditsEntity.transition) {
         this._deactivateChildEntity(this.creditsEntity);
@@ -616,7 +616,7 @@ export class MenuEntity extends entity.CompositeEntity {
     }
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -805,7 +805,7 @@ export class CreditsEntity extends entity.CompositeEntity {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -874,7 +874,7 @@ export class LoadingScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _onUpdate() {
+  _onTick() {
     this.loadingCircle.rotation +=
       LOADING_SCENE_SPIN_SPEED * this._lastFrameInfo.timeScale;
 
@@ -891,7 +891,7 @@ export class LoadingScene extends entity.EntityBase {
     }
   }
 
-  _onDeactivate(frameInfo: entity.FrameInfo) {
+  _onTerminate(frameInfo: entity.FrameInfo) {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -938,7 +938,7 @@ export class ReadyScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -974,7 +974,7 @@ export class LoadingErrorScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -1015,7 +1015,7 @@ export class DoneScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -1044,7 +1044,7 @@ function pixiLoadProgressHandler(loader: any, resource?: any): void {
   updateLoadingProgress();
 }
 
-function update(timeScale: number) {
+function tick(timeScale: number) {
   const frameTime = Date.now();
   const timeSinceLastFrame = frameTime - lastFrameTime;
   lastFrameTime = frameTime;
@@ -1063,7 +1063,7 @@ function update(timeScale: number) {
     gameState,
   };
 
-  getRootEntity().update(lastFrameInfo);
+  getRootEntity().tick(lastFrameInfo);
 
   rootConfig.app.renderer.render(rootConfig.app.stage);
 }
@@ -1314,7 +1314,7 @@ function doneLoading() {
   changeGameState("playing");
 
   // Remove loading screen
-  loadingScene?.deactivate(lastFrameInfo);
+  loadingScene?.terminate(lastFrameInfo);
   loadingScene = null;
 
   // The new rootEntity will contain all the sub entities
@@ -1482,7 +1482,7 @@ export function go(directives: Partial<Directives> = {}) {
       // The loading scene doesn't get the full entityConfig
       loadingScene.activate(frameInfo, rootConfig, entity.makeTransition());
 
-      rootConfig.app.ticker.add(update);
+      rootConfig.app.ticker.add(tick);
 
       if (rootConfig.playOptions.options.fpsMeterPosition !== "none")
         rootConfig.app.ticker.add(updateFpsMeter);
@@ -1494,7 +1494,7 @@ export function go(directives: Partial<Directives> = {}) {
       console.error("Error during load", err);
 
       // Replace loading scene with loading error
-      loadingScene?.deactivate(frameInfo);
+      loadingScene?.terminate(frameInfo);
       loadingScene = null;
 
       loadingErrorScene = new LoadingErrorScene();

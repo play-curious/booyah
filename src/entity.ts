@@ -81,8 +81,14 @@ export interface EntityContext {
   id?: string;
 }
 
+export type EntityState = "inactive" | "active" | "paused";
+
 export function isEntity(e: any): e is Entity {
-  return "isActivated" in e;
+  return (
+    typeof e.activate === "function" &&
+    typeof e.tick === "function" &&
+    typeof e.terminate === "function"
+  );
 }
 
 export function isEntityResolvable(
@@ -105,7 +111,7 @@ export type ReloadMemento = {
  * which both implement this interface and do the busywork for you.
  **/
 export interface Entity extends NodeEventSource {
-  readonly isActivated: boolean;
+  readonly state: EntityState;
   readonly transition: Transition;
   readonly children: Record<string, Entity>;
 
@@ -115,9 +121,10 @@ export interface Entity extends NodeEventSource {
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void;
-  update(frameInfo: FrameInfo): void;
-  deactivate(frameInfo: FrameInfo): void;
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any): void;
+  tick(frameInfo: FrameInfo): void;
+  terminate(frameInfo: FrameInfo): void;
+  pause(frameInfo: FrameInfo): void;
+  resume(frameInfo: FrameInfo): void;
   makeReloadMemento(): ReloadMemento;
 }
 
@@ -131,17 +138,17 @@ export interface Entity extends NodeEventSource {
  2. activate() is called just once, with a configuration.
  This is when the entity should add dispaly objects  to the scene, or subscribe to events.
  The typical entityConfig contains { app, preloader, narrator, jukebox, container }
- 3. update() is called one or more times, with options.
+ 3. tick() is called one or more times, with options.
  It could also never be called, in case the entity is torn down directly.
  If the entity wishes to be terminated, it should set this._transition to a truthy value.
  Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
  For more complicated transitions, it can return an object like { name: "", params: {} }
- 4. deactivate() is called just once.
+ 4. terminate() is called just once.
  The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
 
  The base class will check that this lifecyle is respected, and will log errors to signal any problems.
 
- In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _onActivate(), _onUpdate(), etc.
+ In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _onActivate(), _onTick(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
 export abstract class EntityBase extends EventEmitter implements Entity {
@@ -151,7 +158,7 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   protected _reloadMemento?: ReloadMemento;
   protected _eventListeners: IEventListener[] = [];
   protected _transition: Transition;
-  protected _isActivated = false;
+  protected _state: EntityState = "inactive";
 
   get entityConfig(): EntityConfig {
     return this._entityConfig;
@@ -163,54 +170,61 @@ export abstract class EntityBase extends EventEmitter implements Entity {
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void {
-    if (this._isActivated) throw new Error("activate() called twice");
+    if (this._state !== "inactive")
+      throw new Error(`activate() called from state ${this._state}`);
 
     this._entityConfig = entityConfig;
     this._lastFrameInfo = frameInfo;
     this._enteringTransition = enteringTransition;
-    this._isActivated = true;
+    this._state = "active";
     this._transition = null;
 
     if (reloadMemento && reloadMemento.className === this.constructor.name)
       this._reloadMemento = reloadMemento;
     else delete this._reloadMemento;
 
-    this._onActivate(
-      frameInfo,
-      entityConfig,
-      enteringTransition,
-      reloadMemento
-    );
+    this._onActivate();
   }
 
-  public update(frameInfo: FrameInfo): void {
-    if (!this._isActivated)
-      throw new Error("update() called before activate()");
+  public tick(frameInfo: FrameInfo): void {
+    if (this._state !== "active")
+      throw new Error(`tick() called from state ${this._state}`);
+
     if (this._transition)
-      throw new Error("update() called despite requesting transition");
+      throw new Error("tick() called despite requesting transition");
 
     this._lastFrameInfo = frameInfo;
-    this._onUpdate(frameInfo);
+    this._onTick();
   }
 
-  public deactivate(frameInfo: FrameInfo): void {
-    if (!this._isActivated)
-      throw new Error("deactivate() called before activate()");
+  public terminate(frameInfo: FrameInfo): void {
+    if (this._state !== "active" && this._state !== "paused")
+      throw new Error(`tick() called from state ${this._state}`);
 
     this._lastFrameInfo = frameInfo;
-    this._onDeactivate(frameInfo);
+    this._onTerminate();
 
     this._unsubscribe(); // Remove all event listeners
 
-    this._isActivated = false;
+    this._state = "inactive";
   }
 
-  public onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
-    if (!this._isActivated)
-      throw new Error("onSignal() called before activate()");
+  public pause(frameInfo: FrameInfo): void {
+    if (this._state !== "active")
+      throw new Error(`pause() called from state ${this._state}`);
 
-    this._lastFrameInfo = frameInfo;
-    this._onSignal(frameInfo, signal, data);
+    this._state = "paused";
+
+    this._onPause();
+  }
+
+  public resume(frameInfo: FrameInfo): void {
+    if (this._state !== "paused")
+      throw new Error(`resume() called from state ${this._state}`);
+
+    this._state = "active";
+
+    this._onResume();
   }
 
   protected _subscribe(
@@ -263,12 +277,12 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   public get transition(): Transition {
     return this._transition;
   }
-  public get isActivated(): boolean {
-    return this._isActivated;
+  public get state(): EntityState {
+    return this._state;
   }
   public makeReloadMemento(): ReloadMemento {
-    if (!this._isActivated)
-      throw new Error("makeReloadMemento() called before activate()");
+    if (this._state !== "active" && this._state !== "paused")
+      throw new Error(`makeReloadMemento() called from state ${this._state}`);
 
     const childMementos: Record<string, ReloadMemento> = {};
     for (const childId in this.children) {
@@ -283,15 +297,12 @@ export abstract class EntityBase extends EventEmitter implements Entity {
     };
   }
 
-  protected _onActivate(
-    frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
-    enteringTransition: Transition,
-    reloadMemento?: ReloadMemento
-  ) {}
-  protected _onUpdate(frameInfo: FrameInfo) {}
-  protected _onDeactivate(frameInfo: FrameInfo) {}
-  protected _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {}
+  protected _onActivate() {}
+  protected _onTick() {}
+  protected _onTerminate() {}
+  protected _onPause() {}
+  protected _onResume() {}
+
   /** By default, an entity be automatically reloaded */
   protected _makeReloadMementoData(): ReloadMementoData {
     return undefined;
@@ -340,23 +351,31 @@ export abstract class CompositeEntity extends EntityBase {
    * By default, updates all child entities and remove those that have a transition
    * Overload this method in subclasses to change the behavior
    */
-  public update(frameInfo: FrameInfo): void {
-    super.update(frameInfo);
+  public tick(frameInfo: FrameInfo): void {
+    super.tick(frameInfo);
 
     this._updateChildEntities();
   }
 
-  public deactivate(frameInfo: FrameInfo): void {
+  public terminate(frameInfo: FrameInfo): void {
     this._deactivateAllChildEntities();
 
-    super.deactivate(frameInfo);
+    super.terminate(frameInfo);
   }
 
-  public onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    super.onSignal(frameInfo, signal, data);
+  public pause(frameInfo: FrameInfo): void {
+    super.pause(frameInfo);
 
-    for (const childEntity of Object.values(this._childEntities)) {
-      childEntity.onSignal(frameInfo, signal, data);
+    for (const child of Object.values(this._childEntities)) {
+      child.pause(frameInfo);
+    }
+  }
+
+  public resume(frameInfo: FrameInfo): void {
+    super.resume(frameInfo);
+
+    for (const child of Object.values(this._childEntities)) {
+      child.resume(frameInfo);
     }
   }
 
@@ -368,7 +387,8 @@ export abstract class CompositeEntity extends EntityBase {
     entityResolvable: EntityResolvable,
     options?: Partial<ActivateChildEntityOptions>
   ): Entity {
-    if (!this.isActivated) throw new Error("CompositeEntity is not yet active");
+    if (this.state === "inactive")
+      throw new Error("CompositeEntity is inactive");
 
     options = fillInOptions(options, new ActivateChildEntityOptions());
     if (options.id && options.id in this._childEntities)
@@ -408,7 +428,8 @@ export abstract class CompositeEntity extends EntityBase {
   }
 
   protected _deactivateChildEntity(entity: Entity): void {
-    if (!this.isActivated) throw new Error("CompositeEntity is not yet active");
+    if (this.state === "inactive")
+      throw new Error("CompositeEntity is inactive");
 
     // Try to find value
     let childId: string;
@@ -420,7 +441,7 @@ export abstract class CompositeEntity extends EntityBase {
     }
     if (!childId) throw new Error("Cannot find entity to remove");
 
-    entity.deactivate(this._lastFrameInfo);
+    entity.terminate(this._lastFrameInfo);
 
     delete this._childEntities[childId];
 
@@ -438,13 +459,13 @@ export abstract class CompositeEntity extends EntityBase {
       const childEntity = this._childEntities[id];
 
       if (childEntity.transition) {
-        childEntity.deactivate(this._lastFrameInfo);
+        childEntity.terminate(this._lastFrameInfo);
         delete this._childEntities[id];
         this.emit("deactivatedChildEntity", childEntity);
 
         needDeactivation = true;
       } else {
-        childEntity.update(this._lastFrameInfo);
+        childEntity.tick(this._lastFrameInfo);
       }
     }
 
@@ -453,7 +474,7 @@ export abstract class CompositeEntity extends EntityBase {
 
   protected _deactivateAllChildEntities() {
     for (const childEntity of Object.values(this._childEntities)) {
-      childEntity.deactivate(this._lastFrameInfo);
+      childEntity.terminate(this._lastFrameInfo);
       this.emit("deactivatedChildEntity", childEntity);
     }
 
@@ -504,8 +525,8 @@ export class ParallelEntity extends CompositeEntity {
     }
   }
 
-  update(frameInfo: FrameInfo) {
-    super.update(frameInfo);
+  tick(frameInfo: FrameInfo) {
+    super.tick(frameInfo);
 
     if (this.options.transitionOnCompletion && !_.some(this._childEntities))
       this._transition = makeTransition();
@@ -525,7 +546,7 @@ export class ParallelEntity extends CompositeEntity {
     this.childEntityContexts.push(entityContext);
 
     // Automatically activate the child entity
-    if (this.isActivated && entityContext.activated) {
+    if (this.state !== "inactive" && entityContext.activated) {
       const entity = this._activateChildEntity(entityContext.entity, {
         config: entityContext.config,
       });
@@ -611,10 +632,10 @@ export class ParallelEntity extends CompositeEntity {
     }
   }
 
-  deactivate(frameInfo: FrameInfo): void {
+  terminate(frameInfo: FrameInfo): void {
     this.contextToEntity.clear();
 
-    super.deactivate(frameInfo);
+    super.terminate(frameInfo);
   }
 }
 
@@ -691,14 +712,14 @@ export class EntitySequence extends CompositeEntity {
     }
   }
 
-  _onUpdate() {
+  _onTick() {
     if (!this.currentEntity) return;
 
     const transition = this.currentEntity.transition;
     if (transition) this._advance(transition);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this.currentEntity = null;
   }
 
@@ -765,7 +786,7 @@ export class StateMachine extends CompositeEntity {
   public startingState: TransitionDescriptor;
   public visitedStates: Transition[];
   public progress: {};
-  public state: Entity;
+  public activeChildEntity: Entity;
   public stateParams: {};
   private lastTransition: Transition;
 
@@ -825,10 +846,10 @@ export class StateMachine extends CompositeEntity {
     }
   }
 
-  _onUpdate() {
-    if (!this.state) return;
+  _onTick() {
+    if (!this.activeChildEntity) return;
 
-    const transition = this.state.transition;
+    const transition = this.activeChildEntity.transition;
     if (transition) {
       let nextStateDescriptor: Transition;
       // The transition could directly be the name of another state, or ending state
@@ -869,14 +890,14 @@ export class StateMachine extends CompositeEntity {
     }
   }
 
-  _onDeactivate() {
-    this.state = null;
+  _onTerminate() {
+    this.activeChildEntity = null;
     this.lastTransition = null;
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
     if (signal === "reset") {
-      this.deactivate(frameInfo);
+      this.terminate(frameInfo);
       this.activate(frameInfo, this._entityConfig, this._enteringTransition);
     }
   }
@@ -897,11 +918,11 @@ export class StateMachine extends CompositeEntity {
 
   private _changeState(nextState: Transition): void {
     // Stop current state
-    if (this.state) {
+    if (this.activeChildEntity) {
       // The state may have already been deactivated, if it requested a transition
       if (_.size(this._childEntities) > 0)
-        this._deactivateChildEntity(this.state);
-      this.state = null;
+        this._deactivateChildEntity(this.activeChildEntity);
+      this.activeChildEntity = null;
     }
 
     // If reached an ending state, stop here.
@@ -916,11 +937,14 @@ export class StateMachine extends CompositeEntity {
 
     if (nextState.name in this.states) {
       const nextStateContext = this.states[nextState.name];
-      this.state = this._activateChildEntity(nextStateContext.entity, {
-        config: nextStateContext.config,
-        transition: nextState,
-        id: nextState.name,
-      });
+      this.activeChildEntity = this._activateChildEntity(
+        nextStateContext.entity,
+        {
+          config: nextStateContext.config,
+          transition: nextState,
+          id: nextState.name,
+        }
+      );
     } else {
       throw new Error(`Cannot find state '${nextState.name}'`);
     }
@@ -966,34 +990,24 @@ export function makeTransitionTable(table: {
 }
 
 export interface FunctionalEntityFunctions {
-  activate: (
-    frameInfo: FrameInfo,
-    entityConfig: any,
-    entity: FunctionalEntity
-  ) => void;
-  update: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
-  deactivate: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
-  onSignal: (
-    frameInfo: FrameInfo,
-    signal: string,
-    data: any,
-    entity: FunctionalEntity
-  ) => void;
-  requestTransition: (
-    frameInfo: FrameInfo,
-    entity: FunctionalEntity
-  ) => Transition | boolean;
+  activate: (entity: FunctionalEntity) => void;
+  tick: (entity: FunctionalEntity) => void;
+  pause: (entity: FunctionalEntity) => void;
+  resume: (entity: FunctionalEntity) => void;
+  terminate: (entity: FunctionalEntity) => void;
+  requestTransition: (entity: FunctionalEntity) => Transition | boolean;
+  makeReloadMemento(): ReloadMemento;
 }
 
 /**
   An entity that gets its behavior from functions provided inline in the constructor.
   Useful for small entities that don't require their own class definition.
-  Additionally, a function called requestTransition(options, entity), called after update(), can set the requested transition 
+  Additionally, a function called requestTransition(options, entity), called after tick(), can set the requested transition 
 
   Example usage:
     new FunctionalEntity({
       activate: (entityConfig) => console.log("activate", entityConfig),
-      deactivate: () => console.log("deactivate"),
+      terminate: () => console.log("terminate"),
     });
 */
 export class FunctionalEntity extends CompositeEntity {
@@ -1001,18 +1015,24 @@ export class FunctionalEntity extends CompositeEntity {
     super();
   }
 
-  _onActivate() {
-    if (this.functions.activate)
-      this.functions.activate(this._lastFrameInfo, this._entityConfig, this);
+  protected get lastFrameInfo(): FrameInfo {
+    return this._lastFrameInfo;
+  }
+  protected get enteringTransition(): Transition {
+    return this._enteringTransition;
+  }
+  protected get reloadMemento(): ReloadMemento | undefined {
+    return this._reloadMemento;
   }
 
-  _onUpdate() {
-    if (this.functions.update) this.functions.update(this._lastFrameInfo, this);
+  protected _onActivate() {
+    if (this.functions.activate) this.functions.activate(this);
+  }
+
+  protected _onTick() {
+    if (this.functions.tick) this.functions.tick(this);
     if (this.functions.requestTransition) {
-      const result = this.functions.requestTransition(
-        this._lastFrameInfo,
-        this
-      );
+      const result = this.functions.requestTransition(this);
       if (result) {
         if (_.isObject(result)) {
           this._transition = result;
@@ -1024,14 +1044,16 @@ export class FunctionalEntity extends CompositeEntity {
     }
   }
 
-  _onDeactivate(frameInfo: FrameInfo) {
-    if (this.functions.deactivate)
-      this.functions.deactivate(this._lastFrameInfo, this);
+  protected _onPause() {
+    if (this.functions.pause) this.functions.pause(this);
   }
 
-  _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (this.functions.onSignal)
-      this.functions.onSignal(frameInfo, signal, data, this);
+  protected _onResume() {
+    if (this.functions.resume) this.functions.resume(this);
+  }
+
+  protected _onTerminate() {
+    if (this.functions.terminate) this.functions.terminate(this);
   }
 }
 
@@ -1066,8 +1088,8 @@ export class WaitingEntity extends EntityBase {
     this._accumulatedTime = 0;
   }
 
-  _onUpdate(frameInfo: FrameInfo) {
-    this._accumulatedTime += frameInfo.timeSinceLastFrame;
+  _onTick() {
+    this._accumulatedTime += this._lastFrameInfo.timeSinceLastFrame;
 
     if (this._accumulatedTime >= this.wait) {
       this._transition = makeTransition();
@@ -1149,7 +1171,7 @@ export class Alternative extends CompositeEntity {
     );
   }
 
-  _onActivate(frameInfo: FrameInfo) {
+  _onActivate() {
     for (const entityContext of this.entityContexts) {
       this._activateChildEntity(entityContext.entity, {
         config: entityContext.config,
@@ -1159,7 +1181,7 @@ export class Alternative extends CompositeEntity {
     this._checkForTransition();
   }
 
-  _onUpdate(frameInfo: FrameInfo) {
+  _onTick() {
     this._checkForTransition();
   }
 

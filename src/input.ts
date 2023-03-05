@@ -24,7 +24,7 @@ export class Keyboard extends entity.EntityBase {
     );
   }
 
-  _onUpdate(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: entity.FrameInfo) {
     const keyDownSet = _.keys(this.keysDown);
     const lastKeyDownSet = _.keys(this._lastKeysDown);
 
@@ -39,7 +39,7 @@ export class Keyboard extends entity.EntityBase {
     this._lastKeysDown = _.clone(this.keysDown);
   }
 
-  deactivate() {
+  terminate() {
     this._entityConfig.app.view.removeEventListener(
       "keydown",
       this._onKeyDownWrapper
@@ -107,7 +107,7 @@ export class Gamepad extends entity.EntityBase {
     // TODO: track events of disconnecting gamepads
   }
 
-  _onUpdate(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: entity.FrameInfo) {
     this._updateState();
   }
 

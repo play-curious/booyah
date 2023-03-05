@@ -41,7 +41,7 @@ export class Jukebox extends entity.EntityBase {
     this._on(this._entityConfig.playOptions, "musicOn", this._updateMuted);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     if (this.musicPlaying) this.musicPlaying.stop();
     this.musicPlaying = null;
     this.musicName = null;
@@ -120,7 +120,7 @@ export function makeInstallJukebox(options: JukeboxOptions) {
 
 /** 
   Am entity that requests the music be changed upon activate.
-  Optionally can stop the music on deactivate.
+  Optionally can stop the music on terminate.
 */
 export class MusicEntity extends entity.EntityBase {
   constructor(public trackName: string, public stopOnTeardown = false) {
@@ -133,7 +133,7 @@ export class MusicEntity extends entity.EntityBase {
     this._transition = entity.makeTransition();
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     if (this.stopOnTeardown) {
       this._entityConfig.jukebox.play();
     }
@@ -182,7 +182,7 @@ export class FxMachine extends entity.EntityBase {
     }
   }
 
-  protected _onDeactivate(frameInfo: entity.FrameInfo): void {
+  protected _onTerminate(frameInfo: entity.FrameInfo): void {
     this.stopAll();
   }
 

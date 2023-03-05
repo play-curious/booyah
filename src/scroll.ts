@@ -123,7 +123,7 @@ export class Scrollbox extends entity.EntityBase {
     this.refresh();
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
 
     if (this.options.wheelScroll) {

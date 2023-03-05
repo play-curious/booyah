@@ -22,9 +22,10 @@ class MockEntity extends entity.EntityBase {
   constructor() {
     super();
     this._onActivate = jest.fn();
-    this._onUpdate = jest.fn();
-    this._onDeactivate = jest.fn();
-    this._onSignal = jest.fn();
+    this._onTick = jest.fn();
+    this._onTerminate = jest.fn();
+    this._onPause = jest.fn();
+    this._onResume = jest.fn();
   }
 
   // Allow the tests to set the transition directly
@@ -38,9 +39,10 @@ class MockEntity extends entity.EntityBase {
 
   // Make the methods public so that they can be tested with the mock
   public _onActivate() {}
-  public _onUpdate() {}
-  public _onDeactivate() {}
-  public _onSignal() {}
+  public _onTick() {}
+  public _onTerminate() {}
+  public _onPause() {}
+  public _onResume() {}
 }
 
 describe("Entity", () => {
@@ -53,15 +55,17 @@ describe("Entity", () => {
   test("allows normal execution", () => {
     for (let i = 0; i < 5; i++) {
       e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-      e.update(makeFrameInfo());
-      e.onSignal(makeFrameInfo(), "signal");
-      e.deactivate(makeFrameInfo());
+      e.tick(makeFrameInfo());
+      e.pause(makeFrameInfo());
+      e.resume(makeFrameInfo());
+      e.terminate(makeFrameInfo());
     }
 
     expect(e._onActivate).toBeCalledTimes(5);
-    expect(e._onUpdate).toBeCalledTimes(5);
-    expect(e._onDeactivate).toBeCalledTimes(5);
-    expect(e._onSignal).toBeCalledTimes(5);
+    expect(e._onTick).toBeCalledTimes(5);
+    expect(e._onTerminate).toBeCalledTimes(5);
+    expect(e._onPause).toBeCalledTimes(5);
+    expect(e._onResume).toBeCalledTimes(5);
   });
 
   test("throws on multiple activate", () => {
@@ -71,21 +75,46 @@ describe("Entity", () => {
     }).toThrow();
   });
 
-  test("throws on update before activate", () => {
+  test("throws on tick before activate", () => {
     expect(() => {
-      e.update(makeFrameInfo());
+      e.tick(makeFrameInfo());
     }).toThrow();
   });
 
-  test("throws on deactivate before activate", () => {
+  test("throws on terminate before activate", () => {
     expect(() => {
-      e.deactivate(makeFrameInfo());
+      e.terminate(makeFrameInfo());
     }).toThrow();
   });
 
-  test("throws on onSignal before activate", () => {
+  test("throws on pause before activate", () => {
     expect(() => {
-      e.onSignal(makeFrameInfo(), "signal");
+      e.pause(makeFrameInfo());
+    }).toThrow();
+  });
+
+  test("throws on resume before activate", () => {
+    expect(() => {
+      e.resume(makeFrameInfo());
+    }).toThrow();
+  });
+
+  test("throws on multiple pause", () => {
+    expect(() => {
+      e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+
+      e.pause(makeFrameInfo());
+      e.pause(makeFrameInfo());
+    }).toThrow();
+  });
+
+  test("throws on mulitple resume", () => {
+    expect(() => {
+      e.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
+      e.pause(makeFrameInfo());
+
+      e.resume(makeFrameInfo());
+      e.resume(makeFrameInfo());
     }).toThrow();
   });
 
@@ -119,7 +148,7 @@ describe("Entity", () => {
     expect(receiver.receiveB).toBeCalledWith(1, 2, 3);
 
     // Teardown the receiver and send more events that should not be recieved
-    receiver.deactivate(makeFrameInfo());
+    receiver.terminate(makeFrameInfo());
     sender.emit("a");
     sender.emit("b");
 
@@ -146,42 +175,44 @@ describe("CompositeEntity", () => {
   test("runs children", () => {
     for (let i = 0; i < 5; i++) {
       parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-      parent.update(makeFrameInfo());
-      parent.onSignal(makeFrameInfo(), "signal");
-      parent.deactivate(makeFrameInfo());
+      parent.tick(makeFrameInfo());
+      parent.pause(makeFrameInfo());
+      parent.resume(makeFrameInfo());
+      parent.terminate(makeFrameInfo());
     }
 
     for (const child of children) {
       expect(child._onActivate).toBeCalledTimes(5);
-      expect(child._onUpdate).toBeCalledTimes(5);
-      expect(child._onSignal).toBeCalledTimes(5);
-      expect(child._onDeactivate).toBeCalledTimes(5);
+      expect(child._onTick).toBeCalledTimes(5);
+      expect(child._onPause).toBeCalledTimes(5);
+      expect(child._onResume).toBeCalledTimes(5);
+      expect(child._onTerminate).toBeCalledTimes(5);
     }
   });
 
   test("deactivates children", () => {
     // Have middle child request transition on 2nd call
     let requestTransition = false;
-    children[1]._onUpdate = jest.fn(() => {
+    children[1]._onTick = jest.fn(() => {
       if (requestTransition) children[1].transition = entity.makeTransition();
     });
 
     // Run once
     parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // Run again, this time have middle child request transition
     requestTransition = true;
-    parent.update(makeFrameInfo());
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     expect(children[1]._onActivate).toBeCalledTimes(1);
-    expect(children[1]._onDeactivate).toBeCalledTimes(1);
-    expect(children[1]._onUpdate).toBeCalledTimes(2);
+    expect(children[1]._onTerminate).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(2);
 
     expect(children[2]._onActivate).toBeCalledTimes(1);
-    expect(children[2]._onDeactivate).toBeCalledTimes(0);
-    expect(children[2]._onUpdate).toBeCalledTimes(3);
+    expect(children[2]._onTerminate).toBeCalledTimes(0);
+    expect(children[2]._onTick).toBeCalledTimes(3);
   });
 
   test("send activation events", () => {
@@ -191,12 +222,12 @@ describe("CompositeEntity", () => {
     // Run once
     parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
     children[1].transition = entity.makeTransition();
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     expect(deactivatedCallback).toBeCalledTimes(1);
 
     // Teardown and activate again
-    parent.deactivate(makeFrameInfo());
+    parent.terminate(makeFrameInfo());
 
     expect(deactivatedCallback).toBeCalledTimes(3);
 
@@ -216,16 +247,18 @@ describe("ParallelEntity", () => {
 
     for (let i = 0; i < 5; i++) {
       parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-      parent.update(makeFrameInfo());
-      parent.onSignal(makeFrameInfo(), "signal");
-      parent.deactivate(makeFrameInfo());
+      parent.tick(makeFrameInfo());
+      parent.pause(makeFrameInfo());
+      parent.resume(makeFrameInfo());
+      parent.terminate(makeFrameInfo());
     }
 
     for (const child of children) {
       expect(child._onActivate).toBeCalledTimes(5);
-      expect(child._onUpdate).toBeCalledTimes(5);
-      expect(child._onSignal).toBeCalledTimes(5);
-      expect(child._onDeactivate).toBeCalledTimes(5);
+      expect(child._onTick).toBeCalledTimes(5);
+      expect(child._onPause).toBeCalledTimes(5);
+      expect(child._onResume).toBeCalledTimes(5);
+      expect(child._onTerminate).toBeCalledTimes(5);
     }
   });
 
@@ -242,32 +275,32 @@ describe("ParallelEntity", () => {
 
     // Run once
     parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     expect(middleChildContext.entity._onActivate).not.toBeCalled();
     expect((parent.children[0] as MockEntity)._onActivate).toBeCalled();
   });
 
-  test("can activate and deactivate children", () => {
+  test("can activate and terminate children", () => {
     const children = [new MockEntity(), new MockEntity(), new MockEntity()];
     const parent = new entity.ParallelEntity(children);
 
     // Run once
     parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // Deactivate middle child and run
     parent.deactivateChildEntity(1);
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
-    // Reactivate middle child, deactivate third child, and run
+    // Reactivate middle child, terminate third child, and run
     parent.activateChildEntity(1);
     parent.deactivateChildEntity(2);
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
-    expect(children[0]._onUpdate).toBeCalledTimes(3);
-    expect(children[1]._onUpdate).toBeCalledTimes(2);
-    expect(children[2]._onUpdate).toBeCalledTimes(2);
+    expect(children[0]._onTick).toBeCalledTimes(3);
+    expect(children[1]._onTick).toBeCalledTimes(2);
+    expect(children[2]._onTick).toBeCalledTimes(2);
   });
 });
 
@@ -278,23 +311,26 @@ describe("EntitySequence", () => {
 
     for (let i = 0; i < 5; i++) {
       parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
-      parent.update(makeFrameInfo());
-      parent.onSignal(makeFrameInfo(), "signal");
-      parent.deactivate(makeFrameInfo());
+      parent.tick(makeFrameInfo());
+      parent.pause(makeFrameInfo());
+      parent.resume(makeFrameInfo());
+      parent.terminate(makeFrameInfo());
     }
 
     // First child should be called
     expect(children[0]._onActivate).toBeCalledTimes(5);
-    expect(children[0]._onUpdate).toBeCalledTimes(5);
-    expect(children[0]._onSignal).toBeCalledTimes(5);
-    expect(children[0]._onDeactivate).toBeCalledTimes(5);
+    expect(children[0]._onTick).toBeCalledTimes(5);
+    expect(children[0]._onPause).toBeCalledTimes(5);
+    expect(children[0]._onResume).toBeCalledTimes(5);
+    expect(children[0]._onTerminate).toBeCalledTimes(5);
 
     // The others not
     for (const child of _.rest(children)) {
       expect(child._onActivate).toBeCalledTimes(0);
-      expect(child._onUpdate).toBeCalledTimes(0);
-      expect(child._onSignal).toBeCalledTimes(0);
-      expect(child._onDeactivate).toBeCalledTimes(0);
+      expect(child._onTick).toBeCalledTimes(0);
+      expect(child._onPause).toBeCalledTimes(0);
+      expect(child._onResume).toBeCalledTimes(0);
+      expect(child._onTerminate).toBeCalledTimes(0);
     }
   });
 
@@ -305,28 +341,28 @@ describe("EntitySequence", () => {
     parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
 
     // Run 1st child twice, then request transition
-    parent.update(makeFrameInfo());
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
+    parent.tick(makeFrameInfo());
     children[0].transition = entity.makeTransition();
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // Run 2nd child twice, then request transition
-    parent.update(makeFrameInfo());
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
+    parent.tick(makeFrameInfo());
     children[1].transition = entity.makeTransition();
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // Run 3rd child twice, then request transition
-    parent.update(makeFrameInfo());
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
+    parent.tick(makeFrameInfo());
     children[2].transition = entity.makeTransition("third");
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // Each child should be updated three times
     for (const child of _.rest(children)) {
       expect(child._onActivate).toBeCalledTimes(1);
-      expect(child._onUpdate).toBeCalledTimes(3);
-      expect(child._onDeactivate).toBeCalledTimes(1);
+      expect(child._onTick).toBeCalledTimes(3);
+      expect(child._onTerminate).toBeCalledTimes(1);
     }
 
     // Final transition should be that of the 3rd child
@@ -340,27 +376,27 @@ describe("EntitySequence", () => {
     parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
 
     // Run 1st child, then request transition
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
     children[0].transition = entity.makeTransition();
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // Run 2nd child, then request transition
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
     children[1].transition = entity.makeTransition();
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // Run 1st child again
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
 
     // The first child should be activate twice
     expect(children[0]._onActivate).toBeCalledTimes(2);
-    expect(children[0]._onUpdate).toBeCalledTimes(3);
-    expect(children[0]._onDeactivate).toBeCalledTimes(1);
+    expect(children[0]._onTick).toBeCalledTimes(3);
+    expect(children[0]._onTerminate).toBeCalledTimes(1);
 
     // The second child should be activate once
     expect(children[1]._onActivate).toBeCalledTimes(1);
-    expect(children[1]._onUpdate).toBeCalledTimes(2);
-    expect(children[1]._onDeactivate).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(2);
+    expect(children[1]._onTerminate).toBeCalledTimes(1);
 
     // There should be no requested transition
     expect(parent.transition).toBeFalsy();
@@ -373,20 +409,20 @@ describe("EntitySequence", () => {
     parent.activate(makeFrameInfo(), makeEntityConfig(), makeTransition());
 
     // Run 1st child, then skip
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
     parent.skip();
-    parent.update(makeFrameInfo());
+    parent.tick(makeFrameInfo());
     parent.skip();
 
     // The first child should be activate and torn down
     expect(children[0]._onActivate).toBeCalledTimes(1);
-    expect(children[0]._onUpdate).toBeCalledTimes(1);
-    expect(children[0]._onDeactivate).toBeCalledTimes(1);
+    expect(children[0]._onTick).toBeCalledTimes(1);
+    expect(children[0]._onTerminate).toBeCalledTimes(1);
 
     // The second child should be activate and torn down
     expect(children[1]._onActivate).toBeCalledTimes(1);
-    expect(children[1]._onUpdate).toBeCalledTimes(1);
-    expect(children[0]._onDeactivate).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(1);
+    expect(children[0]._onTerminate).toBeCalledTimes(1);
 
     // There should be a skipped transition
     expect(parent.transition.name).toBe("skip");
@@ -404,16 +440,18 @@ describe("StateMachine", () => {
         makeEntityConfig(),
         makeTransition()
       );
-      stateMachine.update(makeFrameInfo());
-      stateMachine.onSignal(makeFrameInfo(), "signal");
-      stateMachine.deactivate(makeFrameInfo());
+      stateMachine.tick(makeFrameInfo());
+      stateMachine.pause(makeFrameInfo());
+      stateMachine.resume(makeFrameInfo());
+      stateMachine.terminate(makeFrameInfo());
     }
 
     // First child should be called 5 times
     expect(states.start._onActivate).toBeCalledTimes(5);
-    expect(states.start._onUpdate).toBeCalledTimes(5);
-    expect(states.start._onSignal).toBeCalledTimes(5);
-    expect(states.start._onDeactivate).toBeCalledTimes(5);
+    expect(states.start._onTick).toBeCalledTimes(5);
+    expect(states.start._onPause).toBeCalledTimes(5);
+    expect(states.start._onResume).toBeCalledTimes(5);
+    expect(states.start._onTerminate).toBeCalledTimes(5);
   });
 
   test("goes from start to end", () => {
@@ -426,13 +464,13 @@ describe("StateMachine", () => {
       makeEntityConfig(),
       makeTransition()
     );
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
     states.start.transition = entity.makeTransition("end");
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     expect(states.start._onActivate).toBeCalledTimes(1);
-    expect(states.start._onUpdate).toBeCalledTimes(1);
-    expect(states.start._onDeactivate).toBeCalledTimes(1);
+    expect(states.start._onTick).toBeCalledTimes(1);
+    expect(states.start._onTerminate).toBeCalledTimes(1);
 
     expect(stateMachine.transition.name).toBe("end");
     expect(stateMachine.visitedStates).toContainEqual(
@@ -452,13 +490,13 @@ describe("StateMachine", () => {
       makeEntityConfig(),
       makeTransition()
     );
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
     states.a.transition = entity.makeTransition("b");
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
-    expect(states.a._onUpdate).toBeCalledTimes(1);
-    expect(states.a._onDeactivate).toBeCalledTimes(1);
+    expect(states.a._onTick).toBeCalledTimes(1);
+    expect(states.a._onTerminate).toBeCalledTimes(1);
 
     expect(states.b._onActivate).toBeCalledTimes(1);
   });
@@ -479,19 +517,19 @@ describe("StateMachine", () => {
       makeEntityConfig(),
       makeTransition()
     );
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
     states.a.transition = entity.makeTransition();
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     // Transition back again
     states.b.transition = entity.makeTransition();
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(2);
-    expect(states.a._onDeactivate).toBeCalledTimes(1);
+    expect(states.a._onTerminate).toBeCalledTimes(1);
 
     expect(states.b._onActivate).toBeCalledTimes(1);
-    expect(states.b._onDeactivate).toBeCalledTimes(1);
+    expect(states.b._onTerminate).toBeCalledTimes(1);
   });
 
   test("manual transitions", () => {
@@ -506,15 +544,15 @@ describe("StateMachine", () => {
       makeEntityConfig(),
       makeTransition()
     );
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     stateMachine.changeState("b");
 
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
-    expect(states.a._onUpdate).toBeCalledTimes(1);
-    expect(states.a._onDeactivate).toBeCalledTimes(1);
+    expect(states.a._onTick).toBeCalledTimes(1);
+    expect(states.a._onTerminate).toBeCalledTimes(1);
 
     expect(states.b._onActivate).toBeCalledTimes(1);
   });
@@ -534,16 +572,16 @@ describe("StateMachine", () => {
       makeEntityConfig(),
       makeTransition()
     );
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     const transition = entity.makeTransition("done", { x: "y" });
     states.a.transition = transition;
 
-    stateMachine.update(makeFrameInfo());
+    stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
-    expect(states.a._onUpdate).toBeCalledTimes(1);
-    expect(states.a._onDeactivate).toBeCalledTimes(1);
+    expect(states.a._onTick).toBeCalledTimes(1);
+    expect(states.a._onTerminate).toBeCalledTimes(1);
 
     expect(states.b._onActivate).toBeCalledTimes(1);
 
@@ -723,7 +761,7 @@ describe("Hot reloading", () => {
 
     // Skip to the next entity and change its value
     parentV2.skip();
-    parentV2.update(makeFrameInfo());
+    parentV2.tick(makeFrameInfo());
     child2V2.value = 77;
 
     // Reload
@@ -738,8 +776,8 @@ describe("Hot reloading", () => {
       memento
     );
 
-    // The 2nd child should be activate and have the correct value
-    expect(child2V3.isActivated).toBe(true);
+    // The 2nd child should be active and have the correct value
+    expect(child2V3.state).toBe("active");
     expect(child2V3.value).toBe(77);
   });
 
@@ -756,7 +794,7 @@ describe("Hot reloading", () => {
     // Skip to another state
     parentV1.changeState("middle");
 
-    parentV1.update(makeFrameInfo());
+    parentV1.tick(makeFrameInfo());
 
     // Change the values
     child1V1.value = 11;
@@ -779,9 +817,9 @@ describe("Hot reloading", () => {
     );
 
     // Only 2nd child should be activate and have the new value
-    expect(child1V1.isActivated).toBe(false);
+    expect(child1V1.state).toBe("inactive");
 
-    expect(child2V2.isActivated).toBe(true);
+    expect(child2V2.state).toBe("active");
     expect(child2V2.value).toBe(22);
   });
 });

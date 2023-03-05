@@ -102,7 +102,7 @@ export class Tween<Value, Obj extends object> extends entity.EntityBase {
     }
   }
 
-  _onUpdate() {
+  _onTick() {
     if (this._timePassed >= this.options.duration) {
       this._transition = entity.makeTransition();
 
@@ -123,7 +123,7 @@ export class Tween<Value, Obj extends object> extends entity.EntityBase {
     }
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     if (this.options.onTeardown) {
       this.options.onTeardown();
     }

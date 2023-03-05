@@ -13,7 +13,7 @@ export class DisplayObjectEntity<
     this._entityConfig.container.addChild(this.displayObject);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.displayObject);
   }
 }
@@ -87,8 +87,8 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
     }
   }
 
-  _onUpdate(frameInfo: entity.FrameInfo) {
-    this._sprite.update(frameInfo.timeSinceLastFrame);
+  _onTick(frameInfo: entity.FrameInfo) {
+    this._sprite.tick(frameInfo.timeSinceLastFrame);
   }
 
   onSignal(frameInfo: entity.FrameInfo, signal: string) {
@@ -102,7 +102,7 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
     }
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this._sprite);
     delete this._sprite;
   }

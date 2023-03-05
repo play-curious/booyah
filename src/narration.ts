@@ -106,7 +106,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._updateShowSubtitles();
   }
 
-  _onUpdate() {
+  _onTick() {
     if (!this.name || this._lastFrameInfo.gameState !== "playing") return;
 
     this.timeSincePlay += this._lastFrameInfo.timeSinceLastFrame;
@@ -114,7 +114,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._updateSubtitle();
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -242,7 +242,7 @@ export class SpeakerDisplay extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -268,7 +268,7 @@ export class SingleNarration extends entity.EntityBase {
     if (key === this.narrationKey) this._transition = entity.makeTransition();
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this._entityConfig.narrator.stop();
   }
 }
@@ -292,7 +292,7 @@ export class RandomNarration extends entity.EntityBase {
     this._entityConfig.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  _onUpdate(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: entity.FrameInfo) {
     if (
       frameInfo.timeSinceStart >=
       this._entityConfig.narrator.narrationDuration(this.currentKey)
@@ -301,7 +301,7 @@ export class RandomNarration extends entity.EntityBase {
     }
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     this.currentKey = null;
   }
 }
@@ -363,7 +363,7 @@ export class VideoScene extends entity.CompositeEntity {
     this._activateChildEntity(this.skipButton);
   }
 
-  _onUpdate(frameInfo: entity.FrameInfo) {
+  _onTick(frameInfo: entity.FrameInfo) {
     if (
       (this._options.video && this.video.transition) ||
       this.skipButton.transition
@@ -372,7 +372,7 @@ export class VideoScene extends entity.CompositeEntity {
     }
   }
 
-  _onDeactivate() {
+  _onTerminate() {
     if (this.previousMusic) this._entityConfig.jukebox.play(this.previousMusic);
   }
 }
