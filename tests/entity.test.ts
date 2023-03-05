@@ -739,7 +739,7 @@ describe("Hot reloading", () => {
     );
 
     // The 2nd child should be activate and have the correct value
-    expect(child2V3.isSetup).toBe(true);
+    expect(child2V3.isActivated).toBe(true);
     expect(child2V3.value).toBe(77);
   });
 
@@ -779,9 +779,9 @@ describe("Hot reloading", () => {
     );
 
     // Only 2nd child should be activate and have the new value
-    expect(child1V1.isSetup).toBe(false);
+    expect(child1V1.isActivated).toBe(false);
 
-    expect(child2V2.isSetup).toBe(true);
+    expect(child2V2.isActivated).toBe(true);
     expect(child2V2.value).toBe(22);
   });
 });

@@ -82,7 +82,7 @@ export interface EntityContext {
 }
 
 export function isEntity(e: any): e is Entity {
-  return "isSetup" in e;
+  return "isActivated" in e;
 }
 
 export function isEntityResolvable(
@@ -105,7 +105,7 @@ export type ReloadMemento = {
  * which both implement this interface and do the busywork for you.
  **/
 export interface Entity extends NodeEventSource {
-  readonly isSetup: boolean;
+  readonly isActivated: boolean;
   readonly transition: Transition;
   readonly children: Record<string, Entity>;
 
@@ -151,7 +151,7 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   protected _reloadMemento?: ReloadMemento;
   protected _eventListeners: IEventListener[] = [];
   protected _transition: Transition;
-  protected _isSetup = false;
+  protected _isActivated = false;
 
   get entityConfig(): EntityConfig {
     return this._entityConfig;
@@ -163,12 +163,12 @@ export abstract class EntityBase extends EventEmitter implements Entity {
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void {
-    if (this._isSetup) throw new Error("activate() called twice");
+    if (this._isActivated) throw new Error("activate() called twice");
 
     this._entityConfig = entityConfig;
     this._lastFrameInfo = frameInfo;
     this._enteringTransition = enteringTransition;
-    this._isSetup = true;
+    this._isActivated = true;
     this._transition = null;
 
     if (reloadMemento && reloadMemento.className === this.constructor.name)
@@ -184,7 +184,8 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   }
 
   public update(frameInfo: FrameInfo): void {
-    if (!this._isSetup) throw new Error("update() called before activate()");
+    if (!this._isActivated)
+      throw new Error("update() called before activate()");
     if (this._transition)
       throw new Error("update() called despite requesting transition");
 
@@ -193,7 +194,7 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   }
 
   public deactivate(frameInfo: FrameInfo): void {
-    if (!this._isSetup)
+    if (!this._isActivated)
       throw new Error("deactivate() called before activate()");
 
     this._lastFrameInfo = frameInfo;
@@ -201,11 +202,12 @@ export abstract class EntityBase extends EventEmitter implements Entity {
 
     this._unsubscribe(); // Remove all event listeners
 
-    this._isSetup = false;
+    this._isActivated = false;
   }
 
   public onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
-    if (!this._isSetup) throw new Error("onSignal() called before activate()");
+    if (!this._isActivated)
+      throw new Error("onSignal() called before activate()");
 
     this._lastFrameInfo = frameInfo;
     this._onSignal(frameInfo, signal, data);
@@ -261,11 +263,11 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   public get transition(): Transition {
     return this._transition;
   }
-  public get isSetup(): boolean {
-    return this._isSetup;
+  public get isActivated(): boolean {
+    return this._isActivated;
   }
   public makeReloadMemento(): ReloadMemento {
-    if (!this._isSetup)
+    if (!this._isActivated)
       throw new Error("makeReloadMemento() called before activate()");
 
     const childMementos: Record<string, ReloadMemento> = {};
@@ -366,7 +368,7 @@ export abstract class CompositeEntity extends EntityBase {
     entityResolvable: EntityResolvable,
     options?: Partial<ActivateChildEntityOptions>
   ): Entity {
-    if (!this.isSetup) throw new Error("CompositeEntity is not yet active");
+    if (!this.isActivated) throw new Error("CompositeEntity is not yet active");
 
     options = fillInOptions(options, new ActivateChildEntityOptions());
     if (options.id && options.id in this._childEntities)
@@ -406,7 +408,7 @@ export abstract class CompositeEntity extends EntityBase {
   }
 
   protected _deactivateChildEntity(entity: Entity): void {
-    if (!this.isSetup) throw new Error("CompositeEntity is not yet active");
+    if (!this.isActivated) throw new Error("CompositeEntity is not yet active");
 
     // Try to find value
     let childId: string;
@@ -523,7 +525,7 @@ export class ParallelEntity extends CompositeEntity {
     this.childEntityContexts.push(entityContext);
 
     // Automatically activate the child entity
-    if (this.isSetup && entityContext.activated) {
+    if (this.isActivated && entityContext.activated) {
       const entity = this._activateChildEntity(entityContext.entity, {
         config: entityContext.config,
       });
