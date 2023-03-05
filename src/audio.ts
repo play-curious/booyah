@@ -27,7 +27,7 @@ export class Jukebox extends entity.EntityBase {
     });
   }
 
-  _setup() {
+  _onActivate() {
     this.musicName = null;
     this.musicPlaying = null;
 
@@ -41,7 +41,7 @@ export class Jukebox extends entity.EntityBase {
     this._on(this._entityConfig.playOptions, "musicOn", this._updateMuted);
   }
 
-  _teardown() {
+  _onDeactivate() {
     if (this.musicPlaying) this.musicPlaying.stop();
     this.musicPlaying = null;
     this.musicName = null;
@@ -119,21 +119,21 @@ export function makeInstallJukebox(options: JukeboxOptions) {
 }
 
 /** 
-  Am entity that requests the music be changed upon setup.
-  Optionally can stop the music on teardown.
+  Am entity that requests the music be changed upon activate.
+  Optionally can stop the music on deactivate.
 */
 export class MusicEntity extends entity.EntityBase {
   constructor(public trackName: string, public stopOnTeardown = false) {
     super();
   }
 
-  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  _onActivate(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     this._entityConfig.jukebox.play(this.trackName);
 
     this._transition = entity.makeTransition();
   }
 
-  _teardown() {
+  _onDeactivate() {
     if (this.stopOnTeardown) {
       this._entityConfig.jukebox.play();
     }
@@ -159,7 +159,7 @@ export class FxMachine extends entity.EntityBase {
     this._volume = _options.volume;
   }
 
-  _setup() {
+  _onActivate() {
     this.changeVolume(this._volume);
 
     this._updateMuted();
@@ -182,7 +182,7 @@ export class FxMachine extends entity.EntityBase {
     }
   }
 
-  protected _teardown(frameInfo: entity.FrameInfo): void {
+  protected _onDeactivate(frameInfo: entity.FrameInfo): void {
     this.stopAll();
   }
 

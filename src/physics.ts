@@ -37,7 +37,7 @@ export class Simulation extends entity.ParallelEntity {
     });
   }
 
-  setup(
+  activate(
     frameInfo: entity.FrameInfo,
     entityConfig: entity.EntityConfig,
     enteringTransition: entity.Transition
@@ -59,7 +59,7 @@ export class Simulation extends entity.ParallelEntity {
       container: this.container,
     });
 
-    super.setup(frameInfo, entityConfig, enteringTransition);
+    super.activate(frameInfo, entityConfig, enteringTransition);
   }
 
   update(frameInfo: entity.FrameInfo) {
@@ -70,12 +70,12 @@ export class Simulation extends entity.ParallelEntity {
     this.world.step(stepTime);
   }
 
-  teardown(frameInfo: entity.FrameInfo) {
+  deactivate(frameInfo: entity.FrameInfo) {
     this.world.clear();
 
     this.oldConfig.container.removeChild(this.container);
 
-    super.teardown(frameInfo);
+    super.deactivate(frameInfo);
   }
 }
 
@@ -95,12 +95,12 @@ export class BodyEntity extends entity.ParallelEntity {
     });
   }
 
-  setup(
+  activate(
     frameInfo: entity.FrameInfo,
     entityConfig: entity.EntityConfig,
     enteringTransition: entity.Transition
   ) {
-    super.setup(frameInfo, entityConfig, enteringTransition);
+    super.activate(frameInfo, entityConfig, enteringTransition);
 
     this._entityConfig.world.addBody(this.body);
 
@@ -119,11 +119,11 @@ export class BodyEntity extends entity.ParallelEntity {
     }
   }
 
-  teardown(frameInfo: entity.FrameInfo) {
+  deactivate(frameInfo: entity.FrameInfo) {
     this._entityConfig.world.removeBody(this.body);
 
     if (this.display) this._entityConfig.container.removeChild(this.display);
 
-    super.teardown(frameInfo);
+    super.deactivate(frameInfo);
   }
 }

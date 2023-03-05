@@ -9,11 +9,11 @@ export class DisplayObjectEntity<
     super();
   }
 
-  _setup() {
+  _onActivate() {
     this._entityConfig.container.addChild(this.displayObject);
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.displayObject);
   }
 }
@@ -55,7 +55,7 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
     );
   }
 
-  _setup() {
+  _onActivate() {
     const resource =
       this._entityConfig.app.loader.resources[this._spritesheetName];
     if (!resource)
@@ -87,7 +87,7 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
     }
   }
 
-  _update(frameInfo: entity.FrameInfo) {
+  _onUpdate(frameInfo: entity.FrameInfo) {
     this._sprite.update(frameInfo.timeSinceLastFrame);
   }
 
@@ -102,7 +102,7 @@ export class AnimatedSpriteEntity extends entity.EntityBase {
     }
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this._sprite);
     delete this._sprite;
   }

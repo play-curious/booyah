@@ -81,7 +81,7 @@ export class Tween<Value, Obj extends object> extends entity.EntityBase {
     }
   }
 
-  _setup() {
+  _onActivate() {
     this._currentObj = _.isFunction(this.options.obj)
       ? this.options.obj()
       : this.options.obj;
@@ -102,7 +102,7 @@ export class Tween<Value, Obj extends object> extends entity.EntityBase {
     }
   }
 
-  _update() {
+  _onUpdate() {
     if (this._timePassed >= this.options.duration) {
       this._transition = entity.makeTransition();
 
@@ -123,7 +123,7 @@ export class Tween<Value, Obj extends object> extends entity.EntityBase {
     }
   }
 
-  _teardown() {
+  _onDeactivate() {
     if (this.options.onTeardown) {
       this.options.onTeardown();
     }

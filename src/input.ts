@@ -12,7 +12,7 @@ export class Keyboard extends entity.EntityBase {
   private _onKeyUpWrapper = this._onKeyUp.bind(this);
   private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
-  _setup() {
+  _onActivate() {
     this._entityConfig.app.view.addEventListener(
       "keydown",
       this._onKeyDownWrapper
@@ -24,7 +24,7 @@ export class Keyboard extends entity.EntityBase {
     );
   }
 
-  _update(frameInfo: entity.FrameInfo) {
+  _onUpdate(frameInfo: entity.FrameInfo) {
     const keyDownSet = _.keys(this.keysDown);
     const lastKeyDownSet = _.keys(this._lastKeysDown);
 
@@ -39,7 +39,7 @@ export class Keyboard extends entity.EntityBase {
     this._lastKeysDown = _.clone(this.keysDown);
   }
 
-  teardown() {
+  deactivate() {
     this._entityConfig.app.view.removeEventListener(
       "keydown",
       this._onKeyDownWrapper
@@ -94,7 +94,7 @@ export class Gamepad extends entity.EntityBase {
     super();
   }
 
-  _setup() {
+  _onActivate() {
     this.axes = [];
 
     this.buttonsDown = {};
@@ -107,7 +107,7 @@ export class Gamepad extends entity.EntityBase {
     // TODO: track events of disconnecting gamepads
   }
 
-  _update(frameInfo: entity.FrameInfo) {
+  _onUpdate(frameInfo: entity.FrameInfo) {
     this._updateState();
   }
 

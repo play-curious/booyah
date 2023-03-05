@@ -282,7 +282,7 @@ export class MenuEntity extends entity.CompositeEntity {
     this.options = util.fillInOptions(options, new MenuEntityOptions());
   }
 
-  _setup() {
+  _onActivate() {
     this.container = new PIXI.Container();
     this.container.name = "menu";
 
@@ -607,7 +607,7 @@ export class MenuEntity extends entity.CompositeEntity {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _update(frameInfo: entity.FrameInfo) {
+  _onUpdate(frameInfo: entity.FrameInfo) {
     if (this.creditsEntity) {
       if (this.creditsEntity.transition) {
         this._deactivateChildEntity(this.creditsEntity);
@@ -616,7 +616,7 @@ export class MenuEntity extends entity.CompositeEntity {
     }
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -722,7 +722,7 @@ export class CreditsEntity extends entity.CompositeEntity {
     this._options = util.fillInOptions(options, new CreditsEntityOptions());
   }
 
-  _setup() {
+  _onActivate() {
     this.container = new PIXI.Container();
 
     let rolesText = "";
@@ -805,7 +805,7 @@ export class CreditsEntity extends entity.CompositeEntity {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -818,7 +818,7 @@ export class LoadingScene extends entity.EntityBase {
   loadingFill: PIXI.Graphics;
   loadingCircle: PIXI.Sprite;
 
-  _setup() {
+  _onActivate() {
     this.progress = 0;
     this.shouldUpdateProgress = true;
 
@@ -874,7 +874,7 @@ export class LoadingScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _update() {
+  _onUpdate() {
     this.loadingCircle.rotation +=
       LOADING_SCENE_SPIN_SPEED * this._lastFrameInfo.timeScale;
 
@@ -891,7 +891,7 @@ export class LoadingScene extends entity.EntityBase {
     }
   }
 
-  _teardown(frameInfo: entity.FrameInfo) {
+  _onDeactivate(frameInfo: entity.FrameInfo) {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -904,7 +904,7 @@ export class LoadingScene extends entity.EntityBase {
 export class ReadyScene extends entity.EntityBase {
   container: PIXI.Container;
 
-  _setup() {
+  _onActivate() {
     this.container = new PIXI.Container();
 
     if (this._entityConfig.directives.splashScreen) {
@@ -938,7 +938,7 @@ export class ReadyScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -946,7 +946,7 @@ export class ReadyScene extends entity.EntityBase {
 export class LoadingErrorScene extends entity.EntityBase {
   container: PIXI.Container;
 
-  _setup() {
+  _onActivate() {
     this.container = new PIXI.Container();
 
     if (this._entityConfig.directives.splashScreen) {
@@ -974,7 +974,7 @@ export class LoadingErrorScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -982,7 +982,7 @@ export class LoadingErrorScene extends entity.EntityBase {
 export class DoneScene extends entity.EntityBase {
   container: PIXI.Container;
 
-  _setup() {
+  _onActivate() {
     this.container = new PIXI.Container();
 
     if (this._entityConfig.directives.splashScreen) {
@@ -1015,7 +1015,7 @@ export class DoneScene extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
   }
 }
@@ -1314,7 +1314,7 @@ function doneLoading() {
   changeGameState("playing");
 
   // Remove loading screen
-  loadingScene?.teardown(lastFrameInfo);
+  loadingScene?.deactivate(lastFrameInfo);
   loadingScene = null;
 
   // The new rootEntity will contain all the sub entities
@@ -1348,7 +1348,7 @@ function doneLoading() {
 
   setupVisibilityDetection();
 
-  gameEntity.setup(lastFrameInfo, rootConfig, entity.makeTransition());
+  gameEntity.activate(lastFrameInfo, rootConfig, entity.makeTransition());
 }
 
 /** Detect when the page is not shown, and pause the game */
@@ -1480,7 +1480,7 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene = new LoadingScene();
 
       // The loading scene doesn't get the full entityConfig
-      loadingScene.setup(frameInfo, rootConfig, entity.makeTransition());
+      loadingScene.activate(frameInfo, rootConfig, entity.makeTransition());
 
       rootConfig.app.ticker.add(update);
 
@@ -1494,11 +1494,11 @@ export function go(directives: Partial<Directives> = {}) {
       console.error("Error during load", err);
 
       // Replace loading scene with loading error
-      loadingScene?.teardown(frameInfo);
+      loadingScene?.deactivate(frameInfo);
       loadingScene = null;
 
       loadingErrorScene = new LoadingErrorScene();
-      getRootEntity().setup(frameInfo, rootConfig, entity.makeTransition());
+      getRootEntity().activate(frameInfo, rootConfig, entity.makeTransition());
 
       throw err;
     });

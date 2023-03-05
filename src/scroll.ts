@@ -72,7 +72,7 @@ export class Scrollbox extends entity.EntityBase {
     });
   }
 
-  _setup() {
+  _onActivate() {
     // Last pointerdown event
     this.pointerDown = null;
 
@@ -123,7 +123,7 @@ export class Scrollbox extends entity.EntityBase {
     this.refresh();
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
 
     if (this.options.wheelScroll) {

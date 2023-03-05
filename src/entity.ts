@@ -19,7 +19,10 @@ export function cloneData<T = any>(o: T): T {
   return JSON.parse(JSON.stringify(o));
 }
 
-export interface EventSource {
+/**
+ * Event source that uses a Node.js-like interface, in contrast to the DOM events pattern using `addEventListener()`.
+ */
+export interface NodeEventSource {
   on(type: string, listener: () => void): void;
   once(type: string, listener: () => void): void;
   off(type: string, listener: () => void): void;
@@ -27,7 +30,7 @@ export interface EventSource {
 }
 
 export interface IEventListener {
-  emitter: EventSource;
+  emitter: NodeEventSource;
   event: string;
   cb: () => void;
 }
@@ -101,19 +104,19 @@ export type ReloadMemento = {
  * When creating a new entity, you most likely want to extend EntityBase or CompositeEntity,
  * which both implement this interface and do the busywork for you.
  **/
-export interface Entity extends EventSource {
+export interface Entity extends NodeEventSource {
   readonly isSetup: boolean;
   readonly transition: Transition;
   readonly children: Record<string, Entity>;
 
-  setup(
+  activate(
     frameInfo: FrameInfo,
     entityConfig: EntityConfig,
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void;
   update(frameInfo: FrameInfo): void;
-  teardown(frameInfo: FrameInfo): void;
+  deactivate(frameInfo: FrameInfo): void;
   onSignal(frameInfo: FrameInfo, signal: string, data?: any): void;
   makeReloadMemento(): ReloadMemento;
 }
@@ -124,8 +127,8 @@ export interface Entity extends EventSource {
  An entity has the following lifecycle:
  1. It is instantiated using the contructor.
  Only parameters specific to the entity should be passed here.
- The entity should not make any changes to the environment here, it should wait for setup().
- 2. setup() is called just once, with a configuration.
+ The entity should not make any changes to the environment here, it should wait for activate().
+ 2. activate() is called just once, with a configuration.
  This is when the entity should add dispaly objects  to the scene, or subscribe to events.
  The typical entityConfig contains { app, preloader, narrator, jukebox, container }
  3. update() is called one or more times, with options.
@@ -133,12 +136,12 @@ export interface Entity extends EventSource {
  If the entity wishes to be terminated, it should set this._transition to a truthy value.
  Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
  For more complicated transitions, it can return an object like { name: "", params: {} }
- 4. teardown() is called just once.
+ 4. deactivate() is called just once.
  The entity should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
 
  The base class will check that this lifecyle is respected, and will log errors to signal any problems.
 
- In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
+ In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _onActivate(), _onUpdate(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
 export abstract class EntityBase extends EventEmitter implements Entity {
@@ -154,13 +157,13 @@ export abstract class EntityBase extends EventEmitter implements Entity {
     return this._entityConfig;
   }
 
-  public setup(
+  public activate(
     frameInfo: FrameInfo,
     entityConfig: EntityConfig,
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void {
-    if (this._isSetup) throw new Error("setup() called twice");
+    if (this._isSetup) throw new Error("activate() called twice");
 
     this._entityConfig = entityConfig;
     this._lastFrameInfo = frameInfo;
@@ -172,38 +175,44 @@ export abstract class EntityBase extends EventEmitter implements Entity {
       this._reloadMemento = reloadMemento;
     else delete this._reloadMemento;
 
-    this._setup(frameInfo, entityConfig, enteringTransition, reloadMemento);
+    this._onActivate(
+      frameInfo,
+      entityConfig,
+      enteringTransition,
+      reloadMemento
+    );
   }
 
   public update(frameInfo: FrameInfo): void {
-    if (!this._isSetup) throw new Error("update() called before setup()");
+    if (!this._isSetup) throw new Error("update() called before activate()");
     if (this._transition)
       throw new Error("update() called despite requesting transition");
 
     this._lastFrameInfo = frameInfo;
-    this._update(frameInfo);
+    this._onUpdate(frameInfo);
   }
 
-  public teardown(frameInfo: FrameInfo): void {
-    if (!this._isSetup) throw new Error("teardown() called before setup()");
+  public deactivate(frameInfo: FrameInfo): void {
+    if (!this._isSetup)
+      throw new Error("deactivate() called before activate()");
 
     this._lastFrameInfo = frameInfo;
-    this._teardown(frameInfo);
+    this._onDeactivate(frameInfo);
 
-    this._off(); // Remove all event listeners
+    this._unsubscribe(); // Remove all event listeners
 
     this._isSetup = false;
   }
 
   public onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
-    if (!this._isSetup) throw new Error("onSignal() called before setup()");
+    if (!this._isSetup) throw new Error("onSignal() called before activate()");
 
     this._lastFrameInfo = frameInfo;
     this._onSignal(frameInfo, signal, data);
   }
 
-  protected _on(
-    emitter: EventSource,
+  protected _subscribe(
+    emitter: NodeEventSource,
     event: string,
     cb: (...args: any) => void
   ): void {
@@ -211,8 +220,8 @@ export abstract class EntityBase extends EventEmitter implements Entity {
     emitter.on(event, cb);
   }
 
-  protected _once(
-    emitter: EventSource,
+  protected _subscribeOnce(
+    emitter: NodeEventSource,
     event: string,
     cb: (...args: any) => void
   ): void {
@@ -221,8 +230,8 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   }
 
   // if `cb` is null, will remove all event listeners for the given emitter and event
-  protected _off(
-    emitter?: EventSource,
+  protected _unsubscribe(
+    emitter?: NodeEventSource,
     event?: string,
     cb?: (...args: any) => void
   ): void {
@@ -257,7 +266,7 @@ export abstract class EntityBase extends EventEmitter implements Entity {
   }
   public makeReloadMemento(): ReloadMemento {
     if (!this._isSetup)
-      throw new Error("makeReloadMemento() called before setup()");
+      throw new Error("makeReloadMemento() called before activate()");
 
     const childMementos: Record<string, ReloadMemento> = {};
     for (const childId in this.children) {
@@ -272,14 +281,14 @@ export abstract class EntityBase extends EventEmitter implements Entity {
     };
   }
 
-  protected _setup(
+  protected _onActivate(
     frameInfo: FrameInfo,
     entityConfig: EntityConfig,
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ) {}
-  protected _update(frameInfo: FrameInfo) {}
-  protected _teardown(frameInfo: FrameInfo) {}
+  protected _onUpdate(frameInfo: FrameInfo) {}
+  protected _onDeactivate(frameInfo: FrameInfo) {}
   protected _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {}
   /** By default, an entity be automatically reloaded */
   protected _makeReloadMementoData(): ReloadMementoData {
@@ -296,7 +305,7 @@ export class TransitoryEntity extends EntityBase {
     super();
   }
 
-  _setup() {
+  _onActivate() {
     this._transition = this.requestTransition;
   }
 }
@@ -317,13 +326,13 @@ export class ActivateChildEntityOptions {
 export abstract class CompositeEntity extends EntityBase {
   protected _childEntities: Record<string, Entity> = {};
 
-  public setup(
+  public activate(
     frameInfo: FrameInfo,
     entityConfig: EntityConfig,
     enteringTransition: Transition,
     reloadMemento?: ReloadMemento
   ): void {
-    super.setup(frameInfo, entityConfig, enteringTransition, reloadMemento);
+    super.activate(frameInfo, entityConfig, enteringTransition, reloadMemento);
   }
   /**
    * By default, updates all child entities and remove those that have a transition
@@ -335,10 +344,10 @@ export abstract class CompositeEntity extends EntityBase {
     this._updateChildEntities();
   }
 
-  public teardown(frameInfo: FrameInfo): void {
+  public deactivate(frameInfo: FrameInfo): void {
     this._deactivateAllChildEntities();
 
-    super.teardown(frameInfo);
+    super.deactivate(frameInfo);
   }
 
   public onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
@@ -384,7 +393,7 @@ export abstract class CompositeEntity extends EntityBase {
     this._childEntities[childId] = entity;
 
     const childConfig = processEntityConfig(this._entityConfig, options.config);
-    entity.setup(
+    entity.activate(
       this._lastFrameInfo,
       childConfig,
       enteringTransition,
@@ -409,7 +418,7 @@ export abstract class CompositeEntity extends EntityBase {
     }
     if (!childId) throw new Error("Cannot find entity to remove");
 
-    entity.teardown(this._lastFrameInfo);
+    entity.deactivate(this._lastFrameInfo);
 
     delete this._childEntities[childId];
 
@@ -427,7 +436,7 @@ export abstract class CompositeEntity extends EntityBase {
       const childEntity = this._childEntities[id];
 
       if (childEntity.transition) {
-        childEntity.teardown(this._lastFrameInfo);
+        childEntity.deactivate(this._lastFrameInfo);
         delete this._childEntities[id];
         this.emit("deactivatedChildEntity", childEntity);
 
@@ -442,7 +451,7 @@ export abstract class CompositeEntity extends EntityBase {
 
   protected _deactivateAllChildEntities() {
     for (const childEntity of Object.values(this._childEntities)) {
-      childEntity.teardown(this._lastFrameInfo);
+      childEntity.deactivate(this._lastFrameInfo);
       this.emit("deactivatedChildEntity", childEntity);
     }
 
@@ -480,13 +489,13 @@ export class ParallelEntity extends CompositeEntity {
     for (const e of entityContexts) this.addChildEntity(e);
   }
 
-  setup(
+  activate(
     frameInfo: FrameInfo,
     entityConfig: EntityConfig,
     enteringTransition?: Transition,
     reloadMemento?: ReloadMemento
   ) {
-    super.setup(frameInfo, entityConfig, enteringTransition, reloadMemento);
+    super.activate(frameInfo, entityConfig, enteringTransition, reloadMemento);
 
     for (const entityContext of this.childEntityContexts) {
       if (entityContext.activated) this.activateChildEntity(entityContext);
@@ -600,10 +609,10 @@ export class ParallelEntity extends CompositeEntity {
     }
   }
 
-  teardown(frameInfo: FrameInfo): void {
+  deactivate(frameInfo: FrameInfo): void {
     this.contextToEntity.clear();
 
-    super.teardown(frameInfo);
+    super.deactivate(frameInfo);
   }
 }
 
@@ -665,7 +674,7 @@ export class EntitySequence extends CompositeEntity {
     }
   }
 
-  _setup() {
+  _onActivate() {
     this.currentEntityIndex =
       (this._reloadMemento?.data.currentEntityIndex as number) ?? 0;
     this.currentEntity = null;
@@ -680,14 +689,14 @@ export class EntitySequence extends CompositeEntity {
     }
   }
 
-  _update() {
+  _onUpdate() {
     if (!this.currentEntity) return;
 
     const transition = this.currentEntity.transition;
     if (transition) this._advance(transition);
   }
 
-  _teardown() {
+  _onDeactivate() {
     this.currentEntity = null;
   }
 
@@ -791,13 +800,13 @@ export class StateMachine extends CompositeEntity {
     }
   }
 
-  setup(
+  activate(
     frameInfo: FrameInfo,
     entityConfig: EntityConfig,
     enteringTransition?: Transition,
     reloadMemento?: ReloadMemento
   ) {
-    super.setup(frameInfo, entityConfig, enteringTransition, reloadMemento);
+    super.activate(frameInfo, entityConfig, enteringTransition, reloadMemento);
 
     this.visitedStates = [];
     this.progress = cloneData(this.options.startingProgress);
@@ -814,7 +823,7 @@ export class StateMachine extends CompositeEntity {
     }
   }
 
-  _update() {
+  _onUpdate() {
     if (!this.state) return;
 
     const transition = this.state.transition;
@@ -858,15 +867,15 @@ export class StateMachine extends CompositeEntity {
     }
   }
 
-  _teardown() {
+  _onDeactivate() {
     this.state = null;
     this.lastTransition = null;
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
     if (signal === "reset") {
-      this.teardown(frameInfo);
-      this.setup(frameInfo, this._entityConfig, this._enteringTransition);
+      this.deactivate(frameInfo);
+      this.activate(frameInfo, this._entityConfig, this._enteringTransition);
     }
   }
 
@@ -955,13 +964,13 @@ export function makeTransitionTable(table: {
 }
 
 export interface FunctionalEntityFunctions {
-  setup: (
+  activate: (
     frameInfo: FrameInfo,
     entityConfig: any,
     entity: FunctionalEntity
   ) => void;
   update: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
-  teardown: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
+  deactivate: (frameInfo: FrameInfo, entity: FunctionalEntity) => void;
   onSignal: (
     frameInfo: FrameInfo,
     signal: string,
@@ -981,8 +990,8 @@ export interface FunctionalEntityFunctions {
 
   Example usage:
     new FunctionalEntity({
-      setup: (entityConfig) => console.log("setup", entityConfig),
-      teardown: () => console.log("teardown"),
+      activate: (entityConfig) => console.log("activate", entityConfig),
+      deactivate: () => console.log("deactivate"),
     });
 */
 export class FunctionalEntity extends CompositeEntity {
@@ -990,12 +999,12 @@ export class FunctionalEntity extends CompositeEntity {
     super();
   }
 
-  _setup() {
-    if (this.functions.setup)
-      this.functions.setup(this._lastFrameInfo, this._entityConfig, this);
+  _onActivate() {
+    if (this.functions.activate)
+      this.functions.activate(this._lastFrameInfo, this._entityConfig, this);
   }
 
-  _update() {
+  _onUpdate() {
     if (this.functions.update) this.functions.update(this._lastFrameInfo, this);
     if (this.functions.requestTransition) {
       const result = this.functions.requestTransition(
@@ -1013,9 +1022,9 @@ export class FunctionalEntity extends CompositeEntity {
     }
   }
 
-  _teardown(frameInfo: FrameInfo) {
-    if (this.functions.teardown)
-      this.functions.teardown(this._lastFrameInfo, this);
+  _onDeactivate(frameInfo: FrameInfo) {
+    if (this.functions.deactivate)
+      this.functions.deactivate(this._lastFrameInfo, this);
   }
 
   _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
@@ -1026,7 +1035,7 @@ export class FunctionalEntity extends CompositeEntity {
 
 // TODO: rename to lambda entity?
 /**
-  An entity that calls a provided function just once (in setup), and immediately requests a transition.
+  An entity that calls a provided function just once (in activate), and immediately requests a transition.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class FunctionCallEntity extends EntityBase {
@@ -1035,7 +1044,7 @@ export class FunctionCallEntity extends EntityBase {
     this.that = that || this;
   }
 
-  _setup() {
+  _onActivate() {
     this.f.call(this.that);
 
     this._transition = makeTransition();
@@ -1051,11 +1060,11 @@ export class WaitingEntity extends EntityBase {
     super();
   }
 
-  _setup() {
+  _onActivate() {
     this._accumulatedTime = 0;
   }
 
-  _update(frameInfo: FrameInfo) {
+  _onUpdate(frameInfo: FrameInfo) {
     this._accumulatedTime += frameInfo.timeSinceLastFrame;
 
     if (this._accumulatedTime >= this.wait) {
@@ -1081,7 +1090,7 @@ export class Decision extends EntityBase {
     super();
   }
 
-  _setup() {
+  _onActivate() {
     this._transition = this.f();
   }
 }
@@ -1092,15 +1101,15 @@ export class Decision extends EntityBase {
  */
 export class WaitForEvent extends EntityBase {
   constructor(
-    public emitter: EventSource,
+    public emitter: NodeEventSource,
     public eventName: string,
     public handler: (...args: any) => Transition | boolean = _.constant(true)
   ) {
     super();
   }
 
-  _setup() {
-    this._on(this.emitter, this.eventName, this._handleEvent);
+  _onActivate() {
+    this._subscribe(this.emitter, this.eventName, this._handleEvent);
   }
 
   _handleEvent(...args: any) {
@@ -1138,7 +1147,7 @@ export class Alternative extends CompositeEntity {
     );
   }
 
-  _setup(frameInfo: FrameInfo) {
+  _onActivate(frameInfo: FrameInfo) {
     for (const entityContext of this.entityContexts) {
       this._activateChildEntity(entityContext.entity, {
         config: entityContext.config,
@@ -1148,7 +1157,7 @@ export class Alternative extends CompositeEntity {
     this._checkForTransition();
   }
 
-  _update(frameInfo: FrameInfo) {
+  _onUpdate(frameInfo: FrameInfo) {
     this._checkForTransition();
   }
 

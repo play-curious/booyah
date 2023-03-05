@@ -69,7 +69,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     return this.lines[this.lineIndex + 1];
   }
 
-  _setup() {
+  _onActivate() {
     this.subtitles = this._entityConfig.subtitles;
 
     this.container = new PIXI.Container();
@@ -106,7 +106,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._updateShowSubtitles();
   }
 
-  _update() {
+  _onUpdate() {
     if (!this.name || this._lastFrameInfo.gameState !== "playing") return;
 
     this.timeSincePlay += this._lastFrameInfo.timeSinceLastFrame;
@@ -114,7 +114,7 @@ export class SubtitleNarrator extends entity.CompositeEntity {
     this._updateSubtitle();
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -216,7 +216,7 @@ export class SpeakerDisplay extends entity.EntityBase {
     super();
   }
 
-  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  _onActivate(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     this.container = new PIXI.Container();
     this.container.position.copyFrom(this.position);
 
@@ -242,7 +242,7 @@ export class SpeakerDisplay extends entity.EntityBase {
     this._entityConfig.container.addChild(this.container);
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.container.removeChild(this.container);
   }
 
@@ -259,7 +259,7 @@ export class SingleNarration extends entity.EntityBase {
     super();
   }
 
-  _setup() {
+  _onActivate() {
     this._entityConfig.narrator.changeKey(this.narrationKey);
     this._on(this._entityConfig.narrator, "done", this._onNarrationDone);
   }
@@ -268,7 +268,7 @@ export class SingleNarration extends entity.EntityBase {
     if (key === this.narrationKey) this._transition = entity.makeTransition();
   }
 
-  _teardown() {
+  _onDeactivate() {
     this._entityConfig.narrator.stop();
   }
 }
@@ -281,7 +281,7 @@ export class RandomNarration extends entity.EntityBase {
     super();
   }
 
-  _setup() {
+  _onActivate() {
     // If this is the first time or we have played everything, make a new playlist
     if (this.narrationPlaylist.length === 0) {
       this.narrationPlaylist = _.shuffle(this.narrationKeys);
@@ -292,7 +292,7 @@ export class RandomNarration extends entity.EntityBase {
     this._entityConfig.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  _update(frameInfo: entity.FrameInfo) {
+  _onUpdate(frameInfo: entity.FrameInfo) {
     if (
       frameInfo.timeSinceStart >=
       this._entityConfig.narrator.narrationDuration(this.currentKey)
@@ -301,7 +301,7 @@ export class RandomNarration extends entity.EntityBase {
     }
   }
 
-  _teardown() {
+  _onDeactivate() {
     this.currentKey = null;
   }
 }
@@ -334,7 +334,7 @@ export class VideoScene extends entity.CompositeEntity {
     this._options = util.fillInOptions(options, new VideoSceneOptions());
   }
 
-  _setup(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
+  _onActivate(frameInfo: entity.FrameInfo, entityConfig: entity.EntityConfig) {
     if (this._options.narration) {
       this.narration = new SingleNarration(this._options.narration);
       this._activateChildEntity(this.narration);
@@ -363,7 +363,7 @@ export class VideoScene extends entity.CompositeEntity {
     this._activateChildEntity(this.skipButton);
   }
 
-  _update(frameInfo: entity.FrameInfo) {
+  _onUpdate(frameInfo: entity.FrameInfo) {
     if (
       (this._options.video && this.video.transition) ||
       this.skipButton.transition
@@ -372,7 +372,7 @@ export class VideoScene extends entity.CompositeEntity {
     }
   }
 
-  _teardown() {
+  _onDeactivate() {
     if (this.previousMusic) this._entityConfig.jukebox.play(this.previousMusic);
   }
 }
