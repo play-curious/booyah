@@ -9,11 +9,7 @@ function makeEntityConfig(): entity.EntityConfig {
 
 function makeFrameInfo(): entity.FrameInfo {
   return {
-    playTime: 1000,
-    timeSinceStart: 9000,
     timeSinceLastFrame: 1 / 60,
-    timeScale: 1,
-    gameState: "playing",
   };
 }
 

@@ -365,21 +365,6 @@ export function setPropertyInTree(root: Root, name: string, value: any): void {
   }
 }
 
-export type AnimatedSpriteTransitionCallback = boolean | (() => unknown)
-
-export function makeAnimatedSprite(
-  resource: PIXI.LoaderResource,
-  options?: {
-    resetFrame?: boolean;
-    transitionOnComplete?: AnimatedSpriteTransitionCallback;
-  }
-): entity.AnimatedSpriteEntity {
-  return new entity.AnimatedSpriteEntity(
-    new PIXI.AnimatedSprite(Object.values(resource.textures)),
-    options
-  );
-}
-
 /**
  * Determines which language to show the game in.
  *

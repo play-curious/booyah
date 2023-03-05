@@ -1,12 +1,35 @@
-import * as PIXI from "pixi.js";
+import { EventEmitter } from "eventemitter3";
+import * as _ from "underscore";
 
-import _ from "underscore";
-import * as util from "./util";
+/**
+ * Fills in the mising options from the provided defaults
+ * @param options Options provided by the caller
+ * @param defaults Defaults provided by the author
+ */
+export function fillInOptions<T extends {}>(
+  options: Partial<T>,
+  defaults: T
+): T {
+  if (options) return { ...defaults, ...options };
+  else return defaults;
+}
+
+/** Deep clone of JSON-serializable objects */
+export function cloneData<T = any>(o: T): T {
+  return JSON.parse(JSON.stringify(o));
+}
+
+export interface EventSource {
+  on(type: string, listener: () => void): void;
+  once(type: string, listener: () => void): void;
+  off(type: string, listener: () => void): void;
+  emit(type: string, ...args: any[]): void;
+}
 
 export interface IEventListener {
-  emitter: PIXI.utils.EventEmitter;
+  emitter: EventSource;
   event: string;
-  cb: () => any;
+  cb: () => void;
 }
 
 export interface Transition {
@@ -19,7 +42,7 @@ export function makeTransition(name = "default", params = {}) {
 }
 
 export type EntityConfig = {
-  [k: string]: any;
+  readonly [k: string]: any;
 };
 
 export type EntityConfigFactory = (config: EntityConfig) => EntityConfig;
@@ -31,7 +54,8 @@ export function processEntityConfig(
 ): EntityConfig {
   if (!alteredConfig) return entityConfig;
   if (typeof alteredConfig == "function") return alteredConfig(entityConfig);
-  return alteredConfig;
+
+  return Object.assign({}, entityConfig, alteredConfig);
 }
 
 export function extendConfig(values: {}): (
@@ -40,20 +64,8 @@ export function extendConfig(values: {}): (
   return (entityConfig) => _.extend({}, entityConfig, values);
 }
 
-export type GameState =
-  | "preloading"
-  | "loadingFixed"
-  | "ready"
-  | "playing"
-  | "paused"
-  | "done";
-
 export interface FrameInfo {
-  playTime: number;
-  timeSinceStart: number;
   timeSinceLastFrame: number;
-  timeScale: number;
-  gameState: GameState;
 }
 
 export type EntityFactory = (transition: Transition) => Entity;
@@ -89,7 +101,7 @@ export type ReloadMemento = {
  * When creating a new entity, you most likely want to extend EntityBase or CompositeEntity,
  * which both implement this interface and do the busywork for you.
  **/
-export interface Entity extends PIXI.utils.EventEmitter {
+export interface Entity extends EventSource {
   readonly isSetup: boolean;
   readonly transition: Transition;
   readonly children: Record<string, Entity>;
@@ -129,10 +141,7 @@ export interface Entity extends PIXI.utils.EventEmitter {
  In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _setup(), _update(), etc.
  This ensures that the base class behavior of will be called automatically.
  */
-export abstract class EntityBase
-  extends PIXI.utils.EventEmitter
-  implements Entity
-{
+export abstract class EntityBase extends EventEmitter implements Entity {
   protected _entityConfig: EntityConfig;
   protected _lastFrameInfo: FrameInfo;
   protected _enteringTransition: Transition;
@@ -194,26 +203,26 @@ export abstract class EntityBase
   }
 
   protected _on(
-    emitter: PIXI.utils.EventEmitter,
+    emitter: EventSource,
     event: string,
     cb: (...args: any) => void
   ): void {
     this._eventListeners.push({ emitter, event, cb });
-    emitter.on(event, cb, this);
+    emitter.on(event, cb);
   }
 
   protected _once(
-    emitter: PIXI.utils.EventEmitter,
+    emitter: EventSource,
     event: string,
     cb: (...args: any) => void
   ): void {
     this._eventListeners.push({ emitter, event, cb });
-    emitter.once(event, cb, this);
+    emitter.once(event, cb);
   }
 
-  // if @cb is null, will remove all event listeners for the given emitter and event
+  // if `cb` is null, will remove all event listeners for the given emitter and event
   protected _off(
-    emitter?: PIXI.utils.EventEmitter,
+    emitter?: EventSource,
     event?: string,
     cb?: (...args: any) => void
   ): void {
@@ -232,7 +241,7 @@ export abstract class EntityBase
       props
     );
     for (const listener of listenersToRemove)
-      listener.emitter.off(listener.event, listener.cb, this);
+      listener.emitter.off(listener.event, listener.cb);
 
     this._eventListeners = listenersToKeep;
   }
@@ -350,7 +359,7 @@ export abstract class CompositeEntity extends EntityBase {
   ): Entity {
     if (!this.isSetup) throw new Error("CompositeEntity is not yet active");
 
-    options = util.fillInOptions(options, new ActivateChildEntityOptions());
+    options = fillInOptions(options, new ActivateChildEntityOptions());
     if (options.id && options.id in this._childEntities)
       throw new Error("Duplicate child entity id provided");
 
@@ -466,7 +475,7 @@ export class ParallelEntity extends CompositeEntity {
   ) {
     super();
 
-    this.options = util.fillInOptions(options, new ParallelEntityOptions());
+    this.options = fillInOptions(options, new ParallelEntityOptions());
 
     for (const e of entityContexts) this.addChildEntity(e);
   }
@@ -621,7 +630,7 @@ export class EntitySequence extends CompositeEntity {
   ) {
     super();
 
-    this.options = util.fillInOptions(options, new EntitySequenceOptions());
+    this.options = fillInOptions(options, new EntitySequenceOptions());
 
     for (const e of entityContexts) this.addChildEntity(e);
   }
@@ -765,7 +774,7 @@ export class StateMachine extends CompositeEntity {
       }
     }
 
-    this.options = util.fillInOptions(options, new StateMachineOptions());
+    this.options = fillInOptions(options, new StateMachineOptions());
 
     // Ensure all transitions are of the correct type
     if (typeof this.options.startingState === "string")
@@ -791,7 +800,7 @@ export class StateMachine extends CompositeEntity {
     super.setup(frameInfo, entityConfig, enteringTransition, reloadMemento);
 
     this.visitedStates = [];
-    this.progress = util.cloneData(this.options.startingProgress);
+    this.progress = cloneData(this.options.startingProgress);
 
     if (this._reloadMemento) {
       this.visitedStates = this._reloadMemento.data
@@ -1015,6 +1024,7 @@ export class FunctionalEntity extends CompositeEntity {
   }
 }
 
+// TODO: rename to lambda entity?
 /**
   An entity that calls a provided function just once (in setup), and immediately requests a transition.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
@@ -1055,542 +1065,6 @@ export class WaitingEntity extends EntityBase {
 }
 
 /**
-  An entity that creates a new PIXI container in the setup entityConfig for it's children, and manages the container. 
-*/
-export class ContainerEntity extends ParallelEntity {
-  public oldConfig: EntityConfig;
-  public newConfig: EntityConfig;
-  public container: PIXI.Container;
-
-  constructor(
-    entities: Array<ParallelEntityContext | EntityResolvable> = [],
-    public name?: string
-  ) {
-    super(entities);
-  }
-
-  setup(
-    frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
-    enteringTransition: Transition,
-    reloadMemento: ReloadMemento
-  ) {
-    this.oldConfig = entityConfig;
-
-    this.container = new PIXI.Container();
-    this.container.name = this.name;
-    this.oldConfig.container.addChild(this.container);
-
-    this.newConfig = _.extend({}, entityConfig, {
-      container: this.container,
-    });
-
-    super.setup(frameInfo, this.newConfig, enteringTransition, reloadMemento);
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    super.teardown(frameInfo);
-
-    this.oldConfig.container.removeChild(this.container);
-  }
-}
-
-export class VideoEntityOptions {
-  loop = false;
-  scale: PIXI.IPoint | number = 1;
-}
-
-/**
-  Manages a video asset. Can optionally loop the video.
-  Asks for a transition when the video has ended.
-*/
-export class VideoEntity extends EntityBase {
-  public container: PIXI.Container;
-  public videoElement: any;
-  public videoSprite: any;
-  private _options: VideoEntityOptions;
-
-  constructor(public videoName: string, options?: Partial<VideoEntityOptions>) {
-    super();
-
-    this._options = util.fillInOptions(options, new VideoEntityOptions());
-  }
-
-  _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
-    const videoPath = `video/${this.videoName}.mp4`;
-    if (!(videoPath in this._entityConfig.videoAssets)) {
-      throw new Error(`Cannot find video at path "${videoPath}"`);
-    }
-
-    // This container is used so that the video is inserted in the right place,
-    // even if the sprite isn't added until later.
-    this.container = new PIXI.Container();
-    this._entityConfig.container.addChild(this.container);
-
-    this.videoElement = this._entityConfig.videoAssets[videoPath];
-    this.videoElement.loop = this._options.loop;
-    this.videoElement.currentTime = 0;
-
-    this.videoSprite = null;
-
-    // videoElement.play() might not return a promise on older browsers
-    Promise.resolve(this.videoElement.play()).then(() => {
-      // Including a slight delay seems to workaround a bug affecting Firefox
-      window.setTimeout(() => this._startVideo(), 100);
-    });
-  }
-
-  _update(frameInfo: FrameInfo) {
-    if (this.videoElement.ended) this._transition = makeTransition();
-  }
-
-  _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (signal === "pause") {
-      this.videoElement.pause();
-    } else if (signal === "play") {
-      this.videoElement.play();
-    }
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    this.videoElement.pause();
-    this.videoSprite = null;
-    this._entityConfig.container.removeChild(this.container);
-    this.container = null;
-
-    super.teardown(frameInfo);
-  }
-
-  _startVideo() {
-    //@ts-ignore
-    const videoResource = new PIXI.resources.VideoResource(this.videoElement);
-    //@ts-ignore
-    this.videoSprite = PIXI.Sprite.from(videoResource);
-    this.videoSprite.scale.set(this._options.scale);
-    this.container.addChild(this.videoSprite);
-  }
-}
-
-/**
-  Manages a video that is loaded from a remote source, rather than a local asset.
-  Asks for a transition when the video has ended.
-*/
-export class StreamingVideoEntity extends EntityBase {
-  public container: PIXI.Container;
-  public videoElement: HTMLVideoElement;
-  public videoSprite: any;
-  private _options: VideoEntityOptions;
-
-  constructor(public videoURL: string, options?: Partial<VideoEntityOptions>) {
-    super();
-
-    this._options = util.fillInOptions(options, new VideoEntityOptions());
-  }
-
-  _setup(frameInfo: FrameInfo, entityConfig: EntityConfig) {
-    // This container is used so that the video is inserted in the right place,
-    // even if the sprite isn't added until later.
-    this.container = new PIXI.Container();
-
-    {
-      // Make black background
-      const bg = new PIXI.Graphics();
-      bg.beginFill(0);
-      bg.drawRect(
-        0,
-        0,
-        this._entityConfig.app.view.width,
-        this._entityConfig.app.view.height
-      );
-      bg.endFill();
-
-      bg.interactive = true;
-
-      this.container.addChild(bg);
-    }
-
-    {
-      // Make loading animation
-      const loadingText = new PIXI.Text("Loading", {
-        fontSize: 75,
-        fill: 0xffffff,
-      });
-      loadingText.anchor.set(0.5);
-      loadingText.position.set(
-        this._entityConfig.app.view.width / 2,
-        this._entityConfig.app.view.height / 2
-      );
-      this.container.addChild(loadingText);
-    }
-
-    this._entityConfig.container.addChild(this.container);
-
-    this.videoElement = document.createElement("video");
-    this.videoElement.innerHTML += `<source src="${this.videoURL}">`;
-    this.videoElement.setAttribute("crossorigin", "anonymous");
-    this.videoElement.loop = this._options.loop;
-    this.videoElement.currentTime = 0;
-
-    this.videoSprite = null;
-
-    // videoElement.play() might not return a promise on older browsers
-    Promise.resolve(this.videoElement.play()).then(() => {
-      // Including a slight delay seems to workaround a bug affecting Firefox
-      window.setTimeout(() => this._startVideo(), 100);
-    });
-  }
-
-  _update(frameInfo: FrameInfo) {
-    if (this.videoElement.ended) this._transition = makeTransition();
-  }
-
-  _onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    if (signal === "pause") {
-      this.videoElement.pause();
-    } else if (signal === "play") {
-      this.videoElement.play();
-    }
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    this.videoElement.pause();
-    this.videoSprite = null;
-    this._entityConfig.container.removeChild(this.container);
-    this.container = null;
-
-    super.teardown(frameInfo);
-  }
-
-  _startVideo() {
-    //@ts-ignore
-    const videoResource = new PIXI.resources.VideoResource(this.videoElement);
-    //@ts-ignore
-    this.videoSprite = PIXI.Sprite.from(videoResource);
-    this.videoSprite.scale.set(this._options.scale);
-    this.container.addChild(this.videoSprite);
-  }
-}
-
-/** 
-  Creates a toggle switch that has different textures in the "off" and "on" positions.
-*/
-export class ToggleSwitch extends EntityBase {
-  public container: PIXI.Container;
-  public spriteOn: PIXI.Sprite;
-  public spriteOff: PIXI.Sprite;
-  public position: PIXI.Point;
-  public onTexture: PIXI.Texture;
-  public offTexture: PIXI.Texture;
-  public isOn: boolean;
-
-  constructor(options: any) {
-    super();
-
-    util.setupOptions(this, options, {
-      onTexture: util.REQUIRED_OPTION,
-      offTexture: util.REQUIRED_OPTION,
-      isOn: false,
-      position: new PIXI.Point(),
-    });
-  }
-
-  setup(
-    frameInfo: FrameInfo,
-    entityConfig: any,
-    enteringTransition: Transition
-  ) {
-    super.setup(frameInfo, entityConfig, enteringTransition);
-
-    this.container = new PIXI.Container();
-    this.container.position.copyFrom(this.position);
-
-    this.spriteOn = new PIXI.Sprite(this.onTexture);
-    this.spriteOn.interactive = true;
-    this._on(this.spriteOn, "pointertap", this._turnOff);
-    this.container.addChild(this.spriteOn);
-
-    this.spriteOff = new PIXI.Sprite(this.offTexture);
-    this.spriteOff.interactive = true;
-    this._on(this.spriteOff, "pointertap", this._turnOn);
-    this.container.addChild(this.spriteOff);
-
-    this._updateVisibility();
-
-    this._entityConfig.container.addChild(this.container);
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    this._entityConfig.container.removeChild(this.container);
-
-    super.teardown(frameInfo);
-  }
-
-  setIsOn(isOn: boolean, silent = false) {
-    this.isOn = isOn;
-    this._updateVisibility();
-
-    if (!silent) this.emit("change", this.isOn);
-  }
-
-  _turnOff() {
-    this.isOn = false;
-    this._updateVisibility();
-    this.emit("change", this.isOn);
-  }
-
-  _turnOn() {
-    this.isOn = true;
-    this._updateVisibility();
-    this.emit("change", this.isOn);
-  }
-
-  _updateVisibility() {
-    this.spriteOn.visible = this.isOn;
-    this.spriteOff.visible = !this.isOn;
-  }
-}
-
-/** 
-  Manages an animated sprite in PIXI, pausing the sprite during pauses.
-
-  When the animation completes (if the animation is not set to loop, then this will request a transition)
-
- Emits:
- - beforeTearDown
-*/
-export class AnimatedSpriteEntity extends EntityBase {
-  constructor(
-    public readonly sprite: PIXI.AnimatedSprite,
-    public options?: {
-      resetFrame?: boolean;
-      transitionOnComplete?: boolean | (() => any);
-    }
-  ) {
-    super();
-    this.options = this.options ?? {};
-    this.options.resetFrame = this.options?.resetFrame ?? true;
-    this.options.transitionOnComplete =
-      this.options?.transitionOnComplete ?? true;
-  }
-
-  _setup() {
-    // No warning
-    this.sprite.autoUpdate = false;
-
-    if (this.sprite.onComplete)
-      console.warn(
-        "Warning: overwriting this.sprite.onComplete value:",
-        this._onAnimationComplete.bind(this)
-      );
-    this.sprite.onComplete = this._onAnimationComplete.bind(this);
-
-    if (!this._entityConfig.container.children.includes(this.sprite))
-      this._entityConfig.container.addChild(this.sprite);
-
-    if (this.options.resetFrame) this.sprite.gotoAndPlay(0);
-    else this.sprite.play();
-  }
-
-  _update(frameInfo: FrameInfo) {
-    this.sprite.update(frameInfo.timeScale);
-  }
-
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    switch (signal) {
-      case "pause":
-        this.sprite.stop();
-        break;
-      case "play":
-        this.sprite.play();
-        break;
-    }
-  }
-
-  _teardown(frameInfo: FrameInfo) {
-    this.sprite.stop();
-    this.sprite.onComplete = null;
-    if (this.options.resetFrame)
-      this._entityConfig.container.removeChild(this.sprite);
-  }
-
-  private _onAnimationComplete() {
-    if (this.options.transitionOnComplete === true) {
-      this._transition = makeTransition();
-    } else if (this.options.transitionOnComplete) {
-      this.options.transitionOnComplete();
-    }
-  }
-}
-
-export class DisplayObjectEntity<
-  Type extends PIXI.DisplayObject = PIXI.DisplayObject
-> extends EntityBase {
-  constructor(public readonly displayObject: Type) {
-    super();
-  }
-
-  _setup() {
-    this._entityConfig.container.addChild(this.displayObject);
-  }
-
-  _teardown() {
-    this._entityConfig.container.removeChild(this.displayObject);
-  }
-}
-
-export class SkipButtonOptions {
-  position: PIXI.IPointData;
-}
-
-export class SkipButton extends EntityBase {
-  public sprite: PIXI.Sprite;
-
-  private _options: SkipButtonOptions;
-
-  constructor(options?: Partial<SkipButtonOptions>) {
-    super();
-
-    this._options = util.fillInOptions(options, new SkipButtonOptions());
-  }
-
-  setup(
-    frameInfo: FrameInfo,
-    entityConfig: EntityConfig,
-    enteringTransition: Transition
-  ) {
-    super.setup(frameInfo, entityConfig, enteringTransition);
-
-    this.sprite = new PIXI.Sprite(
-      this._entityConfig.app.loader.resources[
-        this._entityConfig.directives.graphics.skip
-      ].texture
-    );
-    this.sprite.anchor.set(0.5);
-
-    if (this._options.position) {
-      this.sprite.position.copyFrom(this._options.position);
-    } else {
-      this.sprite.position.set(
-        this._entityConfig.app.screen.width - 50,
-        this._entityConfig.app.screen.height - 50
-      );
-    }
-
-    this.sprite.interactive = true;
-    this._on(this.sprite, "pointertap", this._onSkip);
-
-    this._entityConfig.container.addChild(this.sprite);
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    this._entityConfig.container.removeChild(this.sprite);
-
-    super.teardown(frameInfo);
-  }
-
-  _onSkip() {
-    this._transition = makeTransition("skip");
-    this.emit("skip");
-  }
-}
-
-/**
-  Similar in spirit to ParallelEntity, but does not hold onto entities that have completed. 
-  Instead, entities that have completed are removed after teardown 
-*/
-export class DeflatingEntity extends EntityBase {
-  public entities: Entity[] = [];
-  public autoTransition: boolean;
-
-  /** Options include:
-        autoTransition: If true, requests transition when the entity has no children (default true)
-  */
-  constructor(options: any = {}) {
-    super();
-
-    util.setupOptions(this, options, {
-      autoTransition: true,
-    });
-  }
-
-  setup(
-    frameInfo: FrameInfo,
-    entityConfig: any,
-    enteringTransition: Transition
-  ) {
-    super.setup(frameInfo, entityConfig, enteringTransition);
-
-    for (const entity of this.entities) {
-      if (!entity.isSetup) {
-        entity.setup(frameInfo, entityConfig, makeTransition());
-      }
-    }
-  }
-
-  update(frameInfo: FrameInfo) {
-    super.update(frameInfo);
-
-    // Slightly complicated for-loop so that we can remove entities that are complete
-    for (let i = 0; i < this.entities.length; ) {
-      const entity = this.entities[i];
-      entity.update(frameInfo);
-
-      if (entity.transition) {
-        console.debug("Cleanup up child entity", entity);
-
-        if (entity.isSetup) {
-          entity.teardown(frameInfo);
-        }
-
-        this.entities.splice(i, 1);
-      } else {
-        i++;
-      }
-    }
-
-    if (this.autoTransition && this.entities.length == 0) {
-      this._transition = makeTransition();
-    }
-  }
-
-  teardown(frameInfo: FrameInfo) {
-    for (const entity of this.entities) {
-      entity.teardown(frameInfo);
-    }
-
-    super.teardown(frameInfo);
-  }
-
-  onSignal(frameInfo: FrameInfo, signal: string, data?: any) {
-    super.onSignal(frameInfo, signal, data);
-
-    for (const entity of this.entities) {
-      entity.onSignal(frameInfo, signal, data);
-    }
-  }
-
-  addEntity(entity: Entity) {
-    // If we have already been setup, setup this new entity
-    if (this.isSetup && !entity.isSetup) {
-      entity.setup(this._lastFrameInfo, this._entityConfig, makeTransition());
-    }
-
-    this.entities.push(entity);
-  }
-
-  removeEntity(entity: Entity) {
-    const index = this.entities.indexOf(entity);
-    if (index === -1) throw new Error("Cannot find entity to remove");
-
-    if (entity.isSetup) {
-      entity.teardown(this._lastFrameInfo);
-    }
-
-    this.entities.splice(index, 1);
-  }
-}
-
-/**
  * Does not request a transition until done() is called with a given transition
  */
 export class Block extends EntityBase {
@@ -1618,7 +1092,7 @@ export class Decision extends EntityBase {
  */
 export class WaitForEvent extends EntityBase {
   constructor(
-    public emitter: PIXI.utils.EventEmitter,
+    public emitter: EventSource,
     public eventName: string,
     public handler: (...args: any) => Transition | boolean = _.constant(true)
   ) {
