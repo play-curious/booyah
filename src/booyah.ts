@@ -598,7 +598,7 @@ export class MenuChip extends chip.CompositeChip {
 
   _onTick(tickInfo: chip.TickInfo) {
     if (this.creditsChip) {
-      if (this.creditsChip.signal) {
+      if (this.creditsChip.outputSignal) {
         this._deactivateChildChip(this.creditsChip);
         this.creditsChip = null;
       }

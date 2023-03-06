@@ -30,10 +30,10 @@ class MockChip extends chip.ChipBase {
 
   // Allow the tests to set the signal directly
   // Need to rewrite the getter as well to make TypeScript happy
-  public get signal(): chip.Signal {
+  public get outputSignal(): chip.Signal {
     return this._outputSignal;
   }
-  public set signal(signal: chip.Signal) {
+  public set outputSignal(signal: chip.Signal) {
     this._outputSignal = signal;
   }
 
@@ -194,7 +194,7 @@ describe("CompositeChip", () => {
     // Have middle child request signal on 2nd call
     let requestSignal = false;
     children[1]._onTick = jest.fn(() => {
-      if (requestSignal) children[1].signal = chip.makeSignal();
+      if (requestSignal) children[1].outputSignal = chip.makeSignal();
     });
 
     // Run once
@@ -221,7 +221,7 @@ describe("CompositeChip", () => {
 
     // Run once
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
-    children[1].signal = chip.makeSignal();
+    children[1].outputSignal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
     expect(deactivatedCallback).toBeCalledTimes(1);
@@ -343,19 +343,19 @@ describe("ChipSequence", () => {
     // Run 1st child twice, then request signal
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[0].signal = chip.makeSignal();
+    children[0].outputSignal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
     // Run 2nd child twice, then request signal
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[1].signal = chip.makeSignal();
+    children[1].outputSignal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
     // Run 3rd child twice, then request signal
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[2].signal = chip.makeSignal("third");
+    children[2].outputSignal = chip.makeSignal("third");
     parent.tick(makeFrameInfo());
 
     // Each child should be updated three times
@@ -366,7 +366,7 @@ describe("ChipSequence", () => {
     }
 
     // Final signal should be that of the 3rd child
-    expect(parent.signal.name).toBe("third");
+    expect(parent.outputSignal.name).toBe("third");
   });
 
   test("loops", () => {
@@ -377,12 +377,12 @@ describe("ChipSequence", () => {
 
     // Run 1st child, then request signal
     parent.tick(makeFrameInfo());
-    children[0].signal = chip.makeSignal();
+    children[0].outputSignal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
     // Run 2nd child, then request signal
     parent.tick(makeFrameInfo());
-    children[1].signal = chip.makeSignal();
+    children[1].outputSignal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
     // Run 1st child again
@@ -399,7 +399,7 @@ describe("ChipSequence", () => {
     expect(children[1]._onTerminate).toBeCalledTimes(1);
 
     // There should be no requested signal
-    expect(parent.signal).toBeFalsy();
+    expect(parent.outputSignal).toBeFalsy();
   });
 
   test("skips", () => {
@@ -425,7 +425,7 @@ describe("ChipSequence", () => {
     expect(children[0]._onTerminate).toBeCalledTimes(1);
 
     // There should be a skipped signal
-    expect(parent.signal.name).toBe("skip");
+    expect(parent.outputSignal.name).toBe("skip");
   });
 });
 
@@ -457,14 +457,14 @@ describe("StateMachine", () => {
     // Run once, then request signal
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.start.signal = chip.makeSignal("end");
+    states.start.outputSignal = chip.makeSignal("end");
     stateMachine.tick(makeFrameInfo());
 
     expect(states.start._onActivate).toBeCalledTimes(1);
     expect(states.start._onTick).toBeCalledTimes(1);
     expect(states.start._onTerminate).toBeCalledTimes(1);
 
-    expect(stateMachine.signal.name).toBe("end");
+    expect(stateMachine.outputSignal.name).toBe("end");
     expect(stateMachine.visitedStates).toContainEqual(chip.makeSignal("start"));
   });
 
@@ -477,7 +477,7 @@ describe("StateMachine", () => {
     // Run once, then request signal
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.signal = chip.makeSignal("b");
+    states.a.outputSignal = chip.makeSignal("b");
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
@@ -500,11 +500,11 @@ describe("StateMachine", () => {
     // Run once, then request signal
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.signal = chip.makeSignal();
+    states.a.outputSignal = chip.makeSignal();
     stateMachine.tick(makeFrameInfo());
 
     // Signal back again
-    states.b.signal = chip.makeSignal();
+    states.b.outputSignal = chip.makeSignal();
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(2);
@@ -549,7 +549,7 @@ describe("StateMachine", () => {
     stateMachine.tick(makeFrameInfo());
 
     const signal = chip.makeSignal("done", { x: "y" });
-    states.a.signal = signal;
+    states.a.outputSignal = signal;
 
     stateMachine.tick(makeFrameInfo());
 

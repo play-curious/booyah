@@ -112,7 +112,7 @@ export type ReloadMemento = {
  **/
 export interface Chip extends NodeEventSource {
   readonly state: ChipState;
-  readonly signal: Signal;
+  readonly outputSignal: Signal;
   readonly children: Record<string, Chip>;
 
   activate(
@@ -274,7 +274,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   public get children(): Record<string, Chip> {
     return {};
   }
-  public get signal(): Signal {
+  public get outputSignal(): Signal {
     return this._outputSignal;
   }
   public get state(): ChipState {
@@ -451,7 +451,7 @@ export abstract class CompositeChip extends ChipBase {
     for (const id in this._childChips) {
       const childChip = this._childChips[id];
 
-      if (childChip.signal) {
+      if (childChip.outputSignal) {
         childChip.terminate(this._lastFrameInfo);
         delete this._childChips[id];
         this.emit("deactivatedChildChip", childChip);
@@ -711,7 +711,7 @@ export class ChipSequence extends CompositeChip {
   _onTick() {
     if (!this.currentChip) return;
 
-    const signal = this.currentChip.signal;
+    const signal = this.currentChip.outputSignal;
     if (signal) this._advance(signal);
   }
 
@@ -844,7 +844,7 @@ export class StateMachine extends CompositeChip {
   _onTick() {
     if (!this.activeChildChip) return;
 
-    const signal = this.activeChildChip.signal;
+    const signal = this.activeChildChip.outputSignal;
     if (signal) {
       let nextStateDescriptor: Signal;
       // The signal could directly be the name of another state, or ending state
@@ -1179,7 +1179,7 @@ export class Alternative extends CompositeChip {
 
   private _checkForSignal(): void {
     for (let i = 0; i < this.chipActivationInfos.length; i++) {
-      if (this._childChips[i].signal) {
+      if (this._childChips[i].outputSignal) {
         this._outputSignal = this.chipActivationInfos[i].signal;
         break;
       }
