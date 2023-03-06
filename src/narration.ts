@@ -132,7 +132,7 @@ export class SubtitleNarrator extends chip.CompositeChip {
     this._stopNarration();
   }
 
-  _onSignal(frameInfo: chip.FrameInfo, signal: string) {
+  _onSignal(tickInfo: chip.TickInfo, signal: string) {
     if (signal === "reset") this._stopNarration();
   }
 
@@ -215,7 +215,7 @@ export class SpeakerDisplay extends chip.ChipBase {
     super();
   }
 
-  _onActivate(frameInfo: chip.FrameInfo, chipConfig: chip.ChipConfig) {
+  _onActivate(tickInfo: chip.TickInfo, chipConfig: chip.ChipConfig) {
     this.container = new PIXI.Container();
     this.container.position.copyFrom(this.position);
 
@@ -260,7 +260,7 @@ export class SingleNarration extends chip.ChipBase {
   }
 
   _onNarrationDone(key?: string) {
-    if (key === this.narrationKey) this._transition = chip.makeTransition();
+    if (key === this.narrationKey) this._outputSignal = chip.makeSignal();
   }
 
   _onTerminate() {
@@ -287,12 +287,12 @@ export class RandomNarration extends chip.ChipBase {
     this._chipConfig.narrator.changeKey(this.currentKey, this.priority);
   }
 
-  _onTick(frameInfo: chip.FrameInfo) {
+  _onTick(tickInfo: chip.TickInfo) {
     if (
-      frameInfo.timeSinceStart >=
+      tickInfo.timeSinceStart >=
       this._chipConfig.narrator.narrationDuration(this.currentKey)
     ) {
-      this._transition = chip.makeTransition();
+      this._outputSignal = chip.makeSignal();
     }
   }
 
@@ -329,7 +329,7 @@ export class VideoScene extends chip.CompositeChip {
     this._options = util.fillInOptions(options, new VideoSceneOptions());
   }
 
-  _onActivate(frameInfo: chip.FrameInfo, chipConfig: chip.ChipConfig) {
+  _onActivate(tickInfo: chip.TickInfo, chipConfig: chip.ChipConfig) {
     if (this._options.narration) {
       this.narration = new SingleNarration(this._options.narration);
       this._activateChildChip(this.narration);
@@ -358,12 +358,9 @@ export class VideoScene extends chip.CompositeChip {
     this._activateChildChip(this.skipButton);
   }
 
-  _onTick(frameInfo: chip.FrameInfo) {
-    if (
-      (this._options.video && this.video.transition) ||
-      this.skipButton.transition
-    ) {
-      this._transition = chip.makeTransition();
+  _onTick(tickInfo: chip.TickInfo) {
+    if ((this._options.video && this.video.signal) || this.skipButton.signal) {
+      this._outputSignal = chip.makeSignal();
     }
   }
 

@@ -35,12 +35,12 @@ export interface IEventListener {
   cb: () => void;
 }
 
-export interface Transition {
+export interface Signal {
   readonly name: string;
   readonly params: Record<string, any>;
 }
 
-export function makeTransition(name = "default", params = {}) {
+export function makeSignal(name = "default", params = {}): Signal {
   return { name, params };
 }
 
@@ -67,11 +67,11 @@ export function extendConfig(values: {}): (
   return (chipConfig) => _.extend({}, chipConfig, values);
 }
 
-export interface FrameInfo {
+export interface TickInfo {
   timeSinceLastFrame: number;
 }
 
-export type ChipFactory = (transition: Transition) => Chip;
+export type ChipFactory = (signal: Signal) => Chip;
 
 export type ChipResolvable = Chip | ChipFactory;
 
@@ -112,19 +112,19 @@ export type ReloadMemento = {
  **/
 export interface Chip extends NodeEventSource {
   readonly state: ChipState;
-  readonly transition: Transition;
+  readonly signal: Signal;
   readonly children: Record<string, Chip>;
 
   activate(
-    frameInfo: FrameInfo,
+    tickInfo: TickInfo,
     chipConfig: ChipConfig,
-    enteringTransition: Transition,
+    inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void;
-  tick(frameInfo: FrameInfo): void;
-  terminate(frameInfo: FrameInfo): void;
-  pause(frameInfo: FrameInfo): void;
-  resume(frameInfo: FrameInfo): void;
+  tick(tickInfo: TickInfo): void;
+  terminate(tickInfo: TickInfo): void;
+  pause(tickInfo: TickInfo): void;
+  resume(tickInfo: TickInfo): void;
   makeReloadMemento(): ReloadMemento;
 }
 
@@ -140,9 +140,9 @@ export interface Chip extends NodeEventSource {
  The typical chipConfig contains { app, preloader, narrator, jukebox, container }
  3. tick() is called one or more times, with options.
  It could also never be called, in case the chip is torn down directly.
- If the chip wishes to be terminated, it should set this._transition to a truthy value.
+ If the chip wishes to be terminated, it should set this._outputSignal to a truthy value.
  Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
- For more complicated transitions, it can return an object like { name: "", params: {} }
+ For more complicated signals, it can return an object like { name: "", params: {} }
  4. terminate() is called just once.
  The chip should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
 
@@ -153,11 +153,11 @@ export interface Chip extends NodeEventSource {
  */
 export abstract class ChipBase extends EventEmitter implements Chip {
   protected _chipConfig: ChipConfig;
-  protected _lastFrameInfo: FrameInfo;
-  protected _enteringTransition: Transition;
+  protected _lastFrameInfo: TickInfo;
+  protected _inputSignal: Signal;
   protected _reloadMemento?: ReloadMemento;
   protected _eventListeners: IEventListener[] = [];
-  protected _transition: Transition;
+  protected _outputSignal: Signal;
   protected _state: ChipState = "inactive";
 
   get chipConfig(): ChipConfig {
@@ -165,19 +165,19 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   }
 
   public activate(
-    frameInfo: FrameInfo,
+    tickInfo: TickInfo,
     chipConfig: ChipConfig,
-    enteringTransition: Transition,
+    inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void {
     if (this._state !== "inactive")
       throw new Error(`activate() called from state ${this._state}`);
 
     this._chipConfig = chipConfig;
-    this._lastFrameInfo = frameInfo;
-    this._enteringTransition = enteringTransition;
+    this._lastFrameInfo = tickInfo;
+    this._inputSignal = inputSignal;
     this._state = "active";
-    this._transition = null;
+    this._outputSignal = null;
 
     if (reloadMemento && reloadMemento.className === this.constructor.name)
       this._reloadMemento = reloadMemento;
@@ -186,22 +186,22 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this._onActivate();
   }
 
-  public tick(frameInfo: FrameInfo): void {
+  public tick(tickInfo: TickInfo): void {
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
-    if (this._transition)
-      throw new Error("tick() called despite requesting transition");
+    if (this._outputSignal)
+      throw new Error("tick() called despite requesting signal");
 
-    this._lastFrameInfo = frameInfo;
+    this._lastFrameInfo = tickInfo;
     this._onTick();
   }
 
-  public terminate(frameInfo: FrameInfo): void {
+  public terminate(tickInfo: TickInfo): void {
     if (this._state !== "active" && this._state !== "paused")
       throw new Error(`tick() called from state ${this._state}`);
 
-    this._lastFrameInfo = frameInfo;
+    this._lastFrameInfo = tickInfo;
     this._onTerminate();
 
     this._unsubscribe(); // Remove all event listeners
@@ -209,7 +209,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this._state = "inactive";
   }
 
-  public pause(frameInfo: FrameInfo): void {
+  public pause(tickInfo: TickInfo): void {
     if (this._state !== "active")
       throw new Error(`pause() called from state ${this._state}`);
 
@@ -218,7 +218,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this._onPause();
   }
 
-  public resume(frameInfo: FrameInfo): void {
+  public resume(tickInfo: TickInfo): void {
     if (this._state !== "paused")
       throw new Error(`resume() called from state ${this._state}`);
 
@@ -274,8 +274,8 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   public get children(): Record<string, Chip> {
     return {};
   }
-  public get transition(): Transition {
-    return this._transition;
+  public get signal(): Signal {
+    return this._outputSignal;
   }
   public get state(): ChipState {
     return this._state;
@@ -309,23 +309,23 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   }
 }
 
-/** Empty class just to indicate an chip that does nothing and never requests a transition  */
+/** Empty class just to indicate an chip that does nothing and never requests a signal  */
 export class NullChip extends ChipBase {}
 
-/** An chip that returns the requested transition immediately  */
+/** An chip that returns the requested signal immediately  */
 export class TransitoryChip extends ChipBase {
-  constructor(readonly requestTransition = makeTransition()) {
+  constructor(readonly requestSignal = makeSignal()) {
     super();
   }
 
   _onActivate() {
-    this._transition = this.requestTransition;
+    this._outputSignal = this.requestSignal;
   }
 }
 
 export class ActivateChildChipOptions {
   config?: ChipConfigResolvable;
-  transition?: Transition;
+  signal?: Signal;
   id?: string;
   reloadMemento?: ReloadMemento;
 }
@@ -333,49 +333,49 @@ export class ActivateChildChipOptions {
 /** Base class for entities that contain other entities
  *
  * Events:
- * - activatedChildChip(chip: Chip, config: ChipConfig, transition: Transition)
+ * - activatedChildChip(chip: Chip, config: ChipConfig, signal: Signal)
  * - deactivatedChildChip(chip: Chip)
  */
 export abstract class CompositeChip extends ChipBase {
   protected _childEntities: Record<string, Chip> = {};
 
   public activate(
-    frameInfo: FrameInfo,
+    tickInfo: TickInfo,
     chipConfig: ChipConfig,
-    enteringTransition: Transition,
+    inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void {
-    super.activate(frameInfo, chipConfig, enteringTransition, reloadMemento);
+    super.activate(tickInfo, chipConfig, inputSignal, reloadMemento);
   }
   /**
-   * By default, updates all child entities and remove those that have a transition
+   * By default, updates all child entities and remove those that have a signal
    * Overload this method in subclasses to change the behavior
    */
-  public tick(frameInfo: FrameInfo): void {
-    super.tick(frameInfo);
+  public tick(tickInfo: TickInfo): void {
+    super.tick(tickInfo);
 
     this._updateChildEntities();
   }
 
-  public terminate(frameInfo: FrameInfo): void {
+  public terminate(tickInfo: TickInfo): void {
     this._deactivateAllChildEntities();
 
-    super.terminate(frameInfo);
+    super.terminate(tickInfo);
   }
 
-  public pause(frameInfo: FrameInfo): void {
-    super.pause(frameInfo);
+  public pause(tickInfo: TickInfo): void {
+    super.pause(tickInfo);
 
     for (const child of Object.values(this._childEntities)) {
-      child.pause(frameInfo);
+      child.pause(tickInfo);
     }
   }
 
-  public resume(frameInfo: FrameInfo): void {
-    super.resume(frameInfo);
+  public resume(tickInfo: TickInfo): void {
+    super.resume(tickInfo);
 
     for (const child of Object.values(this._childEntities)) {
-      child.resume(frameInfo);
+      child.resume(tickInfo);
     }
   }
 
@@ -393,11 +393,11 @@ export abstract class CompositeChip extends ChipBase {
     if (options.id && options.id in this._childEntities)
       throw new Error("Duplicate child chip id provided");
 
-    const enteringTransition = options.transition ?? makeTransition();
+    const inputSignal = options.signal ?? makeSignal();
 
     let chip;
     if (_.isFunction(chipResolvable)) {
-      chip = chipResolvable(enteringTransition);
+      chip = chipResolvable(inputSignal);
     } else {
       chip = chipResolvable;
     }
@@ -414,14 +414,9 @@ export abstract class CompositeChip extends ChipBase {
     this._childEntities[childId] = chip;
 
     const childConfig = processChipConfig(this._chipConfig, options.config);
-    chip.activate(
-      this._lastFrameInfo,
-      childConfig,
-      enteringTransition,
-      reloadMemento
-    );
+    chip.activate(this._lastFrameInfo, childConfig, inputSignal, reloadMemento);
 
-    this.emit("activatedChildChip", chip, childConfig, enteringTransition);
+    this.emit("activatedChildChip", chip, childConfig, inputSignal);
 
     return chip;
   }
@@ -447,7 +442,7 @@ export abstract class CompositeChip extends ChipBase {
   }
 
   /**
-   * Updates all child entities, and deactivates any that need a transition.
+   * Updates all child entities, and deactivates any that need a signal.
    * Returns true if any have been deactivated.
    */
   protected _updateChildEntities(): boolean {
@@ -456,7 +451,7 @@ export abstract class CompositeChip extends ChipBase {
     for (const id in this._childEntities) {
       const childChip = this._childEntities[id];
 
-      if (childChip.transition) {
+      if (childChip.signal) {
         childChip.terminate(this._lastFrameInfo);
         delete this._childEntities[id];
         this.emit("deactivatedChildChip", childChip);
@@ -481,7 +476,7 @@ export abstract class CompositeChip extends ChipBase {
 }
 
 export class ParallelChipOptions {
-  transitionOnCompletion: boolean = true;
+  signalOnCompletion: boolean = true;
 }
 
 export interface ParallelChipContext extends ChipContext {
@@ -490,8 +485,8 @@ export interface ParallelChipContext extends ChipContext {
 
 /**
  Allows a bunch of entities to execute in parallel.
- Updates child entities until they ask for a transition, at which point they are torn down.
- Requests a transition when all child entities have completed.
+ Updates child entities until they ask for a signal, at which point they are torn down.
+ Requests a signal when all child entities have completed.
 */
 export class ParallelChip extends CompositeChip {
   public readonly options: ParallelChipOptions;
@@ -511,23 +506,23 @@ export class ParallelChip extends CompositeChip {
   }
 
   activate(
-    frameInfo: FrameInfo,
+    tickInfo: TickInfo,
     chipConfig: ChipConfig,
-    enteringTransition?: Transition,
+    inputSignal?: Signal,
     reloadMemento?: ReloadMemento
   ) {
-    super.activate(frameInfo, chipConfig, enteringTransition, reloadMemento);
+    super.activate(tickInfo, chipConfig, inputSignal, reloadMemento);
 
     for (const chipContext of this.childChipContexts) {
       if (chipContext.activated) this.activateChildChip(chipContext);
     }
   }
 
-  tick(frameInfo: FrameInfo) {
-    super.tick(frameInfo);
+  tick(tickInfo: TickInfo) {
+    super.tick(tickInfo);
 
-    if (this.options.transitionOnCompletion && !_.some(this._childEntities))
-      this._transition = makeTransition();
+    if (this.options.signalOnCompletion && !_.some(this._childEntities))
+      this._outputSignal = makeSignal();
   }
 
   addChildChip(chip: ParallelChipContext | ChipResolvable) {
@@ -624,21 +619,21 @@ export class ParallelChip extends CompositeChip {
     }
   }
 
-  terminate(frameInfo: FrameInfo): void {
+  terminate(tickInfo: TickInfo): void {
     this.contextToChip.clear();
 
-    super.terminate(frameInfo);
+    super.terminate(tickInfo);
   }
 }
 
 export class ChipSequenceOptions {
   loop = false;
-  transitionOnCompletion = true;
+  signalOnCompletion = true;
 }
 
 /**
   Runs one child chip after another. 
-  When done, requestes the last transition demanded.
+  When done, requestes the last signal demanded.
   Optionally can loop back to the first chip.
 */
 export class ChipSequence extends CompositeChip {
@@ -668,13 +663,13 @@ export class ChipSequence extends CompositeChip {
   }
 
   skip() {
-    this._advance(makeTransition("skip"));
+    this._advance(makeSignal("skip"));
   }
 
   private _switchChip() {
     // Stop current chip
     if (this.currentChip) {
-      // The current chip may have already been deactivated, if it requested a transition
+      // The current chip may have already been deactivated, if it requested a signal
       if (_.size(this._childEntities) > 0)
         this._deactivateChildChip(this.currentChip);
       this.currentChip = null;
@@ -696,8 +691,7 @@ export class ChipSequence extends CompositeChip {
 
     if (this.chipContexts.length === 0) {
       // Empty sequence, stop immediately
-      if (this.options.transitionOnCompletion)
-        this._transition = makeTransition();
+      if (this.options.signalOnCompletion) this._outputSignal = makeSignal();
     } else {
       // Start the sequence
       this._switchChip();
@@ -707,8 +701,8 @@ export class ChipSequence extends CompositeChip {
   _onTick() {
     if (!this.currentChip) return;
 
-    const transition = this.currentChip.transition;
-    if (transition) this._advance(transition);
+    const signal = this.currentChip.signal;
+    if (signal) this._advance(signal);
   }
 
   _onTerminate() {
@@ -720,7 +714,7 @@ export class ChipSequence extends CompositeChip {
     this._switchChip();
   }
 
-  private _advance(transition: Transition) {
+  private _advance(signal: Signal) {
     this.currentChipIndex++;
     this._switchChip();
 
@@ -730,9 +724,9 @@ export class ChipSequence extends CompositeChip {
         // ... and we loop, go back to start
         this.currentChipIndex = 0;
         this._switchChip();
-      } else if (this.options.transitionOnCompletion) {
-        // otherwise request this transition
-        this._transition = transition;
+      } else if (this.options.signalOnCompletion) {
+        // otherwise request this signal
+        this._outputSignal = signal;
       }
     }
   }
@@ -749,13 +743,13 @@ export type StateTableDescriptor = {
   [n: string]: ChipContext | ChipResolvable;
 };
 
-export type TransitionFunction = (transition: Transition) => Transition;
-export type TransitionDescriptor = Transition | TransitionFunction;
-export type TransitionTable = { [name: string]: TransitionDescriptor };
+export type SignalFunction = (signal: Signal) => Signal;
+export type SignalDescriptor = Signal | SignalFunction;
+export type SignalTable = { [name: string]: SignalDescriptor };
 
 export class StateMachineOptions {
-  startingState: Transition | string = "start";
-  transitions: { [n: string]: TransitionDescriptor | string };
+  startingState: Signal | string = "start";
+  signals: { [n: string]: SignalDescriptor | string };
   endingStates: string[] = ["end"];
   startingProgress: {} = {};
 }
@@ -764,23 +758,23 @@ export class StateMachineOptions {
   Represents a state machine, where each state has a name, and is represented by an chip.
   Only one state is active at a time. 
   The state machine has one starting state, but can have multiple ending states.
-  When the machine reaches an ending state, it requests a transition with a name equal to the name of the ending state.
+  When the machine reaches an ending state, it requests a signal with a name equal to the name of the ending state.
   By default, the state machine begins at the state called "start", and stops at "end".
 
-  The transitions are not provided directly by the states (entities) by rather by a transition table provided in the constructor.
-  To use have a transition table within a transition table, use the function makeTransitionTable()
+  The signals are not provided directly by the states (entities) by rather by a signal table provided in the constructor.
+  To use have a signal table within a signal table, use the function makeSignalTable()
 */
 export class StateMachine extends CompositeChip {
   public readonly options: StateMachineOptions;
 
   public states: StateTable = {};
-  public transitions: TransitionTable = {};
-  public startingState: TransitionDescriptor;
-  public visitedStates: Transition[];
+  public signals: SignalTable = {};
+  public startingState: SignalDescriptor;
+  public visitedStates: Signal[];
   public progress: {};
   public activeChildChip: Chip;
   public stateParams: {};
-  private lastTransition: Transition;
+  private lastSignal: Signal;
 
   constructor(
     states: StateTableDescriptor,
@@ -800,39 +794,38 @@ export class StateMachine extends CompositeChip {
 
     this.options = fillInOptions(options, new StateMachineOptions());
 
-    // Ensure all transitions are of the correct type
+    // Ensure all signals are of the correct type
     if (typeof this.options.startingState === "string")
-      this.startingState = makeTransition(this.options.startingState);
+      this.startingState = makeSignal(this.options.startingState);
     else this.startingState = this.options.startingState;
 
-    for (const key in this.options.transitions) {
-      const value = this.options.transitions[key];
+    for (const key in this.options.signals) {
+      const value = this.options.signals[key];
       if (typeof value === "string") {
-        this.transitions[key] = makeTransition(value);
+        this.signals[key] = makeSignal(value);
       } else {
-        this.transitions[key] = value;
+        this.signals[key] = value;
       }
     }
   }
 
   activate(
-    frameInfo: FrameInfo,
+    tickInfo: TickInfo,
     chipConfig: ChipConfig,
-    enteringTransition?: Transition,
+    inputSignal?: Signal,
     reloadMemento?: ReloadMemento
   ) {
-    super.activate(frameInfo, chipConfig, enteringTransition, reloadMemento);
+    super.activate(tickInfo, chipConfig, inputSignal, reloadMemento);
 
     this.visitedStates = [];
     this.progress = cloneData(this.options.startingProgress);
 
     if (this._reloadMemento) {
-      this.visitedStates = this._reloadMemento.data
-        .visitedStates as Transition[];
+      this.visitedStates = this._reloadMemento.data.visitedStates as Signal[];
       this._changeState(_.last(this.visitedStates));
     } else {
       const startingState = _.isFunction(this.startingState)
-        ? this.startingState(makeTransition())
+        ? this.startingState(makeSignal())
         : this.startingState;
       this._changeState(startingState);
     }
@@ -841,39 +834,37 @@ export class StateMachine extends CompositeChip {
   _onTick() {
     if (!this.activeChildChip) return;
 
-    const transition = this.activeChildChip.transition;
-    if (transition) {
-      let nextStateDescriptor: Transition;
-      // The transition could directly be the name of another state, or ending state
-      if (!(this.lastTransition.name in this.transitions)) {
+    const signal = this.activeChildChip.signal;
+    if (signal) {
+      let nextStateDescriptor: Signal;
+      // The signal could directly be the name of another state, or ending state
+      if (!(this.lastSignal.name in this.signals)) {
         if (
-          transition.name in this.states ||
-          _.contains(this.options.endingStates, transition.name)
+          signal.name in this.states ||
+          _.contains(this.options.endingStates, signal.name)
         ) {
-          nextStateDescriptor = transition;
+          nextStateDescriptor = signal;
         } else {
-          throw new Error(
-            `Cannot find transition for state '${transition.name}'`
-          );
+          throw new Error(`Cannot find signal for state '${signal.name}'`);
         }
       } else {
-        const transitionDescriptor: TransitionDescriptor =
-          this.transitions[this.lastTransition.name];
-        if (_.isFunction(transitionDescriptor)) {
-          nextStateDescriptor = transitionDescriptor(transition);
+        const signalDescriptor: SignalDescriptor =
+          this.signals[this.lastSignal.name];
+        if (_.isFunction(signalDescriptor)) {
+          nextStateDescriptor = signalDescriptor(signal);
         } else {
-          nextStateDescriptor = transitionDescriptor;
+          nextStateDescriptor = signalDescriptor;
         }
       }
 
       // Unpack the next state
-      let nextState: Transition;
+      let nextState: Signal;
       if (
         !nextStateDescriptor.params ||
         _.isEmpty(nextStateDescriptor.params)
       ) {
-        // By default, pass through the params in the requested transition
-        nextState = makeTransition(nextStateDescriptor.name, transition.params);
+        // By default, pass through the params in the requested signal
+        nextState = makeSignal(nextStateDescriptor.name, signal.params);
       } else {
         nextState = nextStateDescriptor;
       }
@@ -884,13 +875,13 @@ export class StateMachine extends CompositeChip {
 
   _onTerminate() {
     this.activeChildChip = null;
-    this.lastTransition = null;
+    this.lastSignal = null;
   }
 
-  _onSignal(frameInfo: FrameInfo, signal: string, data?: any): void {
+  _onSignal(tickInfo: TickInfo, signal: string, data?: any): void {
     if (signal === "reset") {
-      this.terminate(frameInfo);
-      this.activate(frameInfo, this._chipConfig, this._enteringTransition);
+      this.terminate(tickInfo);
+      this.activate(tickInfo, this._chipConfig, this._inputSignal);
     }
   }
 
@@ -900,18 +891,18 @@ export class StateMachine extends CompositeChip {
     };
   }
 
-  changeState(nextState: string | Transition): void {
+  changeState(nextState: string | Signal): void {
     if (typeof nextState === "string") {
-      nextState = makeTransition(nextState);
+      nextState = makeSignal(nextState);
     }
 
     this._changeState(nextState);
   }
 
-  private _changeState(nextState: Transition): void {
+  private _changeState(nextState: Signal): void {
     // Stop current state
     if (this.activeChildChip) {
-      // The state may have already been deactivated, if it requested a transition
+      // The state may have already been deactivated, if it requested a signal
       if (_.size(this._childEntities) > 0)
         this._deactivateChildChip(this.activeChildChip);
       this.activeChildChip = null;
@@ -919,11 +910,11 @@ export class StateMachine extends CompositeChip {
 
     // If reached an ending state, stop here.
     if (_.contains(this.options.endingStates, nextState.name)) {
-      this.lastTransition = nextState;
+      this.lastSignal = nextState;
       this.visitedStates.push(nextState);
 
-      // Request transition
-      this._transition = nextState;
+      // Request signal
+      this._outputSignal = nextState;
       return;
     }
 
@@ -931,46 +922,46 @@ export class StateMachine extends CompositeChip {
       const nextStateContext = this.states[nextState.name];
       this.activeChildChip = this._activateChildChip(nextStateContext.chip, {
         config: nextStateContext.config,
-        transition: nextState,
+        signal: nextState,
         id: nextState.name,
       });
     } else {
       throw new Error(`Cannot find state '${nextState.name}'`);
     }
 
-    const previousTransition = this.lastTransition;
-    this.lastTransition = nextState;
+    const previousSignal = this.lastSignal;
+    this.lastSignal = nextState;
 
     this.visitedStates.push(nextState);
 
-    this.emit("stateChange", previousTransition, nextState);
+    this.emit("stateChange", previousSignal, nextState);
   }
 }
 
 /** 
-  Creates a transition table for use with StateMachine.
+  Creates a signal table for use with StateMachine.
   Example: 
-    const transitions = {
-      start: chip.makeTransitionTable({ 
+    const signals = {
+      start: chip.makeSignalTable({ 
         win: "end",
         lose: "start",
       }),
     };
     `
 */
-export function makeTransitionTable(table: {
-  [key: string]: string | TransitionFunction;
-}): TransitionFunction {
-  const f = function (transition: Transition): Transition {
-    if (transition.name in table) {
-      const transitionResolvable = table[transition.name];
-      if (_.isFunction(transitionResolvable)) {
-        return transitionResolvable(transition);
+export function makeSignalTable(table: {
+  [key: string]: string | SignalFunction;
+}): SignalFunction {
+  const f = function (signal: Signal): Signal {
+    if (signal.name in table) {
+      const signalResolvable = table[signal.name];
+      if (_.isFunction(signalResolvable)) {
+        return signalResolvable(signal);
       } else {
-        return makeTransition(transitionResolvable);
+        return makeSignal(signalResolvable);
       }
     } else {
-      throw new Error(`Cannot find state ${transition.name}`);
+      throw new Error(`Cannot find state ${signal.name}`);
     }
   };
   f.table = table; // For debugging purposes
@@ -984,14 +975,14 @@ export interface FunctionalChipFunctions {
   pause: (chip: FunctionalChip) => void;
   resume: (chip: FunctionalChip) => void;
   terminate: (chip: FunctionalChip) => void;
-  requestTransition: (chip: FunctionalChip) => Transition | boolean;
+  requestSignal: (chip: FunctionalChip) => Signal | boolean;
   makeReloadMemento(): ReloadMemento;
 }
 
 /**
   An chip that gets its behavior from functions provided inline in the constructor.
   Useful for small entities that don't require their own class definition.
-  Additionally, a function called requestTransition(options, chip), called after tick(), can set the requested transition 
+  Additionally, a function called requestSignal(options, chip), called after tick(), can set the requested signal 
 
   Example usage:
     new FunctionalChip({
@@ -1004,11 +995,11 @@ export class FunctionalChip extends CompositeChip {
     super();
   }
 
-  protected get lastFrameInfo(): FrameInfo {
+  protected get lastFrameInfo(): TickInfo {
     return this._lastFrameInfo;
   }
-  protected get enteringTransition(): Transition {
-    return this._enteringTransition;
+  protected get inputSignal(): Signal {
+    return this._inputSignal;
   }
   protected get reloadMemento(): ReloadMemento | undefined {
     return this._reloadMemento;
@@ -1020,14 +1011,14 @@ export class FunctionalChip extends CompositeChip {
 
   protected _onTick() {
     if (this.functions.tick) this.functions.tick(this);
-    if (this.functions.requestTransition) {
-      const result = this.functions.requestTransition(this);
+    if (this.functions.requestSignal) {
+      const result = this.functions.requestSignal(this);
       if (result) {
         if (_.isObject(result)) {
-          this._transition = result;
+          this._outputSignal = result;
         } else {
           // result is true
-          this._transition = makeTransition();
+          this._outputSignal = makeSignal();
         }
       }
     }
@@ -1048,7 +1039,7 @@ export class FunctionalChip extends CompositeChip {
 
 // TODO: rename to lambda chip?
 /**
-  An chip that calls a provided function just once (in activate), and immediately requests a transition.
+  An chip that calls a provided function just once (in activate), and immediately requests a signal.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class FunctionCallChip extends ChipBase {
@@ -1060,11 +1051,11 @@ export class FunctionCallChip extends ChipBase {
   _onActivate() {
     this.f.call(this.that);
 
-    this._transition = makeTransition();
+    this._outputSignal = makeSignal();
   }
 }
 
-// Waits until time is up, then requests transition
+// Waits until time is up, then requests signal
 export class WaitingChip extends ChipBase {
   private _accumulatedTime: number;
 
@@ -1081,42 +1072,42 @@ export class WaitingChip extends ChipBase {
     this._accumulatedTime += this._lastFrameInfo.timeSinceLastFrame;
 
     if (this._accumulatedTime >= this.wait) {
-      this._transition = makeTransition();
+      this._outputSignal = makeSignal();
     }
   }
 }
 
 /**
- * Does not request a transition until done() is called with a given transition
+ * Does not request a signal until done() is called with a given signal
  */
 export class Block extends ChipBase {
-  done(transition = makeTransition()) {
-    this._transition = transition;
+  done(signal = makeSignal()) {
+    this._outputSignal = signal;
   }
 }
 
 /**
- * Executes a function once and requests a transition equal to its value.
+ * Executes a function once and requests a signal equal to its value.
  */
 export class Decision extends ChipBase {
-  constructor(private f: () => Transition | undefined) {
+  constructor(private f: () => Signal | undefined) {
     super();
   }
 
   _onActivate() {
-    this._transition = this.f();
+    this._outputSignal = this.f();
   }
 }
 
 /**
- * Waits for an event to be delivered, and decides to request a transition depending on the event value.
- * @handler is a function of the event arguments, and should return either a transition or a boolean as to whether to transition or not
+ * Waits for an event to be delivered, and decides to request a signal depending on the event value.
+ * @handler is a function of the event arguments, and should return either a signal or a boolean as to whether to signal or not
  */
 export class WaitForEvent extends ChipBase {
   constructor(
     public emitter: NodeEventSource,
     public eventName: string,
-    public handler: (...args: any) => Transition | boolean = _.constant(true)
+    public handler: (...args: any) => Signal | boolean = _.constant(true)
   ) {
     super();
   }
@@ -1130,32 +1121,32 @@ export class WaitForEvent extends ChipBase {
     if (!result) return;
 
     if (_.isObject(result)) {
-      this._transition = result;
+      this._outputSignal = result;
     } else {
       // result is true
-      this._transition = makeTransition();
+      this._outputSignal = makeSignal();
     }
   }
 }
 
 export interface AlternativeChipContext extends ChipContext {
-  transition?: Transition;
+  signal?: Signal;
 }
 
 /**
- *  Chip that requests a transition as soon as one of it's children requests one
+ *  Chip that requests a signal as soon as one of it's children requests one
  */
 export class Alternative extends CompositeChip {
   private readonly chipContexts: AlternativeChipContext[];
 
-  // transition defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
+  // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
   constructor(chipContexts: AlternativeChipContext[]) {
     super();
 
-    // Set default transition as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
+    // Set default signal as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
     this.chipContexts = _.map(chipContexts, (chipContext, key) =>
       _.defaults({}, chipContext, {
-        transition: key.toString(),
+        signal: key.toString(),
       })
     );
   }
@@ -1167,17 +1158,17 @@ export class Alternative extends CompositeChip {
       });
     }
 
-    this._checkForTransition();
+    this._checkForSignal();
   }
 
   _onTick() {
-    this._checkForTransition();
+    this._checkForSignal();
   }
 
-  private _checkForTransition(): void {
+  private _checkForSignal(): void {
     for (let i = 0; i < this.chipContexts.length; i++) {
-      if (this._childEntities[i].transition) {
-        this._transition = this.chipContexts[i].transition;
+      if (this._childEntities[i].signal) {
+        this._outputSignal = this.chipContexts[i].signal;
         break;
       }
     }

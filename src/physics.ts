@@ -38,9 +38,9 @@ export class Simulation extends chip.ParallelChip {
   }
 
   activate(
-    frameInfo: chip.FrameInfo,
+    tickInfo: chip.TickInfo,
     chipConfig: chip.ChipConfig,
-    enteringTransition: chip.Transition
+    inputSignal: chip.Signal
   ) {
     this.world = new p2.World(this.worldOptions);
     this.oldConfig = chipConfig;
@@ -59,23 +59,23 @@ export class Simulation extends chip.ParallelChip {
       container: this.container,
     });
 
-    super.activate(frameInfo, chipConfig, enteringTransition);
+    super.activate(tickInfo, chipConfig, inputSignal);
   }
 
-  tick(frameInfo: chip.FrameInfo) {
-    super.tick(frameInfo);
+  tick(tickInfo: chip.TickInfo) {
+    super.tick(tickInfo);
 
     // Limit how fast the physics can catch up
-    const stepTime = Math.min(frameInfo.timeSinceLastFrame / 1000, 1 / 30);
+    const stepTime = Math.min(tickInfo.timeSinceLastFrame / 1000, 1 / 30);
     this.world.step(stepTime);
   }
 
-  terminate(frameInfo: chip.FrameInfo) {
+  terminate(tickInfo: chip.TickInfo) {
     this.world.clear();
 
     this.oldConfig.container.removeChild(this.container);
 
-    super.terminate(frameInfo);
+    super.terminate(tickInfo);
   }
 }
 
@@ -96,19 +96,19 @@ export class BodyChip extends chip.ParallelChip {
   }
 
   activate(
-    frameInfo: chip.FrameInfo,
+    tickInfo: chip.TickInfo,
     chipConfig: chip.ChipConfig,
-    enteringTransition: chip.Transition
+    inputSignal: chip.Signal
   ) {
-    super.activate(frameInfo, chipConfig, enteringTransition);
+    super.activate(tickInfo, chipConfig, inputSignal);
 
     this._chipConfig.world.addBody(this.body);
 
     if (this.display) this._chipConfig.container.addChild(this.display);
   }
 
-  tick(frameInfo: chip.FrameInfo) {
-    super.tick(frameInfo);
+  tick(tickInfo: chip.TickInfo) {
+    super.tick(tickInfo);
 
     // Transfer positions of the physics objects to Pixi.js
     // OPT: no need to do this for static bodies (mass = 0) except for the first framce
@@ -119,11 +119,11 @@ export class BodyChip extends chip.ParallelChip {
     }
   }
 
-  terminate(frameInfo: chip.FrameInfo) {
+  terminate(tickInfo: chip.TickInfo) {
     this._chipConfig.world.removeBody(this.body);
 
     if (this.display) this._chipConfig.container.removeChild(this.display);
 
-    super.terminate(frameInfo);
+    super.terminate(tickInfo);
   }
 }

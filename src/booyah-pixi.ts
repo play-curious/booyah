@@ -21,7 +21,7 @@ export class DisplayObjectChip<
 /** 
   Manages an animated sprite in PIXI, pausing the sprite during pauses.
 
-  When the animation completes (if the animation is not set to loop, then this will request a transition)
+  When the animation completes (if the animation is not set to loop, then this will request a signal)
 
  Emits:
  - beforeTearDown
@@ -87,11 +87,11 @@ export class AnimatedSpriteChip extends chip.ChipBase {
     }
   }
 
-  _onTick(frameInfo: chip.FrameInfo) {
-    this._sprite.tick(frameInfo.timeSinceLastFrame);
+  _onTick(tickInfo: chip.TickInfo) {
+    this._sprite.tick(tickInfo.timeSinceLastFrame);
   }
 
-  onSignal(frameInfo: chip.FrameInfo, signal: string) {
+  onSignal(tickInfo: chip.TickInfo, signal: string) {
     switch (signal) {
       case "pause":
         this._sprite.stop();
@@ -108,6 +108,6 @@ export class AnimatedSpriteChip extends chip.ChipBase {
   }
 
   private _onAnimationComplete() {
-    this._transition = chip.makeTransition();
+    this._outputSignal = chip.makeSignal();
   }
 }

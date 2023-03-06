@@ -38,7 +38,7 @@ export interface Directives {
     chip: chip.ParallelChip
   ) => void)[];
   states: chip.StateTableDescriptor;
-  transitions: chip.TransitionTable;
+  signals: chip.SignalTable;
   endingScenes: string[];
   screenSize: PIXI.IPoint;
   canvasId: string;
@@ -55,7 +55,7 @@ export const DEFAULT_DIRECTIVES: any = {
 
   // Parameters for the game state machine
   states: [],
-  transitions: {},
+  signals: {},
   startingScene: "start",
   startingSceneParams: {},
   startingProgress: {},
@@ -152,7 +152,7 @@ const rootConfig: chip.ChipConfig = {
 let loadingScene: LoadingScene;
 let loadingErrorScene: LoadingErrorScene;
 let gameChip: chip.ParallelChip;
-let lastFrameInfo: chip.FrameInfo;
+let lastFrameInfo: chip.TickInfo;
 
 function getRootChip(): chip.Chip {
   return loadingScene || loadingErrorScene || gameChip;
@@ -173,8 +173,8 @@ let variableAudioLoaderProgress = 0;
 
 // Only send updates on non-paused entties
 export class FilterPauseChip extends chip.ParallelChip {
-  tick(frameInfo: chip.FrameInfo) {
-    if (frameInfo.gameState === "playing") super.tick(frameInfo);
+  tick(tickInfo: chip.TickInfo) {
+    if (tickInfo.gameState === "playing") super.tick(tickInfo);
   }
 }
 
@@ -595,9 +595,9 @@ export class MenuChip extends chip.CompositeChip {
     this._chipConfig.container.addChild(this.container);
   }
 
-  _onTick(frameInfo: chip.FrameInfo) {
+  _onTick(tickInfo: chip.TickInfo) {
     if (this.creditsChip) {
-      if (this.creditsChip.transition) {
+      if (this.creditsChip.signal) {
         this._deactivateChildChip(this.creditsChip);
         this.creditsChip = null;
       }
@@ -760,7 +760,7 @@ export class CreditsChip extends chip.CompositeChip {
     this._on(
       closeButton,
       "pointertap",
-      () => (this._transition = chip.makeTransition())
+      () => (this._outputSignal = chip.makeSignal())
     );
     this.container.addChild(closeButton);
 
@@ -879,7 +879,7 @@ export class LoadingScene extends chip.ChipBase {
     }
   }
 
-  _onTerminate(frameInfo: chip.FrameInfo) {
+  _onTerminate(tickInfo: chip.TickInfo) {
     this._chipConfig.container.removeChild(this.container);
   }
 
@@ -916,7 +916,7 @@ export class ReadyScene extends chip.ChipBase {
     this._on(
       button,
       "pointertap",
-      () => (this._transition = chip.makeTransition())
+      () => (this._outputSignal = chip.makeSignal())
     );
     button.interactive = true;
     this.container.addChild(button);
@@ -989,7 +989,7 @@ export class DoneScene extends chip.ChipBase {
     this._on(
       button,
       "pointertap",
-      () => (this._transition = chip.makeTransition())
+      () => (this._outputSignal = chip.makeSignal())
     );
     button.interactive = true;
     this.container.addChild(button);
@@ -1330,7 +1330,7 @@ function doneLoading() {
 
   setupVisibilityDetection();
 
-  gameChip.activate(lastFrameInfo, rootConfig, chip.makeTransition());
+  gameChip.activate(lastFrameInfo, rootConfig, chip.makeSignal());
 }
 
 /** Detect when the page is not shown, and pause the game */
@@ -1411,8 +1411,8 @@ export function go(directives: Partial<Directives> = {}) {
   rootConfig.gameStateMachine = new chip.StateMachine(
     rootConfig.directives.states,
     {
-      transitions: rootConfig.directives.transitions,
-      startingState: chip.makeTransition(
+      signals: rootConfig.directives.signals,
+      startingState: chip.makeSignal(
         rootConfig.playOptions.options.scene,
         rootConfig.playOptions.options.sceneParams
       ),
@@ -1446,7 +1446,7 @@ export function go(directives: Partial<Directives> = {}) {
     ])
   );
 
-  const frameInfo: chip.FrameInfo = {
+  const tickInfo: chip.TickInfo = {
     playTime: 0,
     timeSinceStart: 0,
     timeSinceLastFrame: 0,
@@ -1462,7 +1462,7 @@ export function go(directives: Partial<Directives> = {}) {
       loadingScene = new LoadingScene();
 
       // The loading scene doesn't get the full chipConfig
-      loadingScene.activate(frameInfo, rootConfig, chip.makeTransition());
+      loadingScene.activate(tickInfo, rootConfig, chip.makeSignal());
 
       rootConfig.app.ticker.add(tick);
 
@@ -1476,11 +1476,11 @@ export function go(directives: Partial<Directives> = {}) {
       console.error("Error during load", err);
 
       // Replace loading scene with loading error
-      loadingScene?.terminate(frameInfo);
+      loadingScene?.terminate(tickInfo);
       loadingScene = null;
 
       loadingErrorScene = new LoadingErrorScene();
-      getRootChip().activate(frameInfo, rootConfig, chip.makeTransition());
+      getRootChip().activate(tickInfo, rootConfig, chip.makeSignal());
 
       throw err;
     });

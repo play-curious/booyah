@@ -24,7 +24,7 @@ export class Keyboard extends chip.ChipBase {
     );
   }
 
-  _onTick(frameInfo: chip.FrameInfo) {
+  _onTick(tickInfo: chip.TickInfo) {
     const keyDownSet = _.keys(this.keysDown);
     const lastKeyDownSet = _.keys(this._lastKeysDown);
 
@@ -107,7 +107,7 @@ export class Gamepad extends chip.ChipBase {
     // TODO: track events of disconnecting gamepads
   }
 
-  _onTick(frameInfo: chip.FrameInfo) {
+  _onTick(tickInfo: chip.TickInfo) {
     this._updateState();
   }
 

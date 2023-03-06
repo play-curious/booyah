@@ -104,7 +104,7 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
 
   _onTick() {
     if (this._timePassed >= this.options.duration) {
-      this._transition = chip.makeTransition();
+      this._outputSignal = chip.makeSignal();
 
       // Snap to end
       this._value = this.options.to;

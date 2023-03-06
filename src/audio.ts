@@ -47,7 +47,7 @@ export class Jukebox extends chip.ChipBase {
     this.musicName = null;
   }
 
-  _onSignal(frameInfo: chip.FrameInfo, signal: string, data?: any) {
+  _onSignal(tickInfo: chip.TickInfo, signal: string, data?: any) {
     if (!this.musicPlaying) return;
 
     if (signal === "pause") this.musicPlaying.pause();
@@ -124,10 +124,10 @@ export class MusicChip extends chip.ChipBase {
     super();
   }
 
-  _onActivate(frameInfo: chip.FrameInfo, chipConfig: chip.ChipConfig) {
+  _onActivate(tickInfo: chip.TickInfo, chipConfig: chip.ChipConfig) {
     this._chipConfig.jukebox.play(this.trackName);
 
-    this._transition = chip.makeTransition();
+    this._outputSignal = chip.makeSignal();
   }
 
   _onTerminate() {
@@ -179,7 +179,7 @@ export class FxMachine extends chip.ChipBase {
     }
   }
 
-  protected _onTerminate(frameInfo: chip.FrameInfo): void {
+  protected _onTerminate(tickInfo: chip.TickInfo): void {
     this.stopAll();
   }
 
@@ -245,7 +245,7 @@ export class FxMachine extends chip.ChipBase {
 
   // TODO: stop playing effects when paused
   protected _onSignal(
-    frameInfo: chip.FrameInfo,
+    tickInfo: chip.TickInfo,
     signal: string,
     data?: any
   ): void {

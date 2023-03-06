@@ -7,14 +7,14 @@ function makeChipConfig(): chip.ChipConfig {
   return {};
 }
 
-function makeFrameInfo(): chip.FrameInfo {
+function makeFrameInfo(): chip.TickInfo {
   return {
     timeSinceLastFrame: 1 / 60,
   };
 }
 
-function makeTransition(): chip.Transition {
-  return chip.makeTransition();
+function makeSignal(): chip.Signal {
+  return chip.makeSignal();
 }
 
 // For help mocking, the methods here are public and replaced with mocks
@@ -28,13 +28,13 @@ class MockChip extends chip.ChipBase {
     this._onResume = jest.fn();
   }
 
-  // Allow the tests to set the transition directly
+  // Allow the tests to set the signal directly
   // Need to rewrite the getter as well to make TypeScript happy
-  public get transition(): chip.Transition {
-    return this._transition;
+  public get signal(): chip.Signal {
+    return this._outputSignal;
   }
-  public set transition(transition: chip.Transition) {
-    this._transition = transition;
+  public set signal(signal: chip.Signal) {
+    this._outputSignal = signal;
   }
 
   // Make the methods public so that they can be tested with the mock
@@ -54,7 +54,7 @@ describe("Chip", () => {
 
   test("allows normal execution", () => {
     for (let i = 0; i < 5; i++) {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
       e.tick(makeFrameInfo());
       e.pause(makeFrameInfo());
       e.resume(makeFrameInfo());
@@ -70,8 +70,8 @@ describe("Chip", () => {
 
   test("throws on multiple activate", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
-      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     }).toThrow();
   });
 
@@ -101,7 +101,7 @@ describe("Chip", () => {
 
   test("throws on multiple pause", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
       e.pause(makeFrameInfo());
       e.pause(makeFrameInfo());
@@ -110,7 +110,7 @@ describe("Chip", () => {
 
   test("throws on mulitple resume", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
       e.pause(makeFrameInfo());
 
       e.resume(makeFrameInfo());
@@ -138,7 +138,7 @@ describe("Chip", () => {
     })();
 
     // Setup the receiver and send one event
-    receiver.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    receiver.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     sender.emit("a", 1, 2, 3);
     sender.emit("a", 1, 2, 3);
     sender.emit("b", 1, 2, 3);
@@ -174,7 +174,7 @@ describe("CompositeChip", () => {
 
   test("runs children", () => {
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -191,18 +191,18 @@ describe("CompositeChip", () => {
   });
 
   test("deactivates children", () => {
-    // Have middle child request transition on 2nd call
-    let requestTransition = false;
+    // Have middle child request signal on 2nd call
+    let requestSignal = false;
     children[1]._onTick = jest.fn(() => {
-      if (requestTransition) children[1].transition = chip.makeTransition();
+      if (requestSignal) children[1].signal = chip.makeSignal();
     });
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     parent.tick(makeFrameInfo());
 
-    // Run again, this time have middle child request transition
-    requestTransition = true;
+    // Run again, this time have middle child request signal
+    requestSignal = true;
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
 
@@ -220,8 +220,8 @@ describe("CompositeChip", () => {
     parent.on("deactivatedChildChip", deactivatedCallback);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
-    children[1].transition = chip.makeTransition();
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    children[1].signal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
     expect(deactivatedCallback).toBeCalledTimes(1);
@@ -234,7 +234,7 @@ describe("CompositeChip", () => {
     const activatedCallback = jest.fn();
     parent.on("activatedChildChip", activatedCallback);
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
     expect(activatedCallback).toBeCalledTimes(3);
   });
@@ -246,7 +246,7 @@ describe("ParallelChip", () => {
     const parent = new chip.ParallelChip(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -274,7 +274,7 @@ describe("ParallelChip", () => {
     ]);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     parent.tick(makeFrameInfo());
 
     expect(middleChildContext.chip._onActivate).not.toBeCalled();
@@ -286,7 +286,7 @@ describe("ParallelChip", () => {
     const parent = new chip.ParallelChip(children);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     parent.tick(makeFrameInfo());
 
     // Deactivate middle child and run
@@ -310,7 +310,7 @@ describe("ChipSequence", () => {
     const parent = new chip.ChipSequence(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+      parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -338,24 +338,24 @@ describe("ChipSequence", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
     const parent = new chip.ChipSequence(children);
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
-    // Run 1st child twice, then request transition
+    // Run 1st child twice, then request signal
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[0].transition = chip.makeTransition();
-    parent.tick(makeFrameInfo());
-
-    // Run 2nd child twice, then request transition
-    parent.tick(makeFrameInfo());
-    parent.tick(makeFrameInfo());
-    children[1].transition = chip.makeTransition();
+    children[0].signal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
-    // Run 3rd child twice, then request transition
+    // Run 2nd child twice, then request signal
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[2].transition = chip.makeTransition("third");
+    children[1].signal = chip.makeSignal();
+    parent.tick(makeFrameInfo());
+
+    // Run 3rd child twice, then request signal
+    parent.tick(makeFrameInfo());
+    parent.tick(makeFrameInfo());
+    children[2].signal = chip.makeSignal("third");
     parent.tick(makeFrameInfo());
 
     // Each child should be updated three times
@@ -365,24 +365,24 @@ describe("ChipSequence", () => {
       expect(child._onTerminate).toBeCalledTimes(1);
     }
 
-    // Final transition should be that of the 3rd child
-    expect(parent.transition.name).toBe("third");
+    // Final signal should be that of the 3rd child
+    expect(parent.signal.name).toBe("third");
   });
 
   test("loops", () => {
     const children = [new MockChip(), new MockChip()];
     const parent = new chip.ChipSequence(children, { loop: true });
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
-    // Run 1st child, then request transition
+    // Run 1st child, then request signal
     parent.tick(makeFrameInfo());
-    children[0].transition = chip.makeTransition();
+    children[0].signal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
-    // Run 2nd child, then request transition
+    // Run 2nd child, then request signal
     parent.tick(makeFrameInfo());
-    children[1].transition = chip.makeTransition();
+    children[1].signal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
     // Run 1st child again
@@ -398,15 +398,15 @@ describe("ChipSequence", () => {
     expect(children[1]._onTick).toBeCalledTimes(2);
     expect(children[1]._onTerminate).toBeCalledTimes(1);
 
-    // There should be no requested transition
-    expect(parent.transition).toBeFalsy();
+    // There should be no requested signal
+    expect(parent.signal).toBeFalsy();
   });
 
   test("skips", () => {
     const children = [new MockChip(), new MockChip()];
     const parent = new chip.ChipSequence(children);
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
     // Run 1st child, then skip
     parent.tick(makeFrameInfo());
@@ -424,8 +424,8 @@ describe("ChipSequence", () => {
     expect(children[1]._onTick).toBeCalledTimes(1);
     expect(children[0]._onTerminate).toBeCalledTimes(1);
 
-    // There should be a skipped transition
-    expect(parent.transition.name).toBe("skip");
+    // There should be a skipped signal
+    expect(parent.signal.name).toBe("skip");
   });
 });
 
@@ -435,11 +435,7 @@ describe("StateMachine", () => {
     const stateMachine = new chip.StateMachine(states);
 
     for (let i = 0; i < 5; i++) {
-      stateMachine.activate(
-        makeFrameInfo(),
-        makeChipConfig(),
-        makeTransition()
-      );
+      stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
       stateMachine.tick(makeFrameInfo());
       stateMachine.pause(makeFrameInfo());
       stateMachine.resume(makeFrameInfo());
@@ -458,32 +454,30 @@ describe("StateMachine", () => {
     const states = { start: new MockChip() };
     const stateMachine = new chip.StateMachine(states);
 
-    // Run once, then request transition
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    // Run once, then request signal
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.start.transition = chip.makeTransition("end");
+    states.start.signal = chip.makeSignal("end");
     stateMachine.tick(makeFrameInfo());
 
     expect(states.start._onActivate).toBeCalledTimes(1);
     expect(states.start._onTick).toBeCalledTimes(1);
     expect(states.start._onTerminate).toBeCalledTimes(1);
 
-    expect(stateMachine.transition.name).toBe("end");
-    expect(stateMachine.visitedStates).toContainEqual(
-      chip.makeTransition("start")
-    );
+    expect(stateMachine.signal.name).toBe("end");
+    expect(stateMachine.visitedStates).toContainEqual(chip.makeSignal("start"));
   });
 
-  test("transitions without state table", () => {
+  test("signals without state table", () => {
     const states = { a: new MockChip(), b: new MockChip() };
     const stateMachine = new chip.StateMachine(states, {
-      startingState: chip.makeTransition("a"),
+      startingState: chip.makeSignal("a"),
     });
 
-    // Run once, then request transition
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    // Run once, then request signal
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.transition = chip.makeTransition("b");
+    states.a.signal = chip.makeSignal("b");
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
@@ -493,24 +487,24 @@ describe("StateMachine", () => {
     expect(states.b._onActivate).toBeCalledTimes(1);
   });
 
-  test("transitions with state table", () => {
+  test("signals with state table", () => {
     const states = { a: new MockChip(), b: new MockChip() };
     const stateMachine = new chip.StateMachine(states, {
-      startingState: chip.makeTransition("a"),
-      transitions: {
+      startingState: chip.makeSignal("a"),
+      signals: {
         a: "b",
         b: "a",
       },
     });
 
-    // Run once, then request transition
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    // Run once, then request signal
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.transition = chip.makeTransition();
+    states.a.signal = chip.makeSignal();
     stateMachine.tick(makeFrameInfo());
 
-    // Transition back again
-    states.b.transition = chip.makeTransition();
+    // Signal back again
+    states.b.signal = chip.makeSignal();
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(2);
@@ -520,14 +514,14 @@ describe("StateMachine", () => {
     expect(states.b._onTerminate).toBeCalledTimes(1);
   });
 
-  test("manual transitions", () => {
+  test("manual signals", () => {
     const states = { a: new MockChip(), b: new MockChip() };
     const stateMachine = new chip.StateMachine(states, {
-      startingState: chip.makeTransition("a"),
+      startingState: chip.makeSignal("a"),
     });
 
-    // Run once, then request transition
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    // Run once, then request signal
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     stateMachine.tick(makeFrameInfo());
 
     stateMachine.changeState("b");
@@ -541,21 +535,21 @@ describe("StateMachine", () => {
     expect(states.b._onActivate).toBeCalledTimes(1);
   });
 
-  test("transitions with functions", () => {
+  test("signals with functions", () => {
     const states = { a: new MockChip(), b: new MockChip() };
     const stateMachine = new chip.StateMachine(states, {
-      startingState: chip.makeTransition("a"),
-      transitions: {
-        a: jest.fn(() => chip.makeTransition("b")),
+      startingState: chip.makeSignal("a"),
+      signals: {
+        a: jest.fn(() => chip.makeSignal("b")),
       },
     });
 
-    // Run once, then request transition
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    // Run once, then request signal
+    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     stateMachine.tick(makeFrameInfo());
 
-    const transition = chip.makeTransition("done", { x: "y" });
-    states.a.transition = transition;
+    const signal = chip.makeSignal("done", { x: "y" });
+    states.a.signal = signal;
 
     stateMachine.tick(makeFrameInfo());
 
@@ -565,8 +559,8 @@ describe("StateMachine", () => {
 
     expect(states.b._onActivate).toBeCalledTimes(1);
 
-    expect(stateMachine.options.transitions.a).toBeCalledTimes(1);
-    expect(stateMachine.options.transitions.a).toBeCalledWith(transition);
+    expect(stateMachine.options.signals.a).toBeCalledTimes(1);
+    expect(stateMachine.options.signals.a).toBeCalledWith(signal);
   });
 });
 
@@ -613,14 +607,14 @@ class ReloadingCompositeChip extends chip.CompositeChip {
 describe("Hot reloading", () => {
   test("Base chip doesn't provide memento", () => {
     const e = new chip.NullChip();
-    e.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     expect(e.makeReloadMemento().data).toBeUndefined();
   });
 
   test("Custom chip provides memento", () => {
     // Provide a default value
     const e1 = new ReloadingChip(77);
-    e1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    e1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     expect(e1.makeReloadMemento().data.value).toBe(77);
 
     // Update the value, it should get in the new memento
@@ -632,7 +626,7 @@ describe("Hot reloading", () => {
     e2.activate(
       makeFrameInfo(),
       makeChipConfig(),
-      makeTransition(),
+      makeSignal(),
       e1.makeReloadMemento()
     );
     expect(e2.value).toBe(88);
@@ -642,13 +636,13 @@ describe("Hot reloading", () => {
     class ReloadingChip2 extends ReloadingChip {}
 
     const e1 = new ReloadingChip(77);
-    e1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    e1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
     const e2 = new ReloadingChip2(88);
     e2.activate(
       makeFrameInfo(),
       makeChipConfig(),
-      makeTransition(),
+      makeSignal(),
       e1.makeReloadMemento()
     );
 
@@ -659,7 +653,7 @@ describe("Hot reloading", () => {
     const child1 = new ReloadingChip(77);
     const parent1 = new ReloadingCompositeChip(child1);
 
-    parent1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parent1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     expect(child1.value).toBe(77);
 
     // Change the value
@@ -671,12 +665,7 @@ describe("Hot reloading", () => {
     // Reload the chip
     const child2 = new ReloadingChip(77);
     const parent2 = new ReloadingCompositeChip(child2);
-    parent2.activate(
-      makeFrameInfo(),
-      makeChipConfig(),
-      makeTransition(),
-      memento
-    );
+    parent2.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
 
     expect(child2.value).toBe(88);
   });
@@ -686,7 +675,7 @@ describe("Hot reloading", () => {
     const child2V1 = new ReloadingChip(2);
     const parentV1 = new chip.ParallelChip([child1V1, child2V1]);
 
-    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
     expect(child1V1.value).toBe(1);
     expect(child2V1.value).toBe(2);
 
@@ -701,12 +690,7 @@ describe("Hot reloading", () => {
     const child1V2 = new ReloadingChip(1);
     const child2V2 = new ReloadingChip(2);
     const parent2 = new chip.ParallelChip([child1V2, child2V2]);
-    parent2.activate(
-      makeFrameInfo(),
-      makeChipConfig(),
-      makeTransition(),
-      memento
-    );
+    parent2.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
 
     expect(child1V2.value).toBe(88);
     expect(child2V2.value).toBe(99);
@@ -717,7 +701,7 @@ describe("Hot reloading", () => {
     const child2V1 = new ReloadingChip(2);
     const parentV1 = new chip.ChipSequence([child1V1, child2V1]);
 
-    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
     // Change the values
     child1V1.value = 99;
@@ -730,12 +714,7 @@ describe("Hot reloading", () => {
     const child1V2 = new ReloadingChip(1);
     const child2V2 = new ReloadingChip(2);
     const parentV2 = new chip.ChipSequence([child1V2, child2V2]);
-    parentV2.activate(
-      makeFrameInfo(),
-      makeChipConfig(),
-      makeTransition(),
-      memento
-    );
+    parentV2.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
 
     expect(child1V2.value).toBe(99);
 
@@ -749,12 +728,7 @@ describe("Hot reloading", () => {
     const child1V3 = new ReloadingChip(1);
     const child2V3 = new ReloadingChip(2);
     const parentV3 = new chip.ChipSequence([child1V3, child2V3]);
-    parentV3.activate(
-      makeFrameInfo(),
-      makeChipConfig(),
-      makeTransition(),
-      memento
-    );
+    parentV3.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
 
     // The 2nd child should be active and have the correct value
     expect(child2V3.state).toBe("active");
@@ -769,7 +743,7 @@ describe("Hot reloading", () => {
       middle: child2V1,
     });
 
-    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeTransition());
+    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
 
     // Skip to another state
     parentV1.changeState("middle");
@@ -792,7 +766,7 @@ describe("Hot reloading", () => {
     parentV2.activate(
       makeFrameInfo(),
       makeChipConfig(),
-      makeTransition(),
+      makeSignal(),
       parentV1.makeReloadMemento()
     );
 
