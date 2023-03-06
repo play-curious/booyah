@@ -62,7 +62,7 @@ export class SubtitleNarrator extends chip.CompositeChip {
   }
 
   get lines(): ParsedSubtitle[] {
-    return this._chipConfig.subtitles[this.name];
+    return this._chipContext.subtitles[this.name];
   }
 
   get nextLine(): ParsedSubtitle | undefined {
@@ -70,14 +70,14 @@ export class SubtitleNarrator extends chip.CompositeChip {
   }
 
   _onActivate() {
-    this.subtitles = this._chipConfig.subtitles;
+    this.subtitles = this._chipContext.subtitles;
 
     this.container = new PIXI.Container();
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
 
     const styleOptions = _.defaults(this._options.textStyle, {
       wordWrap: true,
-      wordWrapWidth: this._chipConfig.app.screen.width - 150,
+      wordWrapWidth: this._chipContext.app.screen.width - 150,
     });
 
     this.narratorSubtitle = new PIXI.Text("", styleOptions);
@@ -87,8 +87,8 @@ export class SubtitleNarrator extends chip.CompositeChip {
       this.narratorSubtitle.position.copyFrom(this._options.position);
     } else {
       this.narratorSubtitle.position.set(
-        this._chipConfig.app.screen.width / 2,
-        this._chipConfig.app.screen.height - 75
+        this._chipContext.app.screen.width / 2,
+        this._chipContext.app.screen.height - 75
       );
     }
     this.container.addChild(this.narratorSubtitle);
@@ -98,7 +98,7 @@ export class SubtitleNarrator extends chip.CompositeChip {
     this.timeSincePlay = 0;
 
     this._on(
-      this._chipConfig.playOptions,
+      this._chipContext.playOptions,
       "showSubtitles",
       this._updateShowSubtitles
     );
@@ -115,7 +115,7 @@ export class SubtitleNarrator extends chip.CompositeChip {
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 
   play(name: string) {
@@ -181,7 +181,8 @@ export class SubtitleNarrator extends chip.CompositeChip {
   }
 
   _updateShowSubtitles() {
-    this.container.visible = this._chipConfig.playOptions.options.showSubtitles;
+    this.container.visible =
+      this._chipContext.playOptions.options.showSubtitles;
   }
 
   private _write(text: string) {
@@ -193,7 +194,7 @@ export function makeInstallSubtitleNarrator(
   options?: Partial<SubtitleNarratorOptions>
 ) {
   function installSubtitleNarrator(
-    rootConfig: chip.ChipConfig,
+    rootConfig: chip.ChipContext,
     rootChip: chip.ParallelChip
   ) {
     rootConfig.narrator = new SubtitleNarrator(options);
@@ -215,14 +216,14 @@ export class SpeakerDisplay extends chip.ChipBase {
     super();
   }
 
-  _onActivate(tickInfo: chip.TickInfo, chipConfig: chip.ChipConfig) {
+  _onActivate(tickInfo: chip.TickInfo, chipContext: chip.ChipContext) {
     this.container = new PIXI.Container();
     this.container.position.copyFrom(this.position);
 
     // Make a hidden sprite for each texture, add it to the container
     this.namesToSprites = _.mapObject(this.namesToImages, (image) => {
       const sprite = new PIXI.Sprite(
-        this._chipConfig.app.loader.resources[image].texture
+        this._chipContext.app.loader.resources[image].texture
       );
       sprite.anchor.set(0, 1); // lower-left
       sprite.visible = false;
@@ -232,13 +233,17 @@ export class SpeakerDisplay extends chip.ChipBase {
 
     this.currentSpeakerName = null;
 
-    this._on(this._chipConfig.narrator, "changeSpeaker", this._onChangeSpeaker);
+    this._on(
+      this._chipContext.narrator,
+      "changeSpeaker",
+      this._onChangeSpeaker
+    );
 
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 
   _onChangeSpeaker(speaker?: any) {
@@ -255,8 +260,8 @@ export class SingleNarration extends chip.ChipBase {
   }
 
   _onActivate() {
-    this._chipConfig.narrator.changeKey(this.narrationKey);
-    this._on(this._chipConfig.narrator, "done", this._onNarrationDone);
+    this._chipContext.narrator.changeKey(this.narrationKey);
+    this._on(this._chipContext.narrator, "done", this._onNarrationDone);
   }
 
   _onNarrationDone(key?: string) {
@@ -264,7 +269,7 @@ export class SingleNarration extends chip.ChipBase {
   }
 
   _onTerminate() {
-    this._chipConfig.narrator.stop();
+    this._chipContext.narrator.stop();
   }
 }
 
@@ -284,13 +289,13 @@ export class RandomNarration extends chip.ChipBase {
 
     // Pick the next key in the list
     this.currentKey = this.narrationPlaylist.shift();
-    this._chipConfig.narrator.changeKey(this.currentKey, this.priority);
+    this._chipContext.narrator.changeKey(this.currentKey, this.priority);
   }
 
   _onTick(tickInfo: chip.TickInfo) {
     if (
       tickInfo.timeSinceStart >=
-      this._chipConfig.narrator.narrationDuration(this.currentKey)
+      this._chipContext.narrator.narrationDuration(this.currentKey)
     ) {
       this._outputSignal = chip.makeSignal();
     }
@@ -329,7 +334,7 @@ export class VideoScene extends chip.CompositeChip {
     this._options = util.fillInOptions(options, new VideoSceneOptions());
   }
 
-  _onActivate(tickInfo: chip.TickInfo, chipConfig: chip.ChipConfig) {
+  _onActivate(tickInfo: chip.TickInfo, chipContext: chip.ChipContext) {
     if (this._options.narration) {
       this.narration = new SingleNarration(this._options.narration);
       this._activateChildChip(this.narration);
@@ -343,12 +348,12 @@ export class VideoScene extends chip.CompositeChip {
       this._activateChildChip(this.video);
     }
 
-    this.previousMusic = this._chipConfig.jukebox.musicName;
-    this._chipConfig.jukebox.stop();
+    this.previousMusic = this._chipContext.jukebox.musicName;
+    this._chipContext.jukebox.stop();
 
     if (this._options.music) {
-      this.previousMusic = this._chipConfig.jukebox.musicName;
-      this._chipConfig.jukebox.play(
+      this.previousMusic = this._chipContext.jukebox.musicName;
+      this._chipContext.jukebox.play(
         this._options.music,
         this._options.musicVolume
       );
@@ -365,7 +370,7 @@ export class VideoScene extends chip.CompositeChip {
   }
 
   _onTerminate() {
-    if (this.previousMusic) this._chipConfig.jukebox.play(this.previousMusic);
+    if (this.previousMusic) this._chipContext.jukebox.play(this.previousMusic);
   }
 }
 

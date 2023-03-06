@@ -13,7 +13,7 @@ import * as chip from "./chip";
 import * as audio from "./audio";
 
 export interface Directives {
-  rootConfig: chip.ChipConfig;
+  rootConfig: chip.ChipContext;
   rootChip: chip.Chip;
   loadingPromise: any;
   graphics: any;
@@ -32,9 +32,9 @@ export interface Directives {
   subtitleAssets: Array<string>;
   musicAssets: (string | { key: string; url: string })[];
   fxAssets: (string | { key: string; url: string })[];
-  extraLoaders: ((chipConfig: chip.ChipConfig) => Promise<any>)[];
+  extraLoaders: ((chipContext: chip.ChipContext) => Promise<any>)[];
   chipInstallers: ((
-    chipConfig: chip.ChipConfig,
+    chipContext: chip.ChipContext,
     chip: chip.ParallelChip
   ) => void)[];
   states: chip.StateTableDescriptor;
@@ -130,7 +130,7 @@ const PRELOADER_ASSETS = [
 ];
 const LOADING_SCENE_SPIN_SPEED = Math.PI / 60; // One spin in 2s
 
-const rootConfig: chip.ChipConfig = {
+const rootConfig: chip.ChipContext = {
   directives: null,
   app: null,
   preloader: null,
@@ -289,14 +289,14 @@ export class MenuChip extends chip.CompositeChip {
     this.creditsChip = null;
 
     this.pauseButton = new PIXI.Sprite(
-      this._chipConfig.app.loader.resources[
-        this._chipConfig.directives.graphics.menu
+      this._chipContext.app.loader.resources[
+        this._chipContext.directives.graphics.menu
       ].texture
     );
     this.pauseButton.anchor.set(0.5);
     this.pauseButton.position.copyFrom(
       this.options.menuButtonPosition ??
-        new PIXI.Point(this._chipConfig.app.renderer.width - 50, 50)
+        new PIXI.Point(this._chipContext.app.renderer.width - 50, 50)
     );
     this.pauseButton.interactive = true;
     this._on(this.pauseButton, "pointertap", this._onPause);
@@ -311,8 +311,8 @@ export class MenuChip extends chip.CompositeChip {
     this.mask.drawRect(
       0,
       0,
-      this._chipConfig.app.screen.width,
-      this._chipConfig.app.screen.height
+      this._chipContext.app.screen.width,
+      this._chipContext.app.screen.height
     );
     this.mask.endFill();
     this.mask.alpha = 0.8;
@@ -323,24 +323,24 @@ export class MenuChip extends chip.CompositeChip {
     this.menuLayer.addChild(this.menuButtonLayer);
 
     this.playButton = new PIXI.Sprite(
-      this._chipConfig.app.loader.resources[
+      this._chipContext.app.loader.resources[
         "booyah/images/button-close.png"
       ].texture
     );
     this.playButton.anchor.set(0.5);
-    this.playButton.position.set(this._chipConfig.app.renderer.width - 50, 50);
+    this.playButton.position.set(this._chipContext.app.renderer.width - 50, 50);
     this.playButton.interactive = true;
     this._on(this.playButton, "pointertap", this._onPlay);
     this.menuButtonLayer.addChild(this.playButton);
 
-    const menuButtonLayerConfig = _.extend({}, this._chipConfig, {
+    const menuButtonLayerConfig = _.extend({}, this._chipContext, {
       container: this.menuButtonLayer,
     });
 
-    if (this._chipConfig.directives.gameLogo) {
+    if (this._chipContext.directives.gameLogo) {
       const gameLogo = new PIXI.Sprite(
-        this._chipConfig.preloader.resources[
-          this._chipConfig.directives.gameLogo
+        this._chipContext.preloader.resources[
+          this._chipContext.directives.gameLogo
         ].texture
       );
       gameLogo.position.set(170, 200);
@@ -349,7 +349,7 @@ export class MenuChip extends chip.CompositeChip {
     }
 
     const pcLogo = new PIXI.Sprite(
-      this._chipConfig.app.loader.resources[
+      this._chipContext.app.loader.resources[
         "booyah/images/a-playcurious-game.png"
       ].texture
     );
@@ -357,20 +357,20 @@ export class MenuChip extends chip.CompositeChip {
     pcLogo.position.set(170, 450);
     this.menuButtonLayer.addChild(pcLogo);
 
-    if (this._chipConfig.directives.extraLogos) {
+    if (this._chipContext.directives.extraLogos) {
       // Divide space, align to the right
       const spacePerLogo =
-        (this._chipConfig.app.renderer.width - 160 * 2) /
-        this._chipConfig.directives.extraLogos.length;
-      for (let i = 0; i < this._chipConfig.directives.extraLogos.length; i++) {
+        (this._chipContext.app.renderer.width - 160 * 2) /
+        this._chipContext.directives.extraLogos.length;
+      for (let i = 0; i < this._chipContext.directives.extraLogos.length; i++) {
         const logoSprite = new PIXI.Sprite(
-          this._chipConfig.app.loader.resources[
-            this._chipConfig.directives.extraLogos[i]
+          this._chipContext.app.loader.resources[
+            this._chipContext.directives.extraLogos[i]
           ].texture
         );
         logoSprite.anchor.set(0.5, 1);
         logoSprite.position.set(
-          this._chipConfig.app.renderer.width - 160 - spacePerLogo * i,
+          this._chipContext.app.renderer.width - 160 - spacePerLogo * i,
           420
         );
         this.menuButtonLayer.addChild(logoSprite);
@@ -380,11 +380,11 @@ export class MenuChip extends chip.CompositeChip {
     if (util.supportsFullscreen()) {
       this.fullScreenButton = new chip.ToggleSwitch({
         onTexture:
-          this._chipConfig.app.loader.resources[
+          this._chipContext.app.loader.resources[
             "booyah/images/fullscreen-on.png"
           ].texture,
         offTexture:
-          this._chipConfig.app.loader.resources[
+          this._chipContext.app.loader.resources[
             "booyah/images/fullscreen-off.png"
           ].texture,
         isOn: false,
@@ -400,7 +400,7 @@ export class MenuChip extends chip.CompositeChip {
       // TODO: use event listener to check if full screen was exited manually with ESC key
     } else {
       const fullScreenButton = new PIXI.Sprite(
-        this._chipConfig.app.loader.resources[
+        this._chipContext.app.loader.resources[
           "booyah/images/fullscreen-disabled.png"
         ].texture
       );
@@ -410,12 +410,12 @@ export class MenuChip extends chip.CompositeChip {
 
     this.musicButton = new chip.ToggleSwitch({
       onTexture:
-        this._chipConfig.app.loader.resources["booyah/images/music-on.png"]
+        this._chipContext.app.loader.resources["booyah/images/music-on.png"]
           .texture,
       offTexture:
-        this._chipConfig.app.loader.resources["booyah/images/music-off.png"]
+        this._chipContext.app.loader.resources["booyah/images/music-off.png"]
           .texture,
-      isOn: this._chipConfig.playOptions.options.musicOn,
+      isOn: this._chipContext.playOptions.options.musicOn,
       position: new PIXI.Point(405, 230),
     });
     this._on(this.musicButton, "change", this._onChangeMusicIsOn as any);
@@ -425,12 +425,12 @@ export class MenuChip extends chip.CompositeChip {
 
     this.fxButton = new chip.ToggleSwitch({
       onTexture:
-        this._chipConfig.app.loader.resources["booyah/images/voices-on.png"]
+        this._chipContext.app.loader.resources["booyah/images/voices-on.png"]
           .texture,
       offTexture:
-        this._chipConfig.app.loader.resources["booyah/images/voices-off.png"]
+        this._chipContext.app.loader.resources["booyah/images/voices-off.png"]
           .texture,
-      isOn: this._chipConfig.playOptions.options.fxOn,
+      isOn: this._chipContext.playOptions.options.fxOn,
       position: new PIXI.Point(630, 230),
     });
     this._on(this.fxButton, "change", this._onChangeFxIsOn as any);
@@ -438,12 +438,13 @@ export class MenuChip extends chip.CompositeChip {
 
     this.subtitlesButton = new chip.ToggleSwitch({
       onTexture:
-        this._chipConfig.app.loader.resources["booyah/images/subtitles-on.png"]
+        this._chipContext.app.loader.resources["booyah/images/subtitles-on.png"]
           .texture,
       offTexture:
-        this._chipConfig.app.loader.resources["booyah/images/subtitles-off.png"]
-          .texture,
-      isOn: this._chipConfig.playOptions.options.showSubtitles,
+        this._chipContext.app.loader.resources[
+          "booyah/images/subtitles-off.png"
+        ].texture,
+      isOn: this._chipContext.playOptions.options.showSubtitles,
       position: new PIXI.Point(630, 130),
     });
     this._on(
@@ -460,22 +461,22 @@ export class MenuChip extends chip.CompositeChip {
       strokeThickness: 4,
     });
     creditLink.anchor.set(0.5, 0.5);
-    creditLink.position.set(this._chipConfig.app.renderer.width / 2 - 10, 492);
+    creditLink.position.set(this._chipContext.app.renderer.width / 2 - 10, 492);
     creditLink.interactive = true;
     this._on(creditLink, "pointertap", this._showCredits);
     this.menuButtonLayer.addChild(creditLink);
 
     // Language switching buttons
-    if (this._chipConfig.directives.supportedLanguages) {
+    if (this._chipContext.directives.supportedLanguages) {
       for (
         let i = 0;
-        i < this._chipConfig.directives.supportedLanguages.length;
+        i < this._chipContext.directives.supportedLanguages.length;
         i++
       ) {
-        const language = this._chipConfig.directives.supportedLanguages[i];
-        const isSelected = language === this._chipConfig.directives.language;
+        const language = this._chipContext.directives.supportedLanguages[i];
+        const isSelected = language === this._chipContext.directives.language;
         const sprite = new PIXI.Sprite(
-          this._chipConfig.app.loader.resources[
+          this._chipContext.app.loader.resources[
             `booyah/images/lang-${language}-${isSelected ? "off" : "on"}.png`
           ].texture
         );
@@ -500,8 +501,8 @@ export class MenuChip extends chip.CompositeChip {
       mask.drawRect(
         0,
         0,
-        this._chipConfig.app.screen.width,
-        this._chipConfig.app.screen.height
+        this._chipContext.app.screen.width,
+        this._chipContext.app.screen.height
       );
       mask.endFill();
       mask.alpha = 0.8;
@@ -512,15 +513,15 @@ export class MenuChip extends chip.CompositeChip {
       this.confirmLanguageButton.anchor.set(0.5);
       this.confirmLanguageButton.scale.set(1.5);
       this.confirmLanguageButton.position.set(
-        this._chipConfig.app.renderer.width / 2,
-        this._chipConfig.app.renderer.height / 2
+        this._chipContext.app.renderer.width / 2,
+        this._chipContext.app.renderer.height / 2
       );
       this.confirmLanguageButton.interactive = true;
       // Event handler is added later, in _onSwitchLanguage()
       this.switchLanguageConfirmLayer.addChild(this.confirmLanguageButton);
 
       const cancelSwitchLanguageButton = new PIXI.Sprite(
-        this._chipConfig.app.loader.resources[
+        this._chipContext.app.loader.resources[
           "booyah/images/button-back.png"
         ].texture
       );
@@ -538,7 +539,7 @@ export class MenuChip extends chip.CompositeChip {
     // Restart button
     {
       this.resetButton = new PIXI.Sprite(
-        this._chipConfig.app.loader.resources[
+        this._chipContext.app.loader.resources[
           "booyah/images/button-replay.png"
         ].texture
       );
@@ -558,8 +559,8 @@ export class MenuChip extends chip.CompositeChip {
       this.resetMask.drawRect(
         0,
         0,
-        this._chipConfig.app.screen.width,
-        this._chipConfig.app.screen.height
+        this._chipContext.app.screen.width,
+        this._chipContext.app.screen.height
       );
       this.resetMask.endFill();
       this.resetMask.alpha = 0.8;
@@ -567,21 +568,21 @@ export class MenuChip extends chip.CompositeChip {
       this.resetConfirmLayer.addChild(this.resetMask);
 
       this.confirmResetButton = new PIXI.Sprite(
-        this._chipConfig.app.loader.resources[
+        this._chipContext.app.loader.resources[
           "booyah/images/button-replay.png"
         ].texture
       );
       this.confirmResetButton.anchor.set(0.5);
       this.confirmResetButton.position.set(
-        this._chipConfig.app.renderer.width / 2,
-        this._chipConfig.app.renderer.height / 2
+        this._chipContext.app.renderer.width / 2,
+        this._chipContext.app.renderer.height / 2
       );
       this.confirmResetButton.interactive = true;
       this._on(this.confirmResetButton, "pointertap", this._onConfirmReset);
       this.resetConfirmLayer.addChild(this.confirmResetButton);
 
       const cancelResetButton = new PIXI.Sprite(
-        this._chipConfig.app.loader.resources[
+        this._chipContext.app.loader.resources[
           "booyah/images/button-back.png"
         ].texture
       );
@@ -592,7 +593,7 @@ export class MenuChip extends chip.CompositeChip {
       this.resetConfirmLayer.addChild(cancelResetButton);
     }
 
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
   }
 
   _onTick(tickInfo: chip.TickInfo) {
@@ -605,7 +606,7 @@ export class MenuChip extends chip.CompositeChip {
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 
   _onPause() {
@@ -628,15 +629,15 @@ export class MenuChip extends chip.CompositeChip {
   }
 
   _onChangeMusicIsOn(isOn: boolean) {
-    this._chipConfig.playOptions.setOption("musicOn", isOn);
+    this._chipContext.playOptions.setOption("musicOn", isOn);
   }
 
   _onChangeFxIsOn(isOn: boolean) {
-    this._chipConfig.playOptions.setOption("fxOn", isOn);
+    this._chipContext.playOptions.setOption("fxOn", isOn);
   }
 
   _onChangeShowSubtitles(showSubtitles: boolean) {
-    this._chipConfig.playOptions.setOption("showSubtitles", showSubtitles);
+    this._chipContext.playOptions.setOption("showSubtitles", showSubtitles);
   }
 
   _onReset() {
@@ -662,7 +663,7 @@ export class MenuChip extends chip.CompositeChip {
 
   _onSwitchLanguage(language: string) {
     this.confirmLanguageButton.texture =
-      this._chipConfig.app.loader.resources[
+      this._chipContext.app.loader.resources[
         `booyah/images/lang-${language}-on.png`
       ].texture;
     this._on(this.confirmLanguageButton, "pointertap", () =>
@@ -741,8 +742,8 @@ export class CreditsChip extends chip.CompositeChip {
     mask.drawRect(
       0,
       0,
-      this._chipConfig.app.screen.width,
-      this._chipConfig.app.screen.height
+      this._chipContext.app.screen.width,
+      this._chipContext.app.screen.height
     );
     mask.endFill();
     mask.alpha = 0.8;
@@ -750,7 +751,7 @@ export class CreditsChip extends chip.CompositeChip {
     this.container.addChild(mask);
 
     const closeButton = new PIXI.Sprite(
-      this._chipConfig.app.loader.resources[
+      this._chipContext.app.loader.resources[
         "booyah/images/button-back.png"
       ].texture
     );
@@ -772,8 +773,8 @@ export class CreditsChip extends chip.CompositeChip {
     });
     roles.anchor.set(1, 0.5);
     roles.position.set(
-      this._chipConfig.app.renderer.width / 2 - 10,
-      this._chipConfig.app.renderer.height / 2
+      this._chipContext.app.renderer.width / 2 - 10,
+      this._chipContext.app.renderer.height / 2
     );
     this.container.addChild(roles);
 
@@ -785,16 +786,16 @@ export class CreditsChip extends chip.CompositeChip {
     });
     people.anchor.set(0, 0.5);
     people.position.set(
-      this._chipConfig.app.renderer.width / 2 + 10,
-      this._chipConfig.app.renderer.height / 2
+      this._chipContext.app.renderer.width / 2 + 10,
+      this._chipContext.app.renderer.height / 2
     );
     this.container.addChild(people);
 
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 }
 
@@ -812,19 +813,19 @@ export class LoadingScene extends chip.ChipBase {
 
     this.container = new PIXI.Container();
 
-    if (this._chipConfig.directives.splashScreen) {
+    if (this._chipContext.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._chipConfig.preloader.resources[
-            this._chipConfig.directives.splashScreen
+          this._chipContext.preloader.resources[
+            this._chipContext.directives.splashScreen
           ].texture
         )
       );
     }
 
     const centerPos: PIXI.IPoint =
-      this._chipConfig.directives.loadingGauge.position;
-    const scale: number = this._chipConfig.directives.loadingGauge.scale;
+      this._chipContext.directives.loadingGauge.position;
+    const scale: number = this._chipContext.directives.loadingGauge.scale;
 
     this.loadingContainer = new PIXI.Container();
     this.container.addChild(this.loadingContainer);
@@ -846,20 +847,20 @@ export class LoadingScene extends chip.ChipBase {
     this.loadingFill.mask = loadingFillMask;
 
     this.loadingCircle = new PIXI.Sprite(
-      this._chipConfig.preloader.resources[
+      this._chipContext.preloader.resources[
         "booyah/images/loader-circle.png"
       ].texture
     );
     this.loadingCircle.anchor.set(0.5);
     this.loadingCircle.scale.set(
-      this._chipConfig.directives.loadingGauge.scale
+      this._chipContext.directives.loadingGauge.scale
     );
     this.loadingCircle.position.copyFrom(
-      this._chipConfig.directives.loadingGauge.position
+      this._chipContext.directives.loadingGauge.position
     );
     this.loadingContainer.addChild(this.loadingCircle);
 
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
   }
 
   _onTick() {
@@ -867,7 +868,7 @@ export class LoadingScene extends chip.ChipBase {
       LOADING_SCENE_SPIN_SPEED * this._lastFrameInfo.timeScale;
 
     if (this.shouldUpdateProgress) {
-      const scale: number = this._chipConfig.directives.loadingGauge.scale;
+      const scale: number = this._chipContext.directives.loadingGauge.scale;
       const height = this.progress * 100; // Because the graphic happens to be 100px tall
 
       this.loadingFill.clear();
@@ -880,7 +881,7 @@ export class LoadingScene extends chip.ChipBase {
   }
 
   _onTerminate(tickInfo: chip.TickInfo) {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 
   updateProgress(fraction: number) {
@@ -895,24 +896,26 @@ export class ReadyScene extends chip.ChipBase {
   _onActivate() {
     this.container = new PIXI.Container();
 
-    if (this._chipConfig.directives.splashScreen) {
+    if (this._chipContext.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._chipConfig.preloader.resources[
-            this._chipConfig.directives.splashScreen
+          this._chipContext.preloader.resources[
+            this._chipContext.directives.splashScreen
           ].texture
         )
       );
     }
 
     const button = new PIXI.Sprite(
-      this._chipConfig.app.loader.resources[
-        this._chipConfig.directives.graphics.play
+      this._chipContext.app.loader.resources[
+        this._chipContext.directives.graphics.play
       ].texture
     );
     button.anchor.set(0.5);
-    button.scale.set(this._chipConfig.directives.loadingGauge.scale);
-    button.position.copyFrom(this._chipConfig.directives.loadingGauge.position);
+    button.scale.set(this._chipContext.directives.loadingGauge.scale);
+    button.position.copyFrom(
+      this._chipContext.directives.loadingGauge.position
+    );
     this._on(
       button,
       "pointertap",
@@ -921,11 +924,11 @@ export class ReadyScene extends chip.ChipBase {
     button.interactive = true;
     this.container.addChild(button);
 
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 }
 
@@ -935,31 +938,33 @@ export class LoadingErrorScene extends chip.ChipBase {
   _onActivate() {
     this.container = new PIXI.Container();
 
-    if (this._chipConfig.directives.splashScreen) {
+    if (this._chipContext.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._chipConfig.preloader.resources[
-            this._chipConfig.directives.splashScreen
+          this._chipContext.preloader.resources[
+            this._chipContext.directives.splashScreen
           ].texture
         )
       );
     }
 
     const button = new PIXI.Sprite(
-      this._chipConfig.preloader.resources[
+      this._chipContext.preloader.resources[
         "booyah/images/loader-error.png"
       ].texture
     );
     button.anchor.set(0.5);
-    button.scale.set(this._chipConfig.directives.loadingGauge.scale);
-    button.position.copyFrom(this._chipConfig.directives.loadingGauge.position);
+    button.scale.set(this._chipContext.directives.loadingGauge.scale);
+    button.position.copyFrom(
+      this._chipContext.directives.loadingGauge.position
+    );
     this.container.addChild(button);
 
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 }
 
@@ -969,23 +974,25 @@ export class DoneScene extends chip.ChipBase {
   _onActivate() {
     this.container = new PIXI.Container();
 
-    if (this._chipConfig.directives.splashScreen) {
+    if (this._chipContext.directives.splashScreen) {
       this.container.addChild(
         new PIXI.Sprite(
-          this._chipConfig.preloader.resources[
-            this._chipConfig.directives.splashScreen
+          this._chipContext.preloader.resources[
+            this._chipContext.directives.splashScreen
           ].texture
         )
       );
     }
 
     const button = new PIXI.Sprite(
-      this._chipConfig.app.loader.resources[
+      this._chipContext.app.loader.resources[
         "booyah/images/button-replay.png"
       ].texture
     );
     button.anchor.set(0.5);
-    button.position.copyFrom(this._chipConfig.directives.loadingGauge.position);
+    button.position.copyFrom(
+      this._chipContext.directives.loadingGauge.position
+    );
     this._on(
       button,
       "pointertap",
@@ -994,11 +1001,11 @@ export class DoneScene extends chip.ChipBase {
     button.interactive = true;
     this.container.addChild(button);
 
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
   }
 }
 
@@ -1461,7 +1468,7 @@ export function go(directives: Partial<Directives> = {}) {
       // Show loading screen as soon as preloader is done
       loadingScene = new LoadingScene();
 
-      // The loading scene doesn't get the full chipConfig
+      // The loading scene doesn't get the full chipContext
       loadingScene.activate(tickInfo, rootConfig, chip.makeSignal());
 
       rootConfig.app.ticker.add(tick);

@@ -44,27 +44,27 @@ export function makeSignal(name = "default", params = {}): Signal {
   return { name, params };
 }
 
-export type ChipConfig = {
+export type ChipContext = {
   readonly [k: string]: any;
 };
 
-export type ChipConfigFactory = (config: ChipConfig) => ChipConfig;
-export type ChipConfigResolvable = ChipConfig | ChipConfigFactory;
+export type ChipContextFactory = (config: ChipContext) => ChipContext;
+export type ChipContextResolvable = ChipContext | ChipContextFactory;
 
-export function processChipConfig(
-  chipConfig: ChipConfig,
-  alteredConfig: ChipConfigResolvable
-): ChipConfig {
-  if (!alteredConfig) return chipConfig;
-  if (typeof alteredConfig == "function") return alteredConfig(chipConfig);
+export function processChipContext(
+  chipContext: ChipContext,
+  alteredConfig: ChipContextResolvable
+): ChipContext {
+  if (!alteredConfig) return chipContext;
+  if (typeof alteredConfig == "function") return alteredConfig(chipContext);
 
-  return Object.assign({}, chipConfig, alteredConfig);
+  return Object.assign({}, chipContext, alteredConfig);
 }
 
 export function extendConfig(values: {}): (
-  chipConfig: ChipConfig
-) => ChipConfig {
-  return (chipConfig) => _.extend({}, chipConfig, values);
+  chipContext: ChipContext
+) => ChipContext {
+  return (chipContext) => _.extend({}, chipContext, values);
 }
 
 export interface TickInfo {
@@ -77,7 +77,7 @@ export type ChipResolvable = Chip | ChipFactory;
 
 export interface ChipActivationInfo {
   chip: ChipResolvable;
-  config?: ChipConfigResolvable;
+  config?: ChipContextResolvable;
   id?: string;
 }
 
@@ -117,7 +117,7 @@ export interface Chip extends NodeEventSource {
 
   activate(
     tickInfo: TickInfo,
-    chipConfig: ChipConfig,
+    chipContext: ChipContext,
     inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void;
@@ -137,7 +137,7 @@ export interface Chip extends NodeEventSource {
  The chip should not make any changes to the environment here, it should wait for activate().
  2. activate() is called just once, with a configuration.
  This is when the chip should add dispaly objects  to the scene, or subscribe to events.
- The typical chipConfig contains { app, preloader, narrator, jukebox, container }
+ The typical chipContext contains { app, preloader, narrator, jukebox, container }
  3. tick() is called one or more times, with options.
  It could also never be called, in case the chip is torn down directly.
  If the chip wishes to be terminated, it should set this._outputSignal to a truthy value.
@@ -152,7 +152,7 @@ export interface Chip extends NodeEventSource {
  This ensures that the base class behavior of will be called automatically.
  */
 export abstract class ChipBase extends EventEmitter implements Chip {
-  protected _chipConfig: ChipConfig;
+  protected _chipContext: ChipContext;
   protected _lastFrameInfo: TickInfo;
   protected _inputSignal: Signal;
   protected _reloadMemento?: ReloadMemento;
@@ -160,20 +160,20 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   protected _outputSignal: Signal;
   protected _state: ChipState = "inactive";
 
-  get chipConfig(): ChipConfig {
-    return this._chipConfig;
+  get chipContext(): ChipContext {
+    return this._chipContext;
   }
 
   public activate(
     tickInfo: TickInfo,
-    chipConfig: ChipConfig,
+    chipContext: ChipContext,
     inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void {
     if (this._state !== "inactive")
       throw new Error(`activate() called from state ${this._state}`);
 
-    this._chipConfig = chipConfig;
+    this._chipContext = chipContext;
     this._lastFrameInfo = tickInfo;
     this._inputSignal = inputSignal;
     this._state = "active";
@@ -324,7 +324,7 @@ export class TransitoryChip extends ChipBase {
 }
 
 export class ActivateChildChipOptions {
-  config?: ChipConfigResolvable;
+  config?: ChipContextResolvable;
   signal?: Signal;
   id?: string;
   reloadMemento?: ReloadMemento;
@@ -333,7 +333,7 @@ export class ActivateChildChipOptions {
 /** Base class for entities that contain other entities
  *
  * Events:
- * - activatedChildChip(chip: Chip, config: ChipConfig, signal: Signal)
+ * - activatedChildChip(chip: Chip, config: ChipContext, signal: Signal)
  * - deactivatedChildChip(chip: Chip)
  */
 export abstract class CompositeChip extends ChipBase {
@@ -341,11 +341,11 @@ export abstract class CompositeChip extends ChipBase {
 
   public activate(
     tickInfo: TickInfo,
-    chipConfig: ChipConfig,
+    chipContext: ChipContext,
     inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void {
-    super.activate(tickInfo, chipConfig, inputSignal, reloadMemento);
+    super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
   }
   /**
    * By default, updates all child entities and remove those that have a signal
@@ -413,7 +413,7 @@ export abstract class CompositeChip extends ChipBase {
       options.id ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childEntities[childId] = chip;
 
-    const childConfig = processChipConfig(this._chipConfig, options.config);
+    const childConfig = processChipContext(this._chipContext, options.config);
     chip.activate(this._lastFrameInfo, childConfig, inputSignal, reloadMemento);
 
     this.emit("activatedChildChip", chip, childConfig, inputSignal);
@@ -509,11 +509,11 @@ export class ParallelChip extends CompositeChip {
 
   activate(
     tickInfo: TickInfo,
-    chipConfig: ChipConfig,
+    chipContext: ChipContext,
     inputSignal?: Signal,
     reloadMemento?: ReloadMemento
   ) {
-    super.activate(tickInfo, chipConfig, inputSignal, reloadMemento);
+    super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
 
     for (const chipActivationInfo of this.childChipActivationInfos) {
       if (chipActivationInfo.activated)
@@ -821,11 +821,11 @@ export class StateMachine extends CompositeChip {
 
   activate(
     tickInfo: TickInfo,
-    chipConfig: ChipConfig,
+    chipContext: ChipContext,
     inputSignal?: Signal,
     reloadMemento?: ReloadMemento
   ) {
-    super.activate(tickInfo, chipConfig, inputSignal, reloadMemento);
+    super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
 
     this.visitedStates = [];
     this.progress = cloneData(this.options.startingProgress);
@@ -891,7 +891,7 @@ export class StateMachine extends CompositeChip {
   _onSignal(tickInfo: TickInfo, signal: string, data?: any): void {
     if (signal === "reset") {
       this.terminate(tickInfo);
-      this.activate(tickInfo, this._chipConfig, this._inputSignal);
+      this.activate(tickInfo, this._chipContext, this._inputSignal);
     }
   }
 
@@ -996,7 +996,7 @@ export interface FunctionalChipFunctions {
 
   Example usage:
     new FunctionalChip({
-      activate: (chipConfig) => console.log("activate", chipConfig),
+      activate: (chipContext) => console.log("activate", chipContext),
       terminate: () => console.log("terminate"),
     });
 */

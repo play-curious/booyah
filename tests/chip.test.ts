@@ -3,7 +3,7 @@ import * as _ from "underscore";
 
 import * as chip from "../src/chip";
 
-function makeChipConfig(): chip.ChipConfig {
+function makeChipContext(): chip.ChipContext {
   return {};
 }
 
@@ -54,7 +54,7 @@ describe("Chip", () => {
 
   test("allows normal execution", () => {
     for (let i = 0; i < 5; i++) {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
       e.tick(makeFrameInfo());
       e.pause(makeFrameInfo());
       e.resume(makeFrameInfo());
@@ -70,8 +70,8 @@ describe("Chip", () => {
 
   test("throws on multiple activate", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
-      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+      e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     }).toThrow();
   });
 
@@ -101,7 +101,7 @@ describe("Chip", () => {
 
   test("throws on multiple pause", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
       e.pause(makeFrameInfo());
       e.pause(makeFrameInfo());
@@ -110,7 +110,7 @@ describe("Chip", () => {
 
   test("throws on mulitple resume", () => {
     expect(() => {
-      e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
       e.pause(makeFrameInfo());
 
       e.resume(makeFrameInfo());
@@ -138,7 +138,7 @@ describe("Chip", () => {
     })();
 
     // Setup the receiver and send one event
-    receiver.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    receiver.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     sender.emit("a", 1, 2, 3);
     sender.emit("a", 1, 2, 3);
     sender.emit("b", 1, 2, 3);
@@ -174,7 +174,7 @@ describe("CompositeChip", () => {
 
   test("runs children", () => {
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -198,7 +198,7 @@ describe("CompositeChip", () => {
     });
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     parent.tick(makeFrameInfo());
 
     // Run again, this time have middle child request signal
@@ -220,7 +220,7 @@ describe("CompositeChip", () => {
     parent.on("deactivatedChildChip", deactivatedCallback);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     children[1].signal = chip.makeSignal();
     parent.tick(makeFrameInfo());
 
@@ -234,7 +234,7 @@ describe("CompositeChip", () => {
     const activatedCallback = jest.fn();
     parent.on("activatedChildChip", activatedCallback);
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     expect(activatedCallback).toBeCalledTimes(3);
   });
@@ -246,7 +246,7 @@ describe("ParallelChip", () => {
     const parent = new chip.ParallelChip(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -274,7 +274,7 @@ describe("ParallelChip", () => {
     ]);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     parent.tick(makeFrameInfo());
 
     expect(middleChildContext.chip._onActivate).not.toBeCalled();
@@ -286,7 +286,7 @@ describe("ParallelChip", () => {
     const parent = new chip.ParallelChip(children);
 
     // Run once
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     parent.tick(makeFrameInfo());
 
     // Deactivate middle child and run
@@ -310,7 +310,7 @@ describe("ChipSequence", () => {
     const parent = new chip.ChipSequence(children);
 
     for (let i = 0; i < 5; i++) {
-      parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
@@ -338,7 +338,7 @@ describe("ChipSequence", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
     const parent = new chip.ChipSequence(children);
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     // Run 1st child twice, then request signal
     parent.tick(makeFrameInfo());
@@ -373,7 +373,7 @@ describe("ChipSequence", () => {
     const children = [new MockChip(), new MockChip()];
     const parent = new chip.ChipSequence(children, { loop: true });
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     // Run 1st child, then request signal
     parent.tick(makeFrameInfo());
@@ -406,7 +406,7 @@ describe("ChipSequence", () => {
     const children = [new MockChip(), new MockChip()];
     const parent = new chip.ChipSequence(children);
 
-    parent.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     // Run 1st child, then skip
     parent.tick(makeFrameInfo());
@@ -435,7 +435,7 @@ describe("StateMachine", () => {
     const stateMachine = new chip.StateMachine(states);
 
     for (let i = 0; i < 5; i++) {
-      stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+      stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
       stateMachine.tick(makeFrameInfo());
       stateMachine.pause(makeFrameInfo());
       stateMachine.resume(makeFrameInfo());
@@ -455,7 +455,7 @@ describe("StateMachine", () => {
     const stateMachine = new chip.StateMachine(states);
 
     // Run once, then request signal
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
     states.start.signal = chip.makeSignal("end");
     stateMachine.tick(makeFrameInfo());
@@ -475,7 +475,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request signal
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
     states.a.signal = chip.makeSignal("b");
     stateMachine.tick(makeFrameInfo());
@@ -498,7 +498,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request signal
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
     states.a.signal = chip.makeSignal();
     stateMachine.tick(makeFrameInfo());
@@ -521,7 +521,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request signal
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
 
     stateMachine.changeState("b");
@@ -545,7 +545,7 @@ describe("StateMachine", () => {
     });
 
     // Run once, then request signal
-    stateMachine.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
 
     const signal = chip.makeSignal("done", { x: "y" });
@@ -607,14 +607,14 @@ class ReloadingCompositeChip extends chip.CompositeChip {
 describe("Hot reloading", () => {
   test("Base chip doesn't provide memento", () => {
     const e = new chip.NullChip();
-    e.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(e.makeReloadMemento().data).toBeUndefined();
   });
 
   test("Custom chip provides memento", () => {
     // Provide a default value
     const e1 = new ReloadingChip(77);
-    e1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    e1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(e1.makeReloadMemento().data.value).toBe(77);
 
     // Update the value, it should get in the new memento
@@ -625,7 +625,7 @@ describe("Hot reloading", () => {
     const e2 = new ReloadingChip(77);
     e2.activate(
       makeFrameInfo(),
-      makeChipConfig(),
+      makeChipContext(),
       makeSignal(),
       e1.makeReloadMemento()
     );
@@ -636,12 +636,12 @@ describe("Hot reloading", () => {
     class ReloadingChip2 extends ReloadingChip {}
 
     const e1 = new ReloadingChip(77);
-    e1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    e1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     const e2 = new ReloadingChip2(88);
     e2.activate(
       makeFrameInfo(),
-      makeChipConfig(),
+      makeChipContext(),
       makeSignal(),
       e1.makeReloadMemento()
     );
@@ -653,7 +653,7 @@ describe("Hot reloading", () => {
     const child1 = new ReloadingChip(77);
     const parent1 = new ReloadingCompositeChip(child1);
 
-    parent1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parent1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(child1.value).toBe(77);
 
     // Change the value
@@ -665,7 +665,7 @@ describe("Hot reloading", () => {
     // Reload the chip
     const child2 = new ReloadingChip(77);
     const parent2 = new ReloadingCompositeChip(child2);
-    parent2.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
+    parent2.activate(makeFrameInfo(), makeChipContext(), makeSignal(), memento);
 
     expect(child2.value).toBe(88);
   });
@@ -675,7 +675,7 @@ describe("Hot reloading", () => {
     const child2V1 = new ReloadingChip(2);
     const parentV1 = new chip.ParallelChip([child1V1, child2V1]);
 
-    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parentV1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(child1V1.value).toBe(1);
     expect(child2V1.value).toBe(2);
 
@@ -690,7 +690,7 @@ describe("Hot reloading", () => {
     const child1V2 = new ReloadingChip(1);
     const child2V2 = new ReloadingChip(2);
     const parent2 = new chip.ParallelChip([child1V2, child2V2]);
-    parent2.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
+    parent2.activate(makeFrameInfo(), makeChipContext(), makeSignal(), memento);
 
     expect(child1V2.value).toBe(88);
     expect(child2V2.value).toBe(99);
@@ -701,7 +701,7 @@ describe("Hot reloading", () => {
     const child2V1 = new ReloadingChip(2);
     const parentV1 = new chip.ChipSequence([child1V1, child2V1]);
 
-    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parentV1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     // Change the values
     child1V1.value = 99;
@@ -714,7 +714,12 @@ describe("Hot reloading", () => {
     const child1V2 = new ReloadingChip(1);
     const child2V2 = new ReloadingChip(2);
     const parentV2 = new chip.ChipSequence([child1V2, child2V2]);
-    parentV2.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
+    parentV2.activate(
+      makeFrameInfo(),
+      makeChipContext(),
+      makeSignal(),
+      memento
+    );
 
     expect(child1V2.value).toBe(99);
 
@@ -728,7 +733,12 @@ describe("Hot reloading", () => {
     const child1V3 = new ReloadingChip(1);
     const child2V3 = new ReloadingChip(2);
     const parentV3 = new chip.ChipSequence([child1V3, child2V3]);
-    parentV3.activate(makeFrameInfo(), makeChipConfig(), makeSignal(), memento);
+    parentV3.activate(
+      makeFrameInfo(),
+      makeChipContext(),
+      makeSignal(),
+      memento
+    );
 
     // The 2nd child should be active and have the correct value
     expect(child2V3.state).toBe("active");
@@ -743,7 +753,7 @@ describe("Hot reloading", () => {
       middle: child2V1,
     });
 
-    parentV1.activate(makeFrameInfo(), makeChipConfig(), makeSignal());
+    parentV1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     // Skip to another state
     parentV1.changeState("middle");
@@ -765,7 +775,7 @@ describe("Hot reloading", () => {
     });
     parentV2.activate(
       makeFrameInfo(),
-      makeChipConfig(),
+      makeChipContext(),
       makeSignal(),
       parentV1.makeReloadMemento()
     );

@@ -13,12 +13,12 @@ export class Keyboard extends chip.ChipBase {
   private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
   _onActivate() {
-    this._chipConfig.app.view.addEventListener(
+    this._chipContext.app.view.addEventListener(
       "keydown",
       this._onKeyDownWrapper
     );
-    this._chipConfig.app.view.addEventListener("keyup", this._onKeyUpWrapper);
-    this._chipConfig.app.view.addEventListener(
+    this._chipContext.app.view.addEventListener("keyup", this._onKeyUpWrapper);
+    this._chipContext.app.view.addEventListener(
       "focusout",
       this._onFocusOutWrapper
     );
@@ -40,15 +40,15 @@ export class Keyboard extends chip.ChipBase {
   }
 
   terminate() {
-    this._chipConfig.app.view.removeEventListener(
+    this._chipContext.app.view.removeEventListener(
       "keydown",
       this._onKeyDownWrapper
     );
-    this._chipConfig.app.view.removeEventListener(
+    this._chipContext.app.view.removeEventListener(
       "keyup",
       this._onKeyUpWrapper
     );
-    this._chipConfig.app.view.removeEventListener(
+    this._chipContext.app.view.removeEventListener(
       "focusout",
       this._onFocusOutWrapper
     );

@@ -10,11 +10,11 @@ export class DisplayObjectChip<
   }
 
   _onActivate() {
-    this._chipConfig.container.addChild(this.displayObject);
+    this._chipContext.container.addChild(this.displayObject);
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.displayObject);
+    this._chipContext.container.removeChild(this.displayObject);
   }
 }
 
@@ -57,7 +57,7 @@ export class AnimatedSpriteChip extends chip.ChipBase {
 
   _onActivate() {
     const resource =
-      this._chipConfig.app.loader.resources[this._spritesheetName];
+      this._chipContext.app.loader.resources[this._spritesheetName];
     if (!resource)
       throw new Error(
         `Cannot find resource for spritesheet: ${this._spritesheetName}`
@@ -67,7 +67,7 @@ export class AnimatedSpriteChip extends chip.ChipBase {
       Object.values(resource.textures) as PIXI.Texture[],
       false
     );
-    this._chipConfig.container.addChild(this._sprite);
+    this._chipContext.container.addChild(this._sprite);
 
     if (!this._options.loop) {
       // PIXI.AnimatedSprite loops by default
@@ -103,7 +103,7 @@ export class AnimatedSpriteChip extends chip.ChipBase {
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this._sprite);
+    this._chipContext.container.removeChild(this._sprite);
     delete this._sprite;
   }
 

@@ -31,14 +31,14 @@ export class Jukebox extends chip.ChipBase {
     this.musicName = null;
     this.musicPlaying = null;
 
-    _.each(this._chipConfig.musicAudio, (howl: Howl) => {
+    _.each(this._chipContext.musicAudio, (howl: Howl) => {
       howl.loop(true);
     });
 
-    this.muted = this._chipConfig.muted;
+    this.muted = this._chipContext.muted;
     this._updateMuted();
 
-    this._on(this._chipConfig.playOptions, "musicOn", this._updateMuted);
+    this._on(this._chipContext.playOptions, "musicOn", this._updateMuted);
   }
 
   _onTerminate() {
@@ -72,14 +72,14 @@ export class Jukebox extends chip.ChipBase {
     // If no new music is requested, stop
     if (!name) return;
 
-    if (!(name in this._chipConfig.musicAudio)) {
+    if (!(name in this._chipContext.musicAudio)) {
       console.error("Missing music", name);
       return;
     }
 
     if (name) {
       this.musicName = name;
-      this.musicPlaying = this._chipConfig.musicAudio[name];
+      this.musicPlaying = this._chipContext.musicAudio[name];
       this.musicPlaying.volume(volume ?? this.volume);
       this.musicPlaying.play();
     }
@@ -95,13 +95,13 @@ export class Jukebox extends chip.ChipBase {
   }
 
   _updateMuted() {
-    const muted = !this._chipConfig.playOptions.options.musicOn;
-    _.each(this._chipConfig.musicAudio, (howl: Howl) => howl.mute(muted));
+    const muted = !this._chipContext.playOptions.options.musicOn;
+    _.each(this._chipContext.musicAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 
 export function installJukebox(
-  rootConfig: chip.ChipConfig,
+  rootConfig: chip.ChipContext,
   rootChip: chip.ParallelChip
 ) {
   rootConfig.jukebox = new Jukebox();
@@ -109,7 +109,7 @@ export function installJukebox(
 }
 
 export function makeInstallJukebox(options: JukeboxOptions) {
-  return (rootConfig: chip.ChipConfig, rootChip: chip.ParallelChip) => {
+  return (rootConfig: chip.ChipContext, rootChip: chip.ParallelChip) => {
     rootConfig.jukebox = new Jukebox(options);
     rootChip.addChildChip(rootConfig.jukebox);
   };
@@ -124,15 +124,15 @@ export class MusicChip extends chip.ChipBase {
     super();
   }
 
-  _onActivate(tickInfo: chip.TickInfo, chipConfig: chip.ChipConfig) {
-    this._chipConfig.jukebox.play(this.trackName);
+  _onActivate(tickInfo: chip.TickInfo, chipContext: chip.ChipContext) {
+    this._chipContext.jukebox.play(this.trackName);
 
     this._outputSignal = chip.makeSignal();
   }
 
   _onTerminate() {
     if (this.stopOnTeardown) {
-      this._chipConfig.jukebox.play();
+      this._chipContext.jukebox.play();
     }
   }
 }
@@ -161,11 +161,11 @@ export class FxMachine extends chip.ChipBase {
 
     this._updateMuted();
 
-    this._on(this._chipConfig.playOptions, "fxOn", this._updateMuted);
+    this._on(this._chipContext.playOptions, "fxOn", this._updateMuted);
 
     this._playingSounds = {};
-    for (const name in this._chipConfig.fxAudio) {
-      const howl = this._chipConfig.fxAudio[name];
+    for (const name in this._chipContext.fxAudio) {
+      const howl = this._chipContext.fxAudio[name];
 
       // The Howl.on() function doesn't take the same arguments as the event emitter, so we don't use this._on()
       howl.on("end", () => {
@@ -186,25 +186,25 @@ export class FxMachine extends chip.ChipBase {
   changeVolume(volume: number) {
     this._volume = volume;
     for (const name in this._playingSounds) {
-      const howl = this._chipConfig.fxAudio[name];
+      const howl = this._chipContext.fxAudio[name];
       howl.volume(volume * this._playingSounds[name].volumeScale);
     }
   }
 
   /** Returns sound duration in ms */
   getDuration(name: string): number {
-    return this._chipConfig.fxAudio[name].duration() * 1000;
+    return this._chipContext.fxAudio[name].duration() * 1000;
   }
 
   play(name: string, options = { volumeScale: 1, loop: false }) {
-    if (!(name in this._chipConfig.fxAudio)) {
+    if (!(name in this._chipContext.fxAudio)) {
       console.error("Missing sound effect", name);
       return;
     }
 
     // console.log("fx playing", name);
 
-    const howl = this._chipConfig.fxAudio[name];
+    const howl = this._chipContext.fxAudio[name];
     howl.volume(this._volume * options.volumeScale);
     howl.loop(options.loop);
     howl.play();
@@ -212,7 +212,7 @@ export class FxMachine extends chip.ChipBase {
   }
 
   stop(name: string): void {
-    this._chipConfig.fxAudio[name].stop();
+    this._chipContext.fxAudio[name].stop();
     delete this._playingSounds[name];
   }
 
@@ -223,7 +223,7 @@ export class FxMachine extends chip.ChipBase {
   }
 
   pause(name: string): void {
-    this._chipConfig.fxAudio[name].pause();
+    this._chipContext.fxAudio[name].pause();
   }
 
   pauseAll(): void {
@@ -234,7 +234,7 @@ export class FxMachine extends chip.ChipBase {
   }
 
   resume(name: string): void {
-    this._chipConfig.fxAudio[name].play();
+    this._chipContext.fxAudio[name].play();
   }
 
   resumeAll(): void {
@@ -254,8 +254,8 @@ export class FxMachine extends chip.ChipBase {
   }
 
   _updateMuted() {
-    const muted = !this._chipConfig.playOptions.options.fxOn;
-    _.each(this._chipConfig.fxAudio, (howl: Howl) => howl.mute(muted));
+    const muted = !this._chipContext.playOptions.options.fxOn;
+    _.each(this._chipContext.fxAudio, (howl: Howl) => howl.mute(muted));
   }
 }
 
@@ -265,7 +265,7 @@ export function installFxMachine(rootConfig: any, rootChip: any) {
 }
 
 export function makeInstallFxMachine(options: FxMachineOptions) {
-  return (rootConfig: chip.ChipConfig, rootChip: chip.ParallelChip) => {
+  return (rootConfig: chip.ChipContext, rootChip: chip.ParallelChip) => {
     rootConfig.fxMachine = new FxMachine(options);
     rootChip.addChildChip(rootConfig.fxMachine);
   };

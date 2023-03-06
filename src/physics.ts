@@ -39,27 +39,27 @@ export class Simulation extends chip.ParallelChip {
 
   activate(
     tickInfo: chip.TickInfo,
-    chipConfig: chip.ChipConfig,
+    chipContext: chip.ChipContext,
     inputSignal: chip.Signal
   ) {
     this.world = new p2.World(this.worldOptions);
-    this.oldConfig = chipConfig;
+    this.oldConfig = chipContext;
 
     this.container = new PIXI.Container();
     // center at origin
-    this.container.position.x = chipConfig.app.renderer.width / 2;
-    this.container.position.y = chipConfig.app.renderer.height / 2;
+    this.container.position.x = chipContext.app.renderer.width / 2;
+    this.container.position.y = chipContext.app.renderer.height / 2;
 
     this.container.scale.x = this.zoom; // zoom in
     this.container.scale.y = -this.zoom; // Note: we flip the y-axis to make "up" the physics "up"
     this.oldConfig.container.addChild(this.container);
 
-    chipConfig = _.extend({}, chipConfig, {
+    chipContext = _.extend({}, chipContext, {
       world: this.world,
       container: this.container,
     });
 
-    super.activate(tickInfo, chipConfig, inputSignal);
+    super.activate(tickInfo, chipContext, inputSignal);
   }
 
   tick(tickInfo: chip.TickInfo) {
@@ -97,14 +97,14 @@ export class BodyChip extends chip.ParallelChip {
 
   activate(
     tickInfo: chip.TickInfo,
-    chipConfig: chip.ChipConfig,
+    chipContext: chip.ChipContext,
     inputSignal: chip.Signal
   ) {
-    super.activate(tickInfo, chipConfig, inputSignal);
+    super.activate(tickInfo, chipContext, inputSignal);
 
-    this._chipConfig.world.addBody(this.body);
+    this._chipContext.world.addBody(this.body);
 
-    if (this.display) this._chipConfig.container.addChild(this.display);
+    if (this.display) this._chipContext.container.addChild(this.display);
   }
 
   tick(tickInfo: chip.TickInfo) {
@@ -120,9 +120,9 @@ export class BodyChip extends chip.ParallelChip {
   }
 
   terminate(tickInfo: chip.TickInfo) {
-    this._chipConfig.world.removeBody(this.body);
+    this._chipContext.world.removeBody(this.body);
 
-    if (this.display) this._chipConfig.container.removeChild(this.display);
+    if (this.display) this._chipContext.container.removeChild(this.display);
 
     super.terminate(tickInfo);
   }

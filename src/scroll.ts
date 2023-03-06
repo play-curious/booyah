@@ -82,7 +82,7 @@ export class Scrollbox extends chip.ChipBase {
     this._on(this.container, "pointerup", this._onUp as any);
     this._on(this.container, "pointercancel", this._onUp as any);
     this._on(this.container, "pointerupoutside", this._onUp as any);
-    this._chipConfig.container.addChild(this.container);
+    this._chipContext.container.addChild(this.container);
 
     if (this.options.dragScroll) {
       const dragBackground = new PIXI.Graphics();
@@ -114,17 +114,17 @@ export class Scrollbox extends chip.ChipBase {
 
     if (this.options.wheelScroll) {
       this.onWheelHandler = this._onWheel.bind(this);
-      this._chipConfig.app.view.addEventListener("wheel", this.onWheelHandler);
+      this._chipContext.app.view.addEventListener("wheel", this.onWheelHandler);
     }
 
     this.refresh();
   }
 
   _onTerminate() {
-    this._chipConfig.container.removeChild(this.container);
+    this._chipContext.container.removeChild(this.container);
 
     if (this.options.wheelScroll) {
-      this._chipConfig.app.view.removeEventListener(
+      this._chipContext.app.view.removeEventListener(
         "wheel",
         this.onWheelHandler
       );
@@ -437,13 +437,13 @@ export class Scrollbox extends chip.ChipBase {
 
     // Get coordinates of point and test if we touch this container
     const globalPoint = new PIXI.Point();
-    this._chipConfig.app.renderer.plugins.interaction.mapPositionToPoint(
+    this._chipContext.app.renderer.plugins.interaction.mapPositionToPoint(
       globalPoint,
       e.clientX,
       e.clientY
     );
     if (
-      !this._chipConfig.app.renderer.plugins.interaction.hitTest(
+      !this._chipContext.app.renderer.plugins.interaction.hitTest(
         globalPoint,
         this.container
       )
