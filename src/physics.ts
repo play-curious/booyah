@@ -66,7 +66,7 @@ export class Simulation extends chip.ParallelChip {
     super.tick(tickInfo);
 
     // Limit how fast the physics can catch up
-    const stepTime = Math.min(tickInfo.timeSinceLastFrame / 1000, 1 / 30);
+    const stepTime = Math.min(tickInfo.timeSinceLastTick / 1000, 1 / 30);
     this.world.step(stepTime);
   }
 

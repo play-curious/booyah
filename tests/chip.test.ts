@@ -9,7 +9,7 @@ function makeChipContext(): chip.ChipContext {
 
 function makeFrameInfo(): chip.TickInfo {
   return {
-    timeSinceLastFrame: 1 / 60,
+    timeSinceLastTick: 1 / 60,
   };
 }
 
@@ -621,7 +621,7 @@ describe("Hot reloading", () => {
     e1.value = 88;
     expect(e1.makeReloadMemento().data.value).toBe(88);
 
-    // Create a new chip from the previous entities memento. It should have the newer value
+    // Create a new chip from the previous chips memento. It should have the newer value
     const e2 = new ReloadingChip(77);
     e2.activate(
       makeFrameInfo(),
@@ -632,7 +632,7 @@ describe("Hot reloading", () => {
     expect(e2.value).toBe(88);
   });
 
-  test("Entities check for mismatched class names", () => {
+  test("Chips check for mismatched class names", () => {
     class ReloadingChip2 extends ReloadingChip {}
 
     const e1 = new ReloadingChip(77);
@@ -649,7 +649,7 @@ describe("Hot reloading", () => {
     expect(e2.value).toBe(88);
   });
 
-  test("Composite entities will reload their children", () => {
+  test("Composite chips will reload their children", () => {
     const child1 = new ReloadingChip(77);
     const parent1 = new ReloadingCompositeChip(child1);
 

@@ -68,7 +68,7 @@ export function extendConfig(values: {}): (
 }
 
 export interface TickInfo {
-  timeSinceLastFrame: number;
+  timeSinceLastTick: number;
 }
 
 export type ChipFactory = (signal: Signal) => Chip;
@@ -106,7 +106,7 @@ export type ReloadMemento = {
 };
 
 /**
- * In Booyah, the game is structured as a tree of entities. This is the interface for all entities.
+ * In Booyah, the game is structured as a tree of chips. This is the interface for all chips.
  * When creating a new chip, you most likely want to extend ChipBase or CompositeChip,
  * which both implement this interface and do the busywork for you.
  **/
@@ -129,7 +129,7 @@ export interface Chip extends NodeEventSource {
 }
 
 /**
- In Booyah, the game is structured as a tree of entities. This is the base class for all entities.
+ In Booyah, the game is structured as a tree of chips. This is the base class for all chips.
 
  An chip has the following lifecycle:
  1. It is instantiated using the contructor.
@@ -141,7 +141,7 @@ export interface Chip extends NodeEventSource {
  3. tick() is called one or more times, with options.
  It could also never be called, in case the chip is torn down directly.
  If the chip wishes to be terminated, it should set this._outputSignal to a truthy value.
- Typical options include { playTime, timeSinceStart, timeSinceLastFrame, timeScale, gameState }
+ Typical options include { playTime, timeSinceStart, timeSinceLastTick, timeScale, gameState }
  For more complicated signals, it can return an object like { name: "", params: {} }
  4. terminate() is called just once.
  The chip should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
@@ -330,14 +330,14 @@ export class ActivateChildChipOptions {
   reloadMemento?: ReloadMemento;
 }
 
-/** Base class for entities that contain other entities
+/** Base class for chips that contain other chips
  *
  * Events:
  * - activatedChildChip(chip: Chip, config: ChipContext, signal: Signal)
  * - deactivatedChildChip(chip: Chip)
  */
 export abstract class CompositeChip extends ChipBase {
-  protected _childEntities: Record<string, Chip> = {};
+  protected _childChips: Record<string, Chip> = {};
 
   public activate(
     tickInfo: TickInfo,
@@ -348,17 +348,17 @@ export abstract class CompositeChip extends ChipBase {
     super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
   }
   /**
-   * By default, updates all child entities and remove those that have a signal
+   * By default, updates all child chips and remove those that have a signal
    * Overload this method in subclasses to change the behavior
    */
   public tick(tickInfo: TickInfo): void {
     super.tick(tickInfo);
 
-    this._updateChildEntities();
+    this._updateChildChips();
   }
 
   public terminate(tickInfo: TickInfo): void {
-    this._deactivateAllChildEntities();
+    this._deactivateAllChildChips();
 
     super.terminate(tickInfo);
   }
@@ -366,7 +366,7 @@ export abstract class CompositeChip extends ChipBase {
   public pause(tickInfo: TickInfo): void {
     super.pause(tickInfo);
 
-    for (const child of Object.values(this._childEntities)) {
+    for (const child of Object.values(this._childChips)) {
       child.pause(tickInfo);
     }
   }
@@ -374,13 +374,13 @@ export abstract class CompositeChip extends ChipBase {
   public resume(tickInfo: TickInfo): void {
     super.resume(tickInfo);
 
-    for (const child of Object.values(this._childEntities)) {
+    for (const child of Object.values(this._childChips)) {
       child.resume(tickInfo);
     }
   }
 
   public get children(): Record<string, Chip> {
-    return this._childEntities;
+    return this._childChips;
   }
 
   protected _activateChildChip(
@@ -390,7 +390,7 @@ export abstract class CompositeChip extends ChipBase {
     if (this.state === "inactive") throw new Error("CompositeChip is inactive");
 
     options = fillInOptions(options, new ActivateChildChipOptions());
-    if (options.id && options.id in this._childEntities)
+    if (options.id && options.id in this._childChips)
       throw new Error("Duplicate child chip id provided");
 
     const inputSignal = options.signal ?? makeSignal();
@@ -411,7 +411,7 @@ export abstract class CompositeChip extends ChipBase {
     // If no childId is provided, use a random temporary value
     const childId =
       options.id ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
-    this._childEntities[childId] = chip;
+    this._childChips[childId] = chip;
 
     const childConfig = processChipContext(this._chipContext, options.config);
     chip.activate(this._lastFrameInfo, childConfig, inputSignal, reloadMemento);
@@ -426,8 +426,8 @@ export abstract class CompositeChip extends ChipBase {
 
     // Try to find value
     let childId: string;
-    for (const id in this._childEntities) {
-      if (this._childEntities[id] === chip) {
+    for (const id in this._childChips) {
+      if (this._childChips[id] === chip) {
         childId = id;
         break;
       }
@@ -436,24 +436,24 @@ export abstract class CompositeChip extends ChipBase {
 
     chip.terminate(this._lastFrameInfo);
 
-    delete this._childEntities[childId];
+    delete this._childChips[childId];
 
     this.emit("deactivatedChildChip", chip);
   }
 
   /**
-   * Updates all child entities, and deactivates any that need a signal.
+   * Updates all child chips, and deactivates any that need a signal.
    * Returns true if any have been deactivated.
    */
-  protected _updateChildEntities(): boolean {
+  protected _updateChildChips(): boolean {
     let needDeactivation = false;
 
-    for (const id in this._childEntities) {
-      const childChip = this._childEntities[id];
+    for (const id in this._childChips) {
+      const childChip = this._childChips[id];
 
       if (childChip.signal) {
         childChip.terminate(this._lastFrameInfo);
-        delete this._childEntities[id];
+        delete this._childChips[id];
         this.emit("deactivatedChildChip", childChip);
 
         needDeactivation = true;
@@ -465,13 +465,13 @@ export abstract class CompositeChip extends ChipBase {
     return needDeactivation;
   }
 
-  protected _deactivateAllChildEntities() {
-    for (const childChip of Object.values(this._childEntities)) {
+  protected _deactivateAllChildChips() {
+    for (const childChip of Object.values(this._childChips)) {
       childChip.terminate(this._lastFrameInfo);
       this.emit("deactivatedChildChip", childChip);
     }
 
-    this._childEntities = {};
+    this._childChips = {};
   }
 }
 
@@ -484,9 +484,9 @@ export interface ParallelChipActivationInfo extends ChipActivationInfo {
 }
 
 /**
- Allows a bunch of entities to execute in parallel.
- Updates child entities until they ask for a signal, at which point they are torn down.
- Requests a signal when all child entities have completed.
+ Allows a bunch of chips to execute in parallel.
+ Updates child chips until they ask for a signal, at which point they are torn down.
+ Requests a signal when all child chips have completed.
 */
 export class ParallelChip extends CompositeChip {
   public readonly options: ParallelChipOptions;
@@ -524,7 +524,7 @@ export class ParallelChip extends CompositeChip {
   tick(tickInfo: TickInfo) {
     super.tick(tickInfo);
 
-    if (this.options.signalOnCompletion && !_.some(this._childEntities))
+    if (this.options.signalOnCompletion && !_.some(this._childChips))
       this._outputSignal = makeSignal();
   }
 
@@ -564,8 +564,8 @@ export class ParallelChip extends CompositeChip {
     }
   }
 
-  removeAllChildEntities(): void {
-    this._deactivateAllChildEntities();
+  removeAllChildChips(): void {
+    this._deactivateAllChildChips();
 
     this.childChipActivationInfos = [];
     this.contextToChip.clear();
@@ -679,7 +679,7 @@ export class ChipSequence extends CompositeChip {
     // Stop current chip
     if (this.currentChip) {
       // The current chip may have already been deactivated, if it requested a signal
-      if (_.size(this._childEntities) > 0)
+      if (_.size(this._childChips) > 0)
         this._deactivateChildChip(this.currentChip);
       this.currentChip = null;
     }
@@ -771,7 +771,7 @@ export class StateMachineOptions {
   When the machine reaches an ending state, it requests a signal with a name equal to the name of the ending state.
   By default, the state machine begins at the state called "start", and stops at "end".
 
-  The signals are not provided directly by the states (entities) by rather by a signal table provided in the constructor.
+  The signals are not provided directly by the states (chips) by rather by a signal table provided in the constructor.
   To use have a signal table within a signal table, use the function makeSignalTable()
 */
 export class StateMachine extends CompositeChip {
@@ -913,7 +913,7 @@ export class StateMachine extends CompositeChip {
     // Stop current state
     if (this.activeChildChip) {
       // The state may have already been deactivated, if it requested a signal
-      if (_.size(this._childEntities) > 0)
+      if (_.size(this._childChips) > 0)
         this._deactivateChildChip(this.activeChildChip);
       this.activeChildChip = null;
     }
@@ -991,7 +991,7 @@ export interface FunctionalChipFunctions {
 
 /**
   An chip that gets its behavior from functions provided inline in the constructor.
-  Useful for small entities that don't require their own class definition.
+  Useful for small chips that don't require their own class definition.
   Additionally, a function called requestSignal(options, chip), called after tick(), can set the requested signal 
 
   Example usage:
@@ -1079,7 +1079,7 @@ export class WaitingChip extends ChipBase {
   }
 
   _onTick() {
-    this._accumulatedTime += this._lastFrameInfo.timeSinceLastFrame;
+    this._accumulatedTime += this._lastFrameInfo.timeSinceLastTick;
 
     if (this._accumulatedTime >= this.wait) {
       this._outputSignal = makeSignal();
@@ -1179,7 +1179,7 @@ export class Alternative extends CompositeChip {
 
   private _checkForSignal(): void {
     for (let i = 0; i < this.chipActivationInfos.length; i++) {
-      if (this._childEntities[i].signal) {
+      if (this._childChips[i].signal) {
         this._outputSignal = this.chipActivationInfos[i].signal;
         break;
       }

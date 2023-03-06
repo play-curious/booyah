@@ -109,7 +109,7 @@ export class SubtitleNarrator extends chip.CompositeChip {
   _onTick() {
     if (!this.name || this._lastFrameInfo.gameState !== "playing") return;
 
-    this.timeSincePlay += this._lastFrameInfo.timeSinceLastFrame;
+    this.timeSincePlay += this._lastFrameInfo.timeSinceLastTick;
 
     this._updateSubtitle();
   }

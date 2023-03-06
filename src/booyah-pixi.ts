@@ -88,7 +88,7 @@ export class AnimatedSpriteChip extends chip.ChipBase {
   }
 
   _onTick(tickInfo: chip.TickInfo) {
-    this._sprite.tick(tickInfo.timeSinceLastFrame);
+    this._sprite.tick(tickInfo.timeSinceLastTick);
   }
 
   onSignal(tickInfo: chip.TickInfo, signal: string) {

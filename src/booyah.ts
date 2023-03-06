@@ -1035,19 +1035,19 @@ function pixiLoadProgressHandler(loader: any, resource?: any): void {
 
 function tick(timeScale: number) {
   const frameTime = Date.now();
-  const timeSinceLastFrame = frameTime - lastFrameTime;
+  const timeSinceLastTick = frameTime - lastFrameTime;
   lastFrameTime = frameTime;
 
   // Only count "play time" as compared to clock time
   if (gameState == "playing") {
-    playTime += timeSinceLastFrame;
-    timeSinceStart += timeSinceLastFrame;
+    playTime += timeSinceLastTick;
+    timeSinceStart += timeSinceLastTick;
   }
 
   lastFrameInfo = {
     playTime,
     timeSinceStart,
-    timeSinceLastFrame,
+    timeSinceLastTick,
     timeScale,
     gameState,
   };
@@ -1292,7 +1292,7 @@ function doneLoading() {
   lastFrameInfo = {
     playTime: 0,
     timeSinceStart: 0,
-    timeSinceLastFrame: 0,
+    timeSinceLastTick: 0,
     timeScale: 1,
     gameState,
   };
@@ -1306,7 +1306,7 @@ function doneLoading() {
   loadingScene?.terminate(lastFrameInfo);
   loadingScene = null;
 
-  // The new rootChip will contain all the sub entities
+  // The new rootChip will contain all the sub chips
   gameChip = new chip.ParallelChip();
 
   // gameSequence will have the ready and done scenes
@@ -1456,7 +1456,7 @@ export function go(directives: Partial<Directives> = {}) {
   const tickInfo: chip.TickInfo = {
     playTime: 0,
     timeSinceStart: 0,
-    timeSinceLastFrame: 0,
+    timeSinceLastTick: 0,
     timeScale: 1,
     gameState,
   };
