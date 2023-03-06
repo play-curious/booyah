@@ -75,7 +75,7 @@ export type ChipFactory = (signal: Signal) => Chip;
 
 export type ChipResolvable = Chip | ChipFactory;
 
-export interface ChipContext {
+export interface ChipActivationInfo {
   chip: ChipResolvable;
   config?: ChipConfigResolvable;
   id?: string;
@@ -92,7 +92,7 @@ export function isChip(e: any): e is Chip {
 }
 
 export function isChipResolvable(
-  e: ChipResolvable | ChipContext
+  e: ChipResolvable | ChipActivationInfo
 ): e is ChipResolvable {
   return typeof e === "function" || isChip(e);
 }
@@ -479,7 +479,7 @@ export class ParallelChipOptions {
   signalOnCompletion: boolean = true;
 }
 
-export interface ParallelChipContext extends ChipContext {
+export interface ParallelChipActivationInfo extends ChipActivationInfo {
   activated?: boolean;
 }
 
@@ -491,18 +491,20 @@ export interface ParallelChipContext extends ChipContext {
 export class ParallelChip extends CompositeChip {
   public readonly options: ParallelChipOptions;
 
-  protected childChipContexts: ParallelChipContext[] = [];
-  protected contextToChip = new Map<ParallelChipContext, Chip>();
+  protected childChipActivationInfos: ParallelChipActivationInfo[] = [];
+  protected contextToChip = new Map<ParallelChipActivationInfo, Chip>();
 
   constructor(
-    chipContexts: Array<ChipResolvable | ParallelChipContext> = [],
+    chipActivationInfos: Array<
+      ChipResolvable | ParallelChipActivationInfo
+    > = [],
     options?: Partial<ParallelChipOptions>
   ) {
     super();
 
     this.options = fillInOptions(options, new ParallelChipOptions());
 
-    for (const e of chipContexts) this.addChildChip(e);
+    for (const e of chipActivationInfos) this.addChildChip(e);
   }
 
   activate(
@@ -513,8 +515,9 @@ export class ParallelChip extends CompositeChip {
   ) {
     super.activate(tickInfo, chipConfig, inputSignal, reloadMemento);
 
-    for (const chipContext of this.childChipContexts) {
-      if (chipContext.activated) this.activateChildChip(chipContext);
+    for (const chipActivationInfo of this.childChipActivationInfos) {
+      if (chipActivationInfo.activated)
+        this.activateChildChip(chipActivationInfo);
     }
   }
 
@@ -525,97 +528,103 @@ export class ParallelChip extends CompositeChip {
       this._outputSignal = makeSignal();
   }
 
-  addChildChip(chip: ParallelChipContext | ChipResolvable) {
-    const index = this.indexOfChildChipContext(chip);
+  addChildChip(chip: ParallelChipActivationInfo | ChipResolvable) {
+    const index = this.indexOfChildChipActivationInfo(chip);
     if (index !== -1) throw new Error("Chip context already added");
 
-    let chipContext: ParallelChipContext;
+    let chipActivationInfo: ParallelChipActivationInfo;
     if (isChipResolvable(chip)) {
-      chipContext = { chip, activated: true };
+      chipActivationInfo = { chip, activated: true };
     } else {
-      chipContext = chip;
+      chipActivationInfo = chip;
     }
 
-    this.childChipContexts.push(chipContext);
+    this.childChipActivationInfos.push(chipActivationInfo);
 
     // Automatically activate the child chip
-    if (this.state !== "inactive" && chipContext.activated) {
-      const chip = this._activateChildChip(chipContext.chip, {
-        config: chipContext.config,
+    if (this.state !== "inactive" && chipActivationInfo.activated) {
+      const chip = this._activateChildChip(chipActivationInfo.chip, {
+        config: chipActivationInfo.config,
       });
-      this.contextToChip.set(chipContext, chip);
+      this.contextToChip.set(chipActivationInfo, chip);
     }
   }
 
-  removeChildChip(e: ParallelChipContext | ChipResolvable): void {
-    const index = this.indexOfChildChipContext(e);
+  removeChildChip(e: ParallelChipActivationInfo | ChipResolvable): void {
+    const index = this.indexOfChildChipActivationInfo(e);
     if (index === -1) throw new Error("Cannot find chip context");
 
-    const chipContext = this.childChipContexts[index];
-    this.childChipContexts.splice(index, 1);
+    const chipActivationInfo = this.childChipActivationInfos[index];
+    this.childChipActivationInfos.splice(index, 1);
 
-    const chip = this.contextToChip.get(chipContext);
+    const chip = this.contextToChip.get(chipActivationInfo);
     if (chip) {
       this._deactivateChildChip(chip);
-      this.contextToChip.delete(chipContext);
+      this.contextToChip.delete(chipActivationInfo);
     }
   }
 
   removeAllChildEntities(): void {
     this._deactivateAllChildEntities();
 
-    this.childChipContexts = [];
+    this.childChipActivationInfos = [];
     this.contextToChip.clear();
   }
 
-  activateChildChip(e: number | ParallelChipContext | ChipResolvable): void {
+  activateChildChip(
+    e: number | ParallelChipActivationInfo | ChipResolvable
+  ): void {
     let index: number;
     if (typeof e === "number") {
       index = e;
-      if (index < 0 || index >= this.childChipContexts.length)
+      if (index < 0 || index >= this.childChipActivationInfos.length)
         throw new Error("Invalid index");
     } else {
-      index = this.indexOfChildChipContext(e);
+      index = this.indexOfChildChipActivationInfo(e);
       if (index === -1) throw new Error("Cannot find chip context");
     }
 
-    const chipContext = this.childChipContexts[index];
-    if (this.contextToChip.has(chipContext))
+    const chipActivationInfo = this.childChipActivationInfos[index];
+    if (this.contextToChip.has(chipActivationInfo))
       throw new Error("Chip is already activated");
 
-    const chip = this._activateChildChip(chipContext.chip, {
-      config: chipContext.config,
-      id: chipContext.id ?? index.toString(),
+    const chip = this._activateChildChip(chipActivationInfo.chip, {
+      config: chipActivationInfo.config,
+      id: chipActivationInfo.id ?? index.toString(),
     });
-    this.contextToChip.set(chipContext, chip);
-    chipContext.activated = true;
+    this.contextToChip.set(chipActivationInfo, chip);
+    chipActivationInfo.activated = true;
   }
 
-  deactivateChildChip(e: ParallelChipContext | ChipResolvable | number): void {
+  deactivateChildChip(
+    e: ParallelChipActivationInfo | ChipResolvable | number
+  ): void {
     let index: number;
     if (typeof e === "number") {
       index = e;
-      if (index < 0 || index >= this.childChipContexts.length)
+      if (index < 0 || index >= this.childChipActivationInfos.length)
         throw new Error("Invalid index");
     } else {
-      index = this.indexOfChildChipContext(e);
+      index = this.indexOfChildChipActivationInfo(e);
       if (index === -1) throw new Error("Cannot find chip context");
     }
 
-    const chipContext = this.childChipContexts[index];
-    const chip = this.contextToChip.get(chipContext);
+    const chipActivationInfo = this.childChipActivationInfos[index];
+    const chip = this.contextToChip.get(chipActivationInfo);
     if (!chip) throw new Error("Chip not yet activated");
 
     this._deactivateChildChip(chip);
-    chipContext.activated = false;
-    this.contextToChip.delete(chipContext);
+    chipActivationInfo.activated = false;
+    this.contextToChip.delete(chipActivationInfo);
   }
 
-  indexOfChildChipContext(chip: ParallelChipContext | ChipResolvable): number {
+  indexOfChildChipActivationInfo(
+    chip: ParallelChipActivationInfo | ChipResolvable
+  ): number {
     if (isChipResolvable(chip)) {
-      return _.indexOf(this.childChipContexts, { chip });
+      return _.indexOf(this.childChipActivationInfos, { chip });
     } else {
-      return this.childChipContexts.indexOf(chip);
+      return this.childChipActivationInfos.indexOf(chip);
     }
   }
 
@@ -639,26 +648,26 @@ export class ChipSequenceOptions {
 export class ChipSequence extends CompositeChip {
   public readonly options: ChipSequenceOptions;
 
-  private chipContexts: ChipContext[] = [];
+  private chipActivationInfos: ChipActivationInfo[] = [];
   private currentChipIndex = 0;
   private currentChip: Chip = null;
 
   constructor(
-    chipContexts: Array<ChipContext | ChipResolvable>,
+    chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
     options?: Partial<ChipSequenceOptions>
   ) {
     super();
 
     this.options = fillInOptions(options, new ChipSequenceOptions());
 
-    for (const e of chipContexts) this.addChildChip(e);
+    for (const e of chipActivationInfos) this.addChildChip(e);
   }
 
-  addChildChip(chip: ChipContext | ChipResolvable) {
+  addChildChip(chip: ChipActivationInfo | ChipResolvable) {
     if (isChipResolvable(chip)) {
-      this.chipContexts.push({ chip: chip });
+      this.chipActivationInfos.push({ chip: chip });
     } else {
-      this.chipContexts.push(chip);
+      this.chipActivationInfos.push(chip);
     }
   }
 
@@ -675,11 +684,12 @@ export class ChipSequence extends CompositeChip {
       this.currentChip = null;
     }
 
-    if (this.currentChipIndex < this.chipContexts.length) {
-      const chipContext = this.chipContexts[this.currentChipIndex];
-      this.currentChip = this._activateChildChip(chipContext.chip, {
-        config: chipContext.config,
-        id: chipContext.id ?? this.currentChipIndex.toString(),
+    if (this.currentChipIndex < this.chipActivationInfos.length) {
+      const chipActivationInfo =
+        this.chipActivationInfos[this.currentChipIndex];
+      this.currentChip = this._activateChildChip(chipActivationInfo.chip, {
+        config: chipActivationInfo.config,
+        id: chipActivationInfo.id ?? this.currentChipIndex.toString(),
       });
     }
   }
@@ -689,7 +699,7 @@ export class ChipSequence extends CompositeChip {
       (this._reloadMemento?.data.currentChipIndex as number) ?? 0;
     this.currentChip = null;
 
-    if (this.chipContexts.length === 0) {
+    if (this.chipActivationInfos.length === 0) {
       // Empty sequence, stop immediately
       if (this.options.signalOnCompletion) this._outputSignal = makeSignal();
     } else {
@@ -719,7 +729,7 @@ export class ChipSequence extends CompositeChip {
     this._switchChip();
 
     // If we've reached the end of the sequence...
-    if (this.currentChipIndex >= this.chipContexts.length) {
+    if (this.currentChipIndex >= this.chipActivationInfos.length) {
       if (this.options.loop) {
         // ... and we loop, go back to start
         this.currentChipIndex = 0;
@@ -738,9 +748,9 @@ export class ChipSequence extends CompositeChip {
   }
 }
 
-export type StateTable = { [n: string]: ChipContext };
+export type StateTable = { [n: string]: ChipActivationInfo };
 export type StateTableDescriptor = {
-  [n: string]: ChipContext | ChipResolvable;
+  [n: string]: ChipActivationInfo | ChipResolvable;
 };
 
 export type SignalFunction = (signal: Signal) => Signal;
@@ -1129,7 +1139,7 @@ export class WaitForEvent extends ChipBase {
   }
 }
 
-export interface AlternativeChipContext extends ChipContext {
+export interface AlternativeChipActivationInfo extends ChipActivationInfo {
   signal?: Signal;
 }
 
@@ -1137,24 +1147,26 @@ export interface AlternativeChipContext extends ChipContext {
  *  Chip that requests a signal as soon as one of it's children requests one
  */
 export class Alternative extends CompositeChip {
-  private readonly chipContexts: AlternativeChipContext[];
+  private readonly chipActivationInfos: AlternativeChipActivationInfo[];
 
   // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-  constructor(chipContexts: AlternativeChipContext[]) {
+  constructor(chipActivationInfos: AlternativeChipActivationInfo[]) {
     super();
 
     // Set default signal as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-    this.chipContexts = _.map(chipContexts, (chipContext, key) =>
-      _.defaults({}, chipContext, {
-        signal: key.toString(),
-      })
+    this.chipActivationInfos = _.map(
+      chipActivationInfos,
+      (chipActivationInfo, key) =>
+        _.defaults({}, chipActivationInfo, {
+          signal: key.toString(),
+        })
     );
   }
 
   _onActivate() {
-    for (const chipContext of this.chipContexts) {
-      this._activateChildChip(chipContext.chip, {
-        config: chipContext.config,
+    for (const chipActivationInfo of this.chipActivationInfos) {
+      this._activateChildChip(chipActivationInfo.chip, {
+        config: chipActivationInfo.config,
       });
     }
 
@@ -1166,9 +1178,9 @@ export class Alternative extends CompositeChip {
   }
 
   private _checkForSignal(): void {
-    for (let i = 0; i < this.chipContexts.length; i++) {
+    for (let i = 0; i < this.chipActivationInfos.length; i++) {
       if (this._childEntities[i].signal) {
-        this._outputSignal = this.chipContexts[i].signal;
+        this._outputSignal = this.chipActivationInfos[i].signal;
         break;
       }
     }
