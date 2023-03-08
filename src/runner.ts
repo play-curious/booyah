@@ -333,8 +333,8 @@ function pixiLoadProgressHandler(loader: unknown, resource?: unknown): void {
 
 function update(timeScale: number) {
   const frameTime = Date.now();
-  // Clamp time since last frame to be under 60 FPS
-  const timeSinceLastFrame = Math.min(frameTime - lastFrameTime, 1000 / 60);
+  // Clamp time since last frame to be under 10 FPS
+  const timeSinceLastFrame = Math.min(frameTime - lastFrameTime, 100);
   lastFrameTime = frameTime;
 
   // Only count "play time" as compared to clock time
