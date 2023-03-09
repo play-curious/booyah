@@ -1,7 +1,7 @@
 module.exports = {
   env: {
     browser: true,
-    es6: true
+    es6: true,
   },
   extends: "eslint:recommended",
   globals: {
@@ -11,16 +11,15 @@ module.exports = {
     PIXI: "readonly",
     Howler: "readonly",
     Howl: "readonly",
-    ga: "readonly",
     FontFaceObserver: "readonly",
-    p2: "readonly"
   },
   parserOptions: {
     ecmaVersion: 2018,
-    sourceType: "module"
+    sourceType: "module",
   },
   rules: {
     "no-console": "off",
-    "no-unused-vars": ["error", { args: "none" }]
-  }
+    "no-unused-vars": ["error", { args: "none" }],
+  },
+  ignorePatterns: [".eslintrc.js"],
 };

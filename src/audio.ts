@@ -102,14 +102,14 @@ export class Jukebox extends chip.ChipBase {
 
 export function installJukebox(
   rootConfig: chip.ChipContext,
-  rootChip: chip.ParallelChip
+  rootChip: chip.Parallel
 ) {
   rootConfig.jukebox = new Jukebox();
   rootChip.addChildChip(rootConfig.jukebox);
 }
 
 export function makeInstallJukebox(options: JukeboxOptions) {
-  return (rootConfig: chip.ChipContext, rootChip: chip.ParallelChip) => {
+  return (rootConfig: chip.ChipContext, rootChip: chip.Parallel) => {
     rootConfig.jukebox = new Jukebox(options);
     rootChip.addChildChip(rootConfig.jukebox);
   };
@@ -265,7 +265,7 @@ export function installFxMachine(rootConfig: any, rootChip: any) {
 }
 
 export function makeInstallFxMachine(options: FxMachineOptions) {
-  return (rootConfig: chip.ChipContext, rootChip: chip.ParallelChip) => {
+  return (rootConfig: chip.ChipContext, rootChip: chip.Parallel) => {
     rootConfig.fxMachine = new FxMachine(options);
     rootChip.addChildChip(rootConfig.fxMachine);
   };

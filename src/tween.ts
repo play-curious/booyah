@@ -5,7 +5,7 @@ import * as easing from "./easing";
 import * as _ from "underscore";
 
 /**
- * Creates a ParallelChip that carries out multiple tweens on the same object.
+ * Creates a Parallel that carries out multiple tweens on the same object.
  * Usage: tween.make(filter, { brightness: { to: 5 } }, { duration: 2000 })
  * @obj Object on which to carry out the tween
  * @props Map of property names to options for that property (like Tween() would take)
@@ -15,7 +15,7 @@ export function make(
   obj: any,
   props: { [prop: string]: Partial<TweenOptions<any, any>> },
   options: TweenOptions<any, any>
-): chip.ParallelChip {
+): chip.Parallel {
   const tweens: any[] = [];
   for (const key in props) {
     const tweenOptions = _.defaults(
@@ -25,7 +25,7 @@ export function make(
     );
     tweens.push(new Tween(tweenOptions));
   }
-  return new chip.ParallelChip(tweens);
+  return new chip.Parallel(tweens);
 }
 
 /**

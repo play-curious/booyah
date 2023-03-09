@@ -6,14 +6,18 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "jest",
-    "prettier": "npx prettier ./src --write",
-    "prepublishOnly": "yarn build && yarn prettier"
+    "checkTypes": "tsc --noEmit",
+    "checkLinting": "yarn eslint src/chip.ts src/running.ts",
+    "checkFormatting": "yarn prettier --check ./src",
+    "checkAll": "yarn checkTypes && yarn checkLinting && yarn checkFormatting",
+    "prettier": "npx prettier ./src --write"
   },
   "license": "MIT",
   "dependencies": {
     "@types/jest": "^26.0.23",
-    "@types/p2": "^0.7.36",
     "@types/underscore": "~1.11",
+    "eslint": "^8.23.0",
+    "eslint-config-prettier": "^8.5.0",
     "eventemitter3": "^5.0.0",
     "jest": "^27.0.4",
     "ts-jest": "^27.0.3",

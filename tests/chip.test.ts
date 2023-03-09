@@ -156,15 +156,15 @@ describe("Chip", () => {
   });
 });
 
-describe("CompositeChip", () => {
-  let parent: chip.CompositeChip;
+describe("Composite", () => {
+  let parent: chip.Composite;
   let children: MockChip[];
 
   beforeEach(() => {
     children = [new MockChip(), new MockChip(), new MockChip()];
 
     // Anonymous subclass
-    parent = new (class extends chip.CompositeChip {
+    parent = new (class extends chip.Composite {
       _onActivate() {
         for (let i = 0; i < 3; i++) this._activateChildChip(children[i]);
       }
@@ -239,10 +239,10 @@ describe("CompositeChip", () => {
   });
 });
 
-describe("ParallelChip", () => {
+describe("Parallel", () => {
   test("runs children", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
-    const parent = new chip.ParallelChip(children);
+    const parent = new chip.Parallel(children);
 
     for (let i = 0; i < 5; i++) {
       parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
@@ -266,7 +266,7 @@ describe("ParallelChip", () => {
       chip: new MockChip(),
       activated: false,
     };
-    const parent = new chip.ParallelChip([
+    const parent = new chip.Parallel([
       new MockChip(),
       middleChildContext,
       new MockChip(),
@@ -282,7 +282,7 @@ describe("ParallelChip", () => {
 
   test("can activate and terminate children", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
-    const parent = new chip.ParallelChip(children);
+    const parent = new chip.Parallel(children);
 
     // Run once
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
@@ -303,10 +303,10 @@ describe("ParallelChip", () => {
   });
 });
 
-describe("ChipSequence", () => {
+describe("Sequence", () => {
   test("runs only one child at a time", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
-    const parent = new chip.ChipSequence(children);
+    const parent = new chip.Sequence(children);
 
     for (let i = 0; i < 5; i++) {
       parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
@@ -335,7 +335,7 @@ describe("ChipSequence", () => {
 
   test("runs only one child after another", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
-    const parent = new chip.ChipSequence(children);
+    const parent = new chip.Sequence(children);
 
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
@@ -370,7 +370,7 @@ describe("ChipSequence", () => {
 
   test("loops", () => {
     const children = [new MockChip(), new MockChip()];
-    const parent = new chip.ChipSequence(children, { loop: true });
+    const parent = new chip.Sequence(children, { loop: true });
 
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
@@ -403,7 +403,7 @@ describe("ChipSequence", () => {
 
   test("skips", () => {
     const children = [new MockChip(), new MockChip()];
-    const parent = new chip.ChipSequence(children);
+    const parent = new chip.Sequence(children);
 
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
@@ -593,7 +593,7 @@ class ReloadingChip extends chip.ChipBase {
   }
 }
 
-class ReloadingCompositeChip extends chip.CompositeChip {
+class ReloadingComposite extends chip.Composite {
   constructor(private _child: ReloadingChip) {
     super();
   }
@@ -650,7 +650,7 @@ describe("Hot reloading", () => {
 
   test("Composite chips will reload their children", () => {
     const child1 = new ReloadingChip(77);
-    const parent1 = new ReloadingCompositeChip(child1);
+    const parent1 = new ReloadingComposite(child1);
 
     parent1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(child1.value).toBe(77);
@@ -663,16 +663,16 @@ describe("Hot reloading", () => {
 
     // Reload the chip
     const child2 = new ReloadingChip(77);
-    const parent2 = new ReloadingCompositeChip(child2);
+    const parent2 = new ReloadingComposite(child2);
     parent2.activate(makeFrameInfo(), makeChipContext(), makeSignal(), memento);
 
     expect(child2.value).toBe(88);
   });
 
-  test("works with ParallelChip", () => {
+  test("works with Parallel", () => {
     const child1V1 = new ReloadingChip(1);
     const child2V1 = new ReloadingChip(2);
-    const parentV1 = new chip.ParallelChip([child1V1, child2V1]);
+    const parentV1 = new chip.Parallel([child1V1, child2V1]);
 
     parentV1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(child1V1.value).toBe(1);
@@ -688,17 +688,17 @@ describe("Hot reloading", () => {
     // Reload the chip
     const child1V2 = new ReloadingChip(1);
     const child2V2 = new ReloadingChip(2);
-    const parent2 = new chip.ParallelChip([child1V2, child2V2]);
+    const parent2 = new chip.Parallel([child1V2, child2V2]);
     parent2.activate(makeFrameInfo(), makeChipContext(), makeSignal(), memento);
 
     expect(child1V2.value).toBe(88);
     expect(child2V2.value).toBe(99);
   });
 
-  test("works with ChipSequence", () => {
+  test("works with Sequence", () => {
     const child1V1 = new ReloadingChip(1);
     const child2V1 = new ReloadingChip(2);
-    const parentV1 = new chip.ChipSequence([child1V1, child2V1]);
+    const parentV1 = new chip.Sequence([child1V1, child2V1]);
 
     parentV1.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
@@ -712,7 +712,7 @@ describe("Hot reloading", () => {
     // Reload the chip
     const child1V2 = new ReloadingChip(1);
     const child2V2 = new ReloadingChip(2);
-    const parentV2 = new chip.ChipSequence([child1V2, child2V2]);
+    const parentV2 = new chip.Sequence([child1V2, child2V2]);
     parentV2.activate(
       makeFrameInfo(),
       makeChipContext(),
@@ -731,7 +731,7 @@ describe("Hot reloading", () => {
     memento = parentV2.makeReloadMemento();
     const child1V3 = new ReloadingChip(1);
     const child2V3 = new ReloadingChip(2);
-    const parentV3 = new chip.ChipSequence([child1V3, child2V3]);
+    const parentV3 = new chip.Sequence([child1V3, child2V3]);
     parentV3.activate(
       makeFrameInfo(),
       makeChipContext(),

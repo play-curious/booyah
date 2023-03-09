@@ -14,7 +14,7 @@ export class RunnerOptions {
 export class Runner {
   private _options: RunnerOptions;
   private _isRunning = false;
-  private _lastTimeStamp: DOMHighResTimeStamp;
+  private _lastTimeStamp: number;
   private _rootContext: chip.ChipContext;
   private _rootChip: chip.Chip;
 
@@ -51,7 +51,7 @@ export class Runner {
     this._isRunning = true;
   }
 
-  private _onTick(timeStamp: DOMHighResTimeStamp) {
+  private _onTick(timeStamp: number) {
     if (!this._isRunning) return;
 
     let timeSinceLastTick = timeStamp - this._lastTimeStamp;

@@ -6,16 +6,14 @@ import * as _ from "underscore";
  * @param options Options provided by the caller
  * @param defaults Defaults provided by the author
  */
-export function fillInOptions<T extends Record<string, any>>(
-  options: Partial<T>,
-  defaults: T
-): T {
+// @es-li
+export function fillInOptions<T>(options: Partial<T>, defaults: T): T {
   if (options) return { ...defaults, ...options };
   else return defaults;
 }
 
 /** Deep clone of JSON-serializable objects */
-export function cloneData<T = any>(o: T): T {
+export function cloneData<T = unknown>(o: T): T {
   return JSON.parse(JSON.stringify(o));
 }
 
@@ -26,7 +24,7 @@ export interface NodeEventSource {
   on(type: string, listener: () => void): void;
   once(type: string, listener: () => void): void;
   off(type: string, listener: () => void): void;
-  emit(type: string, ...args: any[]): void;
+  emit(type: string, ...args: unknown[]): void;
 }
 
 export interface IEventListener {
@@ -37,16 +35,14 @@ export interface IEventListener {
 
 export interface Signal {
   readonly name: string;
-  readonly params: Record<string, any>;
+  readonly params: Record<string, unknown>;
 }
 
 export function makeSignal(name = "default", params = {}): Signal {
   return { name, params };
 }
 
-export type ChipContext = {
-  readonly [k: string]: any;
-};
+export type ChipContext = Readonly<Record<string, unknown>>;
 
 export type ChipContextFactory = (config: ChipContext) => ChipContext;
 export type ChipContextResolvable = ChipContext | ChipContextFactory;
@@ -83,6 +79,7 @@ export interface ChipActivationInfo {
 
 export type ChipState = "inactive" | "active" | "paused";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isChip(e: any): e is Chip {
   return (
     typeof e.activate === "function" &&
@@ -107,7 +104,7 @@ export type ReloadMemento = {
 
 /**
  * In Booyah, the game is structured as a tree of chips. This is the interface for all chips.
- * When creating a new chip, you most likely want to extend ChipBase or CompositeChip,
+ * When creating a new chip, you most likely want to extend ChipBase or Composite,
  * which both implement this interface and do the busywork for you.
  **/
 export interface Chip extends NodeEventSource {
@@ -230,7 +227,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   protected _subscribe(
     emitter: NodeEventSource,
     event: string,
-    cb: (...args: any) => void
+    cb: (...args: unknown[]) => void
   ): void {
     this._eventListeners.push({ emitter, event, cb });
     emitter.on(event, cb);
@@ -239,7 +236,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   protected _subscribeOnce(
     emitter: NodeEventSource,
     event: string,
-    cb: (...args: any) => void
+    cb: (...args: unknown[]) => void
   ): void {
     this._eventListeners.push({ emitter, event, cb });
     emitter.once(event, cb);
@@ -249,7 +246,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   protected _unsubscribe(
     emitter?: NodeEventSource,
     event?: string,
-    cb?: (...args: any) => void
+    cb?: (...args: unknown[]) => void
   ): void {
     // props should only contain defined arguments
     const props = _.pick(
@@ -297,11 +294,21 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     };
   }
 
-  protected _onActivate() {}
-  protected _onTick() {}
-  protected _onTerminate() {}
-  protected _onPause() {}
-  protected _onResume() {}
+  protected _onActivate() {
+    /* no op */
+  }
+  protected _onTick() {
+    /* no op */
+  }
+  protected _onTerminate() {
+    /* no op */
+  }
+  protected _onPause() {
+    /* no op */
+  }
+  protected _onResume() {
+    /* no op */
+  }
 
   /** By default, an chip be automatically reloaded */
   protected _makeReloadMementoData(): ReloadMementoData {
@@ -336,7 +343,7 @@ export class ActivateChildChipOptions {
  * - activatedChildChip(chip: Chip, config: ChipContext, signal: Signal)
  * - deactivatedChildChip(chip: Chip)
  */
-export abstract class CompositeChip extends ChipBase {
+export abstract class Composite extends ChipBase {
   protected _childChips: Record<string, Chip> = {};
 
   public activate(
@@ -387,7 +394,7 @@ export abstract class CompositeChip extends ChipBase {
     chipResolvable: ChipResolvable,
     options?: Partial<ActivateChildChipOptions>
   ): Chip {
-    if (this.state === "inactive") throw new Error("CompositeChip is inactive");
+    if (this.state === "inactive") throw new Error("Composite is inactive");
 
     options = fillInOptions(options, new ActivateChildChipOptions());
     if (options.id && options.id in this._childChips)
@@ -422,7 +429,7 @@ export abstract class CompositeChip extends ChipBase {
   }
 
   protected _deactivateChildChip(chip: Chip): void {
-    if (this.state === "inactive") throw new Error("CompositeChip is inactive");
+    if (this.state === "inactive") throw new Error("Composite is inactive");
 
     // Try to find value
     let childId: string;
@@ -475,11 +482,11 @@ export abstract class CompositeChip extends ChipBase {
   }
 }
 
-export class ParallelChipOptions {
-  signalOnCompletion: boolean = true;
+export class ParallelOptions {
+  signalOnCompletion = true;
 }
 
-export interface ParallelChipActivationInfo extends ChipActivationInfo {
+export interface ParallelActivationInfo extends ChipActivationInfo {
   activated?: boolean;
 }
 
@@ -488,21 +495,19 @@ export interface ParallelChipActivationInfo extends ChipActivationInfo {
  Updates child chips until they ask for a signal, at which point they are torn down.
  Requests a signal when all child chips have completed.
 */
-export class ParallelChip extends CompositeChip {
-  public readonly options: ParallelChipOptions;
+export class Parallel extends Composite {
+  public readonly options: ParallelOptions;
 
-  protected childChipActivationInfos: ParallelChipActivationInfo[] = [];
-  protected contextToChip = new Map<ParallelChipActivationInfo, Chip>();
+  protected childChipActivationInfos: ParallelActivationInfo[] = [];
+  protected contextToChip = new Map<ParallelActivationInfo, Chip>();
 
   constructor(
-    chipActivationInfos: Array<
-      ChipResolvable | ParallelChipActivationInfo
-    > = [],
-    options?: Partial<ParallelChipOptions>
+    chipActivationInfos: Array<ChipResolvable | ParallelActivationInfo> = [],
+    options?: Partial<ParallelOptions>
   ) {
     super();
 
-    this.options = fillInOptions(options, new ParallelChipOptions());
+    this.options = fillInOptions(options, new ParallelOptions());
 
     for (const e of chipActivationInfos) this.addChildChip(e);
   }
@@ -528,11 +533,11 @@ export class ParallelChip extends CompositeChip {
       this._outputSignal = makeSignal();
   }
 
-  addChildChip(chip: ParallelChipActivationInfo | ChipResolvable) {
+  addChildChip(chip: ParallelActivationInfo | ChipResolvable) {
     const index = this.indexOfChildChipActivationInfo(chip);
     if (index !== -1) throw new Error("Chip context already added");
 
-    let chipActivationInfo: ParallelChipActivationInfo;
+    let chipActivationInfo: ParallelActivationInfo;
     if (isChipResolvable(chip)) {
       chipActivationInfo = { chip, activated: true };
     } else {
@@ -550,7 +555,7 @@ export class ParallelChip extends CompositeChip {
     }
   }
 
-  removeChildChip(e: ParallelChipActivationInfo | ChipResolvable): void {
+  removeChildChip(e: ParallelActivationInfo | ChipResolvable): void {
     const index = this.indexOfChildChipActivationInfo(e);
     if (index === -1) throw new Error("Cannot find chip context");
 
@@ -571,9 +576,7 @@ export class ParallelChip extends CompositeChip {
     this.contextToChip.clear();
   }
 
-  activateChildChip(
-    e: number | ParallelChipActivationInfo | ChipResolvable
-  ): void {
+  activateChildChip(e: number | ParallelActivationInfo | ChipResolvable): void {
     let index: number;
     if (typeof e === "number") {
       index = e;
@@ -597,7 +600,7 @@ export class ParallelChip extends CompositeChip {
   }
 
   deactivateChildChip(
-    e: ParallelChipActivationInfo | ChipResolvable | number
+    e: ParallelActivationInfo | ChipResolvable | number
   ): void {
     let index: number;
     if (typeof e === "number") {
@@ -619,7 +622,7 @@ export class ParallelChip extends CompositeChip {
   }
 
   indexOfChildChipActivationInfo(
-    chip: ParallelChipActivationInfo | ChipResolvable
+    chip: ParallelActivationInfo | ChipResolvable
   ): number {
     if (isChipResolvable(chip)) {
       return _.indexOf(this.childChipActivationInfos, { chip });
@@ -635,7 +638,7 @@ export class ParallelChip extends CompositeChip {
   }
 }
 
-export class ChipSequenceOptions {
+export class SequenceOptions {
   loop = false;
   signalOnCompletion = true;
 }
@@ -645,8 +648,8 @@ export class ChipSequenceOptions {
   When done, requestes the last signal demanded.
   Optionally can loop back to the first chip.
 */
-export class ChipSequence extends CompositeChip {
-  public readonly options: ChipSequenceOptions;
+export class Sequence extends Composite {
+  public readonly options: SequenceOptions;
 
   private chipActivationInfos: ChipActivationInfo[] = [];
   private currentChipIndex = 0;
@@ -654,11 +657,11 @@ export class ChipSequence extends CompositeChip {
 
   constructor(
     chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
-    options?: Partial<ChipSequenceOptions>
+    options?: Partial<SequenceOptions>
   ) {
     super();
 
-    this.options = fillInOptions(options, new ChipSequenceOptions());
+    this.options = fillInOptions(options, new SequenceOptions());
 
     for (const e of chipActivationInfos) this.addChildChip(e);
   }
@@ -700,10 +703,10 @@ export class ChipSequence extends CompositeChip {
     this.currentChip = null;
 
     if (this.chipActivationInfos.length === 0) {
-      // Empty sequence, stop immediately
+      // Empty Sequence, stop immediately
       if (this.options.signalOnCompletion) this._outputSignal = makeSignal();
     } else {
-      // Start the sequence
+      // Start the Sequence
       this._switchChip();
     }
   }
@@ -728,7 +731,7 @@ export class ChipSequence extends CompositeChip {
     this.currentChipIndex++;
     this._switchChip();
 
-    // If we've reached the end of the sequence...
+    // If we've reached the end of the Sequence...
     if (this.currentChipIndex >= this.chipActivationInfos.length) {
       if (this.options.loop) {
         // ... and we loop, go back to start
@@ -761,7 +764,7 @@ export class StateMachineOptions {
   startingState: Signal | string = "start";
   signals: { [n: string]: SignalDescriptor | string };
   endingStates: string[] = ["end"];
-  startingProgress: {} = {};
+  startingProgress: Record<string, unknown> = {};
 }
 
 /** 
@@ -774,16 +777,16 @@ export class StateMachineOptions {
   The signals are not provided directly by the states (chips) by rather by a signal table provided in the constructor.
   To use have a signal table within a signal table, use the function makeSignalTable()
 */
-export class StateMachine extends CompositeChip {
+export class StateMachine extends Composite {
   public readonly options: StateMachineOptions;
 
   public states: StateTable = {};
   public signals: SignalTable = {};
   public startingState: SignalDescriptor;
   public visitedStates: Signal[];
-  public progress: {};
+  public progress: Record<string, unknown>;
   public activeChildChip: Chip;
-  public stateParams: {};
+  public stateParams: Record<string, unknown>;
   private lastSignal: Signal;
 
   constructor(
@@ -888,13 +891,6 @@ export class StateMachine extends CompositeChip {
     this.lastSignal = null;
   }
 
-  _onSignal(tickInfo: TickInfo, signal: string, data?: any): void {
-    if (signal === "reset") {
-      this.terminate(tickInfo);
-      this.activate(tickInfo, this._chipContext, this._inputSignal);
-    }
-  }
-
   protected _makeReloadMementoData(): ReloadMementoData {
     return {
       visitedStates: this.visitedStates,
@@ -979,13 +975,13 @@ export function makeSignalTable(table: {
   return f;
 }
 
-export interface FunctionalChipFunctions {
-  activate: (chip: FunctionalChip) => void;
-  tick: (chip: FunctionalChip) => void;
-  pause: (chip: FunctionalChip) => void;
-  resume: (chip: FunctionalChip) => void;
-  terminate: (chip: FunctionalChip) => void;
-  requestSignal: (chip: FunctionalChip) => Signal | boolean;
+export interface FunctionalFunctions {
+  activate: (chip: Functional) => void;
+  tick: (chip: Functional) => void;
+  pause: (chip: Functional) => void;
+  resume: (chip: Functional) => void;
+  terminate: (chip: Functional) => void;
+  requestSignal: (chip: Functional) => Signal | boolean;
   makeReloadMemento(): ReloadMemento;
 }
 
@@ -995,13 +991,13 @@ export interface FunctionalChipFunctions {
   Additionally, a function called requestSignal(options, chip), called after tick(), can set the requested signal 
 
   Example usage:
-    new FunctionalChip({
+    new Functional({
       activate: (chipContext) => console.log("activate", chipContext),
       terminate: () => console.log("terminate"),
     });
 */
-export class FunctionalChip extends CompositeChip {
-  constructor(public readonly functions: Partial<FunctionalChipFunctions>) {
+export class Functional extends Composite {
+  constructor(public readonly functions: Partial<FunctionalFunctions>) {
     super();
   }
 
@@ -1052,21 +1048,22 @@ export class FunctionalChip extends CompositeChip {
   An chip that calls a provided function just once (in activate), and immediately requests a signal.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
-export class FunctionCallChip extends ChipBase {
-  constructor(public f: (arg: any) => any, public that?: any) {
+export class Lambda extends ChipBase {
+  constructor(public f: (arg: unknown) => unknown, public that?: unknown) {
     super();
     this.that = that || this;
   }
 
   _onActivate() {
-    this.f.call(this.that);
+    const result = this.f.call(this.that);
 
-    this._outputSignal = makeSignal();
+    if (typeof result === "string") this._outputSignal = makeSignal(result);
+    else this._outputSignal = makeSignal();
   }
 }
 
 // Waits until time is up, then requests signal
-export class WaitingChip extends ChipBase {
+export class Waiting extends ChipBase {
   private _accumulatedTime: number;
 
   /** @wait is in milliseconds */
@@ -1117,7 +1114,7 @@ export class WaitForEvent extends ChipBase {
   constructor(
     public emitter: NodeEventSource,
     public eventName: string,
-    public handler: (...args: any) => Signal | boolean = _.constant(true)
+    public handler: (...args: unknown[]) => Signal | boolean = _.constant(true)
   ) {
     super();
   }
@@ -1126,7 +1123,7 @@ export class WaitForEvent extends ChipBase {
     this._subscribe(this.emitter, this.eventName, this._handleEvent);
   }
 
-  _handleEvent(...args: any) {
+  _handleEvent(...args: unknown[]) {
     const result = this.handler(...args);
     if (!result) return;
 
@@ -1146,7 +1143,7 @@ export interface AlternativeChipActivationInfo extends ChipActivationInfo {
 /**
  *  Chip that requests a signal as soon as one of it's children requests one
  */
-export class Alternative extends CompositeChip {
+export class Alternative extends Composite {
   private readonly chipActivationInfos: AlternativeChipActivationInfo[];
 
   // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
