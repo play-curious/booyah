@@ -44,7 +44,7 @@ export function makeSignal(name = "default", params = {}): Signal {
 
 export type ChipContext = Readonly<Record<string, unknown>>;
 
-export type ChipContextFactory = (config: ChipContext) => ChipContext;
+export type ChipContextFactory = (context: ChipContext) => ChipContext;
 export type ChipContextResolvable = ChipContext | ChipContextFactory;
 
 export function processChipContext(
@@ -73,7 +73,7 @@ export type ChipResolvable = Chip | ChipFactory;
 
 export interface ChipActivationInfo {
   chip: ChipResolvable;
-  config?: ChipContextResolvable;
+  context?: ChipContextResolvable;
   id?: string;
 }
 
@@ -331,7 +331,7 @@ export class TransitoryChip extends ChipBase {
 }
 
 export class ActivateChildChipOptions {
-  config?: ChipContextResolvable;
+  context?: ChipContextResolvable;
   signal?: Signal;
   id?: string;
   reloadMemento?: ReloadMemento;
@@ -340,7 +340,7 @@ export class ActivateChildChipOptions {
 /** Base class for chips that contain other chips
  *
  * Events:
- * - activatedChildChip(chip: Chip, config: ChipContext, signal: Signal)
+ * - activatedChildChip(chip: Chip, context: ChipContext, signal: Signal)
  * - deactivatedChildChip(chip: Chip)
  */
 export abstract class Composite extends ChipBase {
@@ -420,7 +420,7 @@ export abstract class Composite extends ChipBase {
       options.id ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childChips[childId] = chip;
 
-    const childConfig = processChipContext(this._chipContext, options.config);
+    const childConfig = processChipContext(this._chipContext, options.context);
     chip.activate(this._lastFrameInfo, childConfig, inputSignal, reloadMemento);
 
     this.emit("activatedChildChip", chip, childConfig, inputSignal);
@@ -549,7 +549,7 @@ export class Parallel extends Composite {
     // Automatically activate the child chip
     if (this.state !== "inactive" && chipActivationInfo.activated) {
       const chip = this._activateChildChip(chipActivationInfo.chip, {
-        config: chipActivationInfo.config,
+        context: chipActivationInfo.context,
       });
       this.contextToChip.set(chipActivationInfo, chip);
     }
@@ -592,7 +592,7 @@ export class Parallel extends Composite {
       throw new Error("Chip is already activated");
 
     const chip = this._activateChildChip(chipActivationInfo.chip, {
-      config: chipActivationInfo.config,
+      context: chipActivationInfo.context,
       id: chipActivationInfo.id ?? index.toString(),
     });
     this.contextToChip.set(chipActivationInfo, chip);
@@ -691,7 +691,7 @@ export class Sequence extends Composite {
       const chipActivationInfo =
         this.chipActivationInfos[this.currentChipIndex];
       this.currentChip = this._activateChildChip(chipActivationInfo.chip, {
-        config: chipActivationInfo.config,
+        context: chipActivationInfo.context,
         id: chipActivationInfo.id ?? this.currentChipIndex.toString(),
       });
     }
@@ -927,7 +927,7 @@ export class StateMachine extends Composite {
     if (nextState.name in this.states) {
       const nextStateContext = this.states[nextState.name];
       this.activeChildChip = this._activateChildChip(nextStateContext.chip, {
-        config: nextStateContext.config,
+        context: nextStateContext.context,
         signal: nextState,
         id: nextState.name,
       });
@@ -1163,7 +1163,7 @@ export class Alternative extends Composite {
   _onActivate() {
     for (const chipActivationInfo of this.chipActivationInfos) {
       this._activateChildChip(chipActivationInfo.chip, {
-        config: chipActivationInfo.config,
+        context: chipActivationInfo.context,
       });
     }
 
