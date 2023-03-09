@@ -25,5 +25,8 @@
     "underscore": "~1.13"
   },
   "repository": "https://github.com/play-curious/booyah.git",
-  "author": "drpepper"
+  "author": "drpepper",
+  "devDependencies": {
+    "@types/webpack-env": "^1.18.0"
+  }
 }
