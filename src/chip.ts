@@ -49,12 +49,18 @@ export type ChipContextResolvable = ChipContext | ChipContextFactory;
 
 export function processChipContext(
   chipContext: ChipContext,
-  alteredContext: ChipContextResolvable
+  ...alteredContexts: Array<ChipContextResolvable>
 ): ChipContext {
-  if (!alteredContext) return chipContext;
-  if (typeof alteredContext == "function") return alteredContext(chipContext);
+  // if (!alteredContext) return chipContext;
+  let context = chipContext;
+  for (const alteredContext of alteredContexts) {
+    if (!alteredContext) continue;
 
-  return Object.assign({}, chipContext, alteredContext);
+    if (typeof alteredContext == "function") context = alteredContext(context);
+    else context = Object.assign({}, context, alteredContext);
+  }
+
+  return context;
 }
 
 export function extendContext(
@@ -420,7 +426,11 @@ export abstract class Composite extends ChipBase {
       options.id ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childChips[childId] = chip;
 
-    const childConfig = processChipContext(this._chipContext, options.context);
+    const childConfig = processChipContext(
+      this._chipContext,
+      this._getDefaultChildChipContext(),
+      options.context
+    );
     chip.activate(this._lastFrameInfo, childConfig, inputSignal, reloadMemento);
 
     this.emit("activatedChildChip", chip, childConfig, inputSignal);
@@ -479,6 +489,10 @@ export abstract class Composite extends ChipBase {
     }
 
     this._childChips = {};
+  }
+
+  protected _getDefaultChildChipContext(): ChipContextResolvable {
+    return;
   }
 }
 

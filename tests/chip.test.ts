@@ -3,7 +3,7 @@ import * as _ from "underscore";
 import * as chip from "../src/chip";
 
 function makeChipContext(): chip.ChipContext {
-  return {};
+  return { rootValue: 1 };
 }
 
 function makeFrameInfo(): chip.TickInfo {
@@ -214,7 +214,7 @@ describe("Composite", () => {
     expect(children[2]._onTick).toBeCalledTimes(3);
   });
 
-  test("send activation events", () => {
+  test("sends activation events", () => {
     const deactivatedCallback = jest.fn();
     parent.on("deactivatedChildChip", deactivatedCallback);
 
@@ -236,6 +236,16 @@ describe("Composite", () => {
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     expect(activatedCallback).toBeCalledTimes(3);
+  });
+
+  test("merges default context", () => {
+    // @ts-ignore
+    parent._getDefaultChildChipContext = () => ({ defaultValue: 2 });
+
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    expect(children[0].chipContext.rootValue).toBe(1);
+    expect(children[0].chipContext.defaultValue).toBe(2);
   });
 });
 
