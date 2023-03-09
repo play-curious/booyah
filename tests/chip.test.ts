@@ -1,4 +1,3 @@
-import * as PIXI from "pixi.js";
 import * as _ from "underscore";
 
 import * as chip from "../src/chip";
