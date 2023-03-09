@@ -6,7 +6,7 @@ import * as _ from "underscore";
  * @param options Options provided by the caller
  * @param defaults Defaults provided by the author
  */
-export function fillInOptions<T extends {}>(
+export function fillInOptions<T extends Record<string, any>>(
   options: Partial<T>,
   defaults: T
 ): T {
@@ -53,17 +53,17 @@ export type ChipContextResolvable = ChipContext | ChipContextFactory;
 
 export function processChipContext(
   chipContext: ChipContext,
-  alteredConfig: ChipContextResolvable
+  alteredContext: ChipContextResolvable
 ): ChipContext {
-  if (!alteredConfig) return chipContext;
-  if (typeof alteredConfig == "function") return alteredConfig(chipContext);
+  if (!alteredContext) return chipContext;
+  if (typeof alteredContext == "function") return alteredContext(chipContext);
 
-  return Object.assign({}, chipContext, alteredConfig);
+  return Object.assign({}, chipContext, alteredContext);
 }
 
-export function extendConfig(values: {}): (
-  chipContext: ChipContext
-) => ChipContext {
+export function extendContext(
+  values: ChipContext
+): (chipContext: ChipContext) => ChipContext {
   return (chipContext) => _.extend({}, chipContext, values);
 }
 
