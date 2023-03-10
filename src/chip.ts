@@ -100,7 +100,8 @@ export function isChipResolvable(
   return typeof e === "function" || isChip(e);
 }
 
-export type ReloadMementoData = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ReloadMementoData = Record<string, any>;
 
 export type ReloadMemento = {
   className: string;
@@ -289,7 +290,6 @@ export abstract class ChipBase extends EventEmitter implements Chip {
 
     const childMementos: Record<string, ReloadMemento> = {};
     for (const childId in this.children) {
-      // TODO: Use unique IDs associated with children?
       childMementos[childId] = this.children[childId].makeReloadMemento();
     }
 

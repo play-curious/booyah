@@ -11,14 +11,21 @@ import * as chip from "./chip";
 //   }
 // }
 
+interface HMR {
+  dispose: (data: unknown) => void;
+  accept: (dependencies: string[]) => void;
+}
+
 export class RunnerOptions {
   rootChip: chip.ChipResolvable;
   rootContext: chip.ChipContext = {};
   inputSignal: chip.Signal = chip.makeSignal();
 
-  // If minFps <= 0, it is ignored
+  /** If minFps <= 0, it is ignored */
   minFps = 10;
-  enableHotReloading = true;
+
+  /** Enable hot reloading by passing it `module.hot` */
+  hmr?: HMR;
 }
 
 export class Runner {
@@ -54,7 +61,7 @@ export class Runner {
 
     requestAnimationFrame((timeStamp) => this._onTick(timeStamp));
 
-    if (this._options.enableHotReloading) this._enableHotReloading();
+    if (this._options.hmr) this._enableHotReloading();
   }
 
   stop() {
@@ -89,24 +96,22 @@ export class Runner {
   }
 
   private _enableHotReloading() {
-    if (!module.hot) return;
-
     console.log("enabling hot reloading");
 
-    module.hot.dispose((data) => {
+    this._options.hmr.dispose((data) => {
       // module is about to be replaced.
       // You can save data that should be accessible to the new asset in `data`
-      console.log("module.hot.dispose() called");
+      console.log("this._options.hmr.dispose() called");
 
       data.reloadMemento = this._rootChip.makeReloadMemento();
     });
 
-    module.hot.accept((getParents) => {
+    this._options.hmr.accept((getParents) => {
       // module or one of its dependencies was just updated.
-      // data stored in `dispose` is available in `module.hot.data`
-      console.log("module.hot.accept() called");
+      // data stored in `dispose` is available in `this._options.hmr.data`
+      console.log("this._options.hmr.accept() called");
 
-      const reloadMemento = module.hot.data.reloadMemento;
+      const reloadMemento = this._options.hmr.data.reloadMemento;
       console.log("reloading from", reloadMemento);
 
       const tickInfo: chip.TickInfo = {
