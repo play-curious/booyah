@@ -1,4 +1,5 @@
 import * as _ from "underscore";
+import { jest, describe, expect, test, beforeEach } from "@jest/globals";
 
 import * as chip from "../src/chip";
 
@@ -27,21 +28,34 @@ class MockChip extends chip.ChipBase {
     this._onResume = jest.fn();
   }
 
-  // Allow the tests to set the signal directly
-  // Need to rewrite the getter as well to make TypeScript happy
-  public get outputSignal(): chip.Signal {
-    return this._outputSignal;
+  // Make the methods public so that they can be tested with the mock
+  public _onActivate() {
+    /* no op */
   }
-  public set outputSignal(signal: chip.Signal) {
-    this._outputSignal = signal;
+  public _onTick() {
+    /* no op */
+  }
+  public _onTerminate() {
+    /* no op */
+  }
+  public _onPause() {
+    /* no op */
+  }
+  public _onResume() {
+    /* no op */
+  }
+}
+
+class MockComposite extends chip.Composite {
+  private _defaultChildChipContext: chip.ChipContext;
+
+  get defaultChildChipContext(): chip.ChipContext {
+    return this._defaultChildChipContext;
   }
 
-  // Make the methods public so that they can be tested with the mock
-  public _onActivate() {}
-  public _onTick() {}
-  public _onTerminate() {}
-  public _onPause() {}
-  public _onResume() {}
+  set defaultChildChipContext(value: chip.ChipContext) {
+    this._defaultChildChipContext = value;
+  }
 }
 
 describe("Chip", () => {
@@ -57,7 +71,7 @@ describe("Chip", () => {
       e.tick(makeFrameInfo());
       e.pause(makeFrameInfo());
       e.resume(makeFrameInfo());
-      e.terminate(makeFrameInfo());
+      e.terminate();
     }
 
     expect(e._onActivate).toBeCalledTimes(5);
@@ -82,7 +96,7 @@ describe("Chip", () => {
 
   test("throws on terminate before activate", () => {
     expect(() => {
-      e.terminate(makeFrameInfo());
+      e.terminate();
     }).toThrow();
   });
 
@@ -132,8 +146,12 @@ describe("Chip", () => {
         this._subscribeOnce(sender, "b", this.receiveB);
       }
 
-      receiveA() {}
-      receiveB() {}
+      receiveA() {
+        /* no op */
+      }
+      receiveB() {
+        /* no op */
+      }
     })();
 
     // Setup the receiver and send one event
@@ -147,7 +165,7 @@ describe("Chip", () => {
     expect(receiver.receiveB).toBeCalledWith(1, 2, 3);
 
     // Teardown the receiver and send more events that should not be recieved
-    receiver.terminate(makeFrameInfo());
+    receiver.terminate();
     sender.emit("a");
     sender.emit("b");
 
@@ -157,14 +175,14 @@ describe("Chip", () => {
 });
 
 describe("Composite", () => {
-  let parent: chip.Composite;
+  let parent: MockComposite;
   let children: MockChip[];
 
   beforeEach(() => {
     children = [new MockChip(), new MockChip(), new MockChip()];
 
     // Anonymous subclass
-    parent = new (class extends chip.Composite {
+    parent = new (class extends MockComposite {
       _onActivate() {
         for (let i = 0; i < 3; i++) this._activateChildChip(children[i]);
       }
@@ -177,7 +195,7 @@ describe("Composite", () => {
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
-      parent.terminate(makeFrameInfo());
+      parent.terminate();
     }
 
     for (const child of children) {
@@ -189,25 +207,21 @@ describe("Composite", () => {
     }
   });
 
-  test("deactivates children", () => {
-    // Have middle child request signal on 2nd call
-    let requestSignal = false;
-    children[1]._onTick = jest.fn(() => {
-      if (requestSignal) children[1].outputSignal = chip.makeSignal();
-    });
-
+  test("removes children", () => {
     // Run once
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     parent.tick(makeFrameInfo());
 
-    // Run again, this time have middle child request signal
-    requestSignal = true;
+    // Deactiavate middle child
+    children[1].terminate();
+
+    // Run two more times
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
 
     expect(children[1]._onActivate).toBeCalledTimes(1);
     expect(children[1]._onTerminate).toBeCalledTimes(1);
-    expect(children[1]._onTick).toBeCalledTimes(2);
+    expect(children[1]._onTick).toBeCalledTimes(1);
 
     expect(children[2]._onActivate).toBeCalledTimes(1);
     expect(children[2]._onTerminate).toBeCalledTimes(0);
@@ -220,13 +234,17 @@ describe("Composite", () => {
 
     // Run once
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
-    children[1].outputSignal = chip.makeSignal();
+
+    // Terminate child
+    children[1].terminate();
+
+    // Run again
     parent.tick(makeFrameInfo());
 
     expect(deactivatedCallback).toBeCalledTimes(1);
 
     // Teardown and activate again
-    parent.terminate(makeFrameInfo());
+    parent.terminate();
 
     expect(deactivatedCallback).toBeCalledTimes(3);
 
@@ -239,8 +257,7 @@ describe("Composite", () => {
   });
 
   test("merges default context", () => {
-    // @ts-ignore
-    parent._getDefaultChildChipContext = () => ({ defaultValue: 2 });
+    parent.defaultChildChipContext = { defaultValue: 2 };
 
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
@@ -259,7 +276,7 @@ describe("Parallel", () => {
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
-      parent.terminate(makeFrameInfo());
+      parent.terminate();
     }
 
     for (const child of children) {
@@ -323,7 +340,7 @@ describe("Sequence", () => {
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
-      parent.terminate(makeFrameInfo());
+      parent.terminate();
     }
 
     // First child should be called
@@ -343,34 +360,34 @@ describe("Sequence", () => {
     }
   });
 
-  test("runs only one child after another", () => {
+  test("runs one child after another", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
     const parent = new chip.Sequence(children);
 
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
-    // Run 1st child twice, then request signal
+    // Run 1st child twice, then terminate it
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[0].outputSignal = chip.makeSignal();
-    parent.tick(makeFrameInfo());
-
-    // Run 2nd child twice, then request signal
-    parent.tick(makeFrameInfo());
-    parent.tick(makeFrameInfo());
-    children[1].outputSignal = chip.makeSignal();
+    children[0].terminate();
     parent.tick(makeFrameInfo());
 
-    // Run 3rd child twice, then request signal
+    // Run 2nd child twice, then terminate it
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[2].outputSignal = chip.makeSignal("third");
+    children[1].terminate();
     parent.tick(makeFrameInfo());
 
-    // Each child should be updated three times
+    // Run 3rd child twice, then terminate
+    parent.tick(makeFrameInfo());
+    parent.tick(makeFrameInfo());
+    children[2].terminate(chip.makeSignal("third"));
+    parent.tick(makeFrameInfo());
+
+    // Each child should be updated 2 times
     for (const child of _.rest(children)) {
       expect(child._onActivate).toBeCalledTimes(1);
-      expect(child._onTick).toBeCalledTimes(3);
+      expect(child._onTick).toBeCalledTimes(2);
       expect(child._onTerminate).toBeCalledTimes(1);
     }
 
@@ -384,30 +401,30 @@ describe("Sequence", () => {
 
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
-    // Run 1st child, then request signal
+    // Run 1st child, then terminate
     parent.tick(makeFrameInfo());
-    children[0].outputSignal = chip.makeSignal();
+    children[0].terminate();
     parent.tick(makeFrameInfo());
 
-    // Run 2nd child, then request signal
+    // Run 2nd child, then terminate
     parent.tick(makeFrameInfo());
-    children[1].outputSignal = chip.makeSignal();
+    children[1].terminate();
     parent.tick(makeFrameInfo());
 
     // Run 1st child again
     parent.tick(makeFrameInfo());
 
-    // The first child should be activate twice
+    // The first child should be activated twice
     expect(children[0]._onActivate).toBeCalledTimes(2);
-    expect(children[0]._onTick).toBeCalledTimes(3);
+    expect(children[0]._onTick).toBeCalledTimes(2);
     expect(children[0]._onTerminate).toBeCalledTimes(1);
 
-    // The second child should be activate once
+    // The second child should be activated once
     expect(children[1]._onActivate).toBeCalledTimes(1);
-    expect(children[1]._onTick).toBeCalledTimes(2);
+    expect(children[1]._onTick).toBeCalledTimes(1);
     expect(children[1]._onTerminate).toBeCalledTimes(1);
 
-    // There should be no requested signal
+    // There should be no output signal
     expect(parent.outputSignal).toBeFalsy();
   });
 
@@ -448,7 +465,7 @@ describe("StateMachine", () => {
       stateMachine.tick(makeFrameInfo());
       stateMachine.pause(makeFrameInfo());
       stateMachine.resume(makeFrameInfo());
-      stateMachine.terminate(makeFrameInfo());
+      stateMachine.terminate();
     }
 
     // First child should be called 5 times
@@ -463,10 +480,10 @@ describe("StateMachine", () => {
     const states = { start: new MockChip() };
     const stateMachine = new chip.StateMachine(states);
 
-    // Run once, then request signal
+    // Run once, then terminate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.start.outputSignal = chip.makeSignal("end");
+    states.start.terminate(chip.makeSignal("end"));
     stateMachine.tick(makeFrameInfo());
 
     expect(states.start._onActivate).toBeCalledTimes(1);
@@ -483,10 +500,10 @@ describe("StateMachine", () => {
       startingState: chip.makeSignal("a"),
     });
 
-    // Run once, then request signal
+    // Run once, then terminate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.outputSignal = chip.makeSignal("b");
+    states.a.terminate(chip.makeSignal("b"));
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
@@ -506,14 +523,14 @@ describe("StateMachine", () => {
       },
     });
 
-    // Run once, then request signal
+    // Run once, then terminate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.outputSignal = chip.makeSignal();
+    states.a.terminate();
     stateMachine.tick(makeFrameInfo());
 
     // Signal back again
-    states.b.outputSignal = chip.makeSignal();
+    states.b.terminate();
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(2);
@@ -529,7 +546,7 @@ describe("StateMachine", () => {
       startingState: chip.makeSignal("a"),
     });
 
-    // Run once, then request signal
+    // Run once, then change state
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
 
@@ -553,12 +570,12 @@ describe("StateMachine", () => {
       },
     });
 
-    // Run once, then request signal
+    // Run once, then termiate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
 
     const signal = chip.makeSignal("done", { x: "y" });
-    states.a.outputSignal = signal;
+    states.a.terminate(signal);
 
     stateMachine.tick(makeFrameInfo());
 
@@ -772,8 +789,6 @@ describe("Hot reloading", () => {
     // Change the values
     child1V1.value = 11;
     child2V1.value = 22;
-
-    debugger;
 
     // Reload
     const child1V2 = new ReloadingChip(1);
