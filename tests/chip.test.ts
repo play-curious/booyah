@@ -1,4 +1,5 @@
 import * as _ from "underscore";
+import { jest, describe, expect, test, beforeEach } from "@jest/globals";
 
 import * as chip from "../src/chip";
 
@@ -145,8 +146,12 @@ describe("Chip", () => {
         this._subscribeOnce(sender, "b", this.receiveB);
       }
 
-      receiveA() {}
-      receiveB() {}
+      receiveA() {
+        /* no op */
+      }
+      receiveB() {
+        /* no op */
+      }
     })();
 
     // Setup the receiver and send one event
@@ -784,8 +789,6 @@ describe("Hot reloading", () => {
     // Change the values
     child1V1.value = 11;
     child2V1.value = 22;
-
-    debugger;
 
     // Reload
     const child1V2 = new ReloadingChip(1);
