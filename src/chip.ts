@@ -126,7 +126,7 @@ export interface Chip extends NodeEventSource {
     reloadMemento?: ReloadMemento
   ): void;
   tick(tickInfo: TickInfo): void;
-  terminate(tickInfo: TickInfo): void;
+  terminate(outputSignal?: Signal): void;
   pause(tickInfo: TickInfo): void;
   resume(tickInfo: TickInfo): void;
   makeReloadMemento(): ReloadMemento;
@@ -181,7 +181,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this._lastFrameInfo = tickInfo;
     this._inputSignal = inputSignal;
     this._state = "active";
-    this._outputSignal = null;
+    delete this._outputSignal;
 
     if (reloadMemento && reloadMemento.className === this.constructor.name)
       this._reloadMemento = reloadMemento;
@@ -194,18 +194,15 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
-    if (this._outputSignal)
-      throw new Error("tick() called despite requesting signal");
-
     this._lastFrameInfo = tickInfo;
     this._onTick();
   }
 
-  public terminate(tickInfo: TickInfo): void {
+  public terminate(outputSignal?: Signal): void {
     if (this._state !== "active" && this._state !== "paused")
       throw new Error(`tick() called from state ${this._state}`);
 
-    this._lastFrameInfo = tickInfo;
+    this._outputSignal = outputSignal ?? makeSignal();
     this._onTerminate();
 
     this._unsubscribe(); // Remove all event listeners
@@ -249,7 +246,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     emitter.once(event, cb);
   }
 
-  // if `cb` is null, will remove all event listeners for the given emitter and event
+  // if `cb` is undefined, will remove all event listeners for the given emitter and event
   protected _unsubscribe(
     emitter?: NodeEventSource,
     event?: string,
@@ -365,20 +362,28 @@ export abstract class Composite extends ChipBase {
    * Overload this method in subclasses to change the behavior
    */
   public tick(tickInfo: TickInfo): void {
-    super.tick(tickInfo);
+    if (this._state !== "active")
+      throw new Error(`tick() called from state ${this._state}`);
 
-    this._updateChildChips();
+    this._lastFrameInfo = tickInfo;
+
+    this._onTick();
+
+    this._tickChildChips();
+
+    this._onAfterTick();
   }
 
-  public terminate(tickInfo: TickInfo): void {
+  public terminate(outputSignal?: Signal): void {
     this._deactivateAllChildChips();
 
-    super.terminate(tickInfo);
+    super.terminate(outputSignal);
   }
 
   public pause(tickInfo: TickInfo): void {
     super.pause(tickInfo);
 
+    this._removeDeactivatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.pause(tickInfo);
     }
@@ -387,6 +392,7 @@ export abstract class Composite extends ChipBase {
   public resume(tickInfo: TickInfo): void {
     super.resume(tickInfo);
 
+    this._removeDeactivatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.resume(tickInfo);
     }
@@ -428,7 +434,7 @@ export abstract class Composite extends ChipBase {
 
     const childConfig = processChipContext(
       this._chipContext,
-      this._getDefaultChildChipContext(),
+      this.defaultChildChipContext,
       options.context
     );
     chip.activate(this._lastFrameInfo, childConfig, inputSignal, reloadMemento);
@@ -438,7 +444,7 @@ export abstract class Composite extends ChipBase {
     return chip;
   }
 
-  protected _deactivateChildChip(chip: Chip): void {
+  protected _deactivateChildChip(chip: Chip, outputSignal?: Signal): void {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
     // Try to find value
@@ -449,9 +455,9 @@ export abstract class Composite extends ChipBase {
         break;
       }
     }
-    if (!childId) throw new Error("Cannot find chip to remove");
+    if (!childId) throw new Error("Cannot find chip to deactivate");
 
-    chip.terminate(this._lastFrameInfo);
+    chip.terminate(outputSignal);
 
     delete this._childChips[childId];
 
@@ -459,40 +465,46 @@ export abstract class Composite extends ChipBase {
   }
 
   /**
-   * Updates all child chips, and deactivates any that need a signal.
-   * Returns true if any have been deactivated.
+   * Check if child chips are still active, and remove them if not
+   * Sends tick to all .
    */
-  protected _updateChildChips(): boolean {
-    let needDeactivation = false;
+  protected _tickChildChips(): void {
+    this._removeDeactivatedChildChips();
 
-    for (const id in this._childChips) {
-      const childChip = this._childChips[id];
-
-      if (childChip.outputSignal) {
-        childChip.terminate(this._lastFrameInfo);
-        delete this._childChips[id];
-        this.emit("deactivatedChildChip", childChip);
-
-        needDeactivation = true;
-      } else {
-        childChip.tick(this._lastFrameInfo);
-      }
+    for (const childChip of Object.values(this._childChips)) {
+      childChip.tick(this._lastFrameInfo);
     }
-
-    return needDeactivation;
   }
 
-  protected _deactivateAllChildChips() {
+  protected _deactivateAllChildChips(outputSignal?: Signal) {
     for (const childChip of Object.values(this._childChips)) {
-      childChip.terminate(this._lastFrameInfo);
+      if (childChip.state === "active" || childChip.state === "paused") {
+        childChip.terminate(outputSignal);
+      }
+
       this.emit("deactivatedChildChip", childChip);
     }
 
     this._childChips = {};
   }
 
-  protected _getDefaultChildChipContext(): ChipContextResolvable {
-    return;
+  protected _removeDeactivatedChildChips(): void {
+    for (const id in this._childChips) {
+      const childChip = this._childChips[id];
+
+      if (childChip.state === "inactive") {
+        delete this._childChips[id];
+        this.emit("deactivatedChildChip", childChip);
+      }
+    }
+  }
+
+  get defaultChildChipContext(): ChipContextResolvable {
+    return undefined;
+  }
+
+  protected _onAfterTick(): void {
+    /* no op */
   }
 }
 
@@ -645,10 +657,10 @@ export class Parallel extends Composite {
     }
   }
 
-  terminate(tickInfo: TickInfo): void {
+  terminate(outputSignal?: Signal): void {
     this.contextToChip.clear();
 
-    super.terminate(tickInfo);
+    super.terminate(outputSignal);
   }
 }
 
@@ -667,7 +679,7 @@ export class Sequence extends Composite {
 
   private chipActivationInfos: ChipActivationInfo[] = [];
   private currentChipIndex = 0;
-  private currentChip: Chip = null;
+  private currentChip: Chip;
 
   constructor(
     chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
@@ -698,7 +710,7 @@ export class Sequence extends Composite {
       // The current chip may have already been deactivated, if it requested a signal
       if (_.size(this._childChips) > 0)
         this._deactivateChildChip(this.currentChip);
-      this.currentChip = null;
+      delete this.currentChip;
     }
 
     if (this.currentChipIndex < this.chipActivationInfos.length) {
@@ -714,7 +726,7 @@ export class Sequence extends Composite {
   _onActivate() {
     this.currentChipIndex =
       (this._reloadMemento?.data.currentChipIndex as number) ?? 0;
-    this.currentChip = null;
+    delete this.currentChip;
 
     if (this.chipActivationInfos.length === 0) {
       // Empty Sequence, stop immediately
@@ -725,7 +737,7 @@ export class Sequence extends Composite {
     }
   }
 
-  _onTick() {
+  _onAfterTick() {
     if (!this.currentChip) return;
 
     const signal = this.currentChip.outputSignal;
@@ -733,7 +745,7 @@ export class Sequence extends Composite {
   }
 
   _onTerminate() {
-    this.currentChip = null;
+    delete this.currentChip;
   }
 
   restart() {
@@ -858,7 +870,7 @@ export class StateMachine extends Composite {
     }
   }
 
-  _onTick() {
+  _onAfterTick() {
     if (!this.activeChildChip) return;
 
     const signal = this.activeChildChip.outputSignal;
@@ -901,8 +913,8 @@ export class StateMachine extends Composite {
   }
 
   _onTerminate() {
-    this.activeChildChip = null;
-    this.lastSignal = null;
+    delete this.activeChildChip;
+    delete this.lastSignal;
   }
 
   protected _makeReloadMementoData(): ReloadMementoData {
@@ -925,7 +937,7 @@ export class StateMachine extends Composite {
       // The state may have already been deactivated, if it requested a signal
       if (_.size(this._childChips) > 0)
         this._deactivateChildChip(this.activeChildChip);
-      this.activeChildChip = null;
+      delete this.activeChildChip;
     }
 
     // If reached an ending state, stop here.

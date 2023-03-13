@@ -2,18 +2,12 @@ import * as _ from "underscore";
 
 import * as chip from "./chip";
 
-// declare global {
-//   interface NodeModule {
-//     hot: {
-//       dispose: (data: unknown) => void;
-//       accept: (dependencies: string[]) => void;
-//     };
-//   }
-// }
-
 interface HMR {
-  dispose: (data: unknown) => void;
-  accept: (dependencies: string[]) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dispose: (data: any) => void;
+  accept: (cb: (dependencies: string[]) => void) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any;
 }
 
 export class RunnerOptions {
@@ -98,7 +92,8 @@ export class Runner {
   private _enableHotReloading() {
     console.log("enabling hot reloading");
 
-    this._options.hmr.dispose((data) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this._options.hmr.dispose((data: any) => {
       // module is about to be replaced.
       // You can save data that should be accessible to the new asset in `data`
       console.log("this._options.hmr.dispose() called");
@@ -106,7 +101,7 @@ export class Runner {
       data.reloadMemento = this._rootChip.makeReloadMemento();
     });
 
-    this._options.hmr.accept((getParents) => {
+    this._options.hmr.accept((dependencies: string[]) => {
       // module or one of its dependencies was just updated.
       // data stored in `dispose` is available in `this._options.hmr.data`
       console.log("this._options.hmr.accept() called");
@@ -117,11 +112,11 @@ export class Runner {
       const tickInfo: chip.TickInfo = {
         timeSinceLastTick: 0,
       };
-      this._rootChip.terminate(tickInfo);
+      this._rootChip.terminate(chip.makeSignal("beforeReload"));
       this._rootChip.activate(
         tickInfo,
         this._rootContext,
-        chip.makeSignal("reload"),
+        chip.makeSignal("afterReload"),
         reloadMemento
       );
     });
