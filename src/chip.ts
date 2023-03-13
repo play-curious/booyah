@@ -367,9 +367,11 @@ export abstract class Composite extends ChipBase {
 
     this._lastFrameInfo = tickInfo;
 
+    this._onTick();
+
     this._tickChildChips();
 
-    this._onTick();
+    this._onAfterTick();
   }
 
   public terminate(outputSignal?: Signal): void {
@@ -499,6 +501,10 @@ export abstract class Composite extends ChipBase {
 
   get defaultChildChipContext(): ChipContextResolvable {
     return undefined;
+  }
+
+  protected _onAfterTick(): void {
+    /* no op */
   }
 }
 
@@ -731,7 +737,7 @@ export class Sequence extends Composite {
     }
   }
 
-  _onTick() {
+  _onAfterTick() {
     if (!this.currentChip) return;
 
     const signal = this.currentChip.outputSignal;
@@ -864,7 +870,7 @@ export class StateMachine extends Composite {
     }
   }
 
-  _onTick() {
+  _onAfterTick() {
     if (!this.activeChildChip) return;
 
     const signal = this.activeChildChip.outputSignal;
