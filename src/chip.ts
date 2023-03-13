@@ -194,9 +194,6 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
-    if (this._outputSignal)
-      throw new Error("tick() called despite requesting signal");
-
     this._lastFrameInfo = tickInfo;
     this._onTick();
   }
@@ -365,9 +362,14 @@ export abstract class Composite extends ChipBase {
    * Overload this method in subclasses to change the behavior
    */
   public tick(tickInfo: TickInfo): void {
-    super.tick(tickInfo);
+    if (this._state !== "active")
+      throw new Error(`tick() called from state ${this._state}`);
 
-    this._updateChildChips();
+    this._lastFrameInfo = tickInfo;
+
+    this._tickChildChips();
+
+    this._onTick();
   }
 
   public terminate(outputSignal?: Signal): void {
@@ -379,6 +381,7 @@ export abstract class Composite extends ChipBase {
   public pause(tickInfo: TickInfo): void {
     super.pause(tickInfo);
 
+    this._removeDeactivatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.pause(tickInfo);
     }
@@ -387,6 +390,7 @@ export abstract class Composite extends ChipBase {
   public resume(tickInfo: TickInfo): void {
     super.resume(tickInfo);
 
+    this._removeDeactivatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.resume(tickInfo);
     }
@@ -459,28 +463,38 @@ export abstract class Composite extends ChipBase {
   }
 
   /**
-   * Updates all child chips.
+   * Check if child chips are still active, and remove them if not
+   * Sends tick to all .
    */
-  protected _updateChildChips(): void {
-    for (const id in this._childChips) {
-      const childChip = this._childChips[id];
+  protected _tickChildChips(): void {
+    this._removeDeactivatedChildChips();
 
-      if (childChip.outputSignal) {
-        delete this._childChips[id];
-        this.emit("deactivatedChildChip", childChip);
-      } else {
-        childChip.tick(this._lastFrameInfo);
-      }
+    for (const childChip of Object.values(this._childChips)) {
+      childChip.tick(this._lastFrameInfo);
     }
   }
 
   protected _deactivateAllChildChips(outputSignal?: Signal) {
     for (const childChip of Object.values(this._childChips)) {
-      childChip.terminate(outputSignal);
+      if (childChip.state === "active" || childChip.state === "paused") {
+        childChip.terminate(outputSignal);
+      }
+
       this.emit("deactivatedChildChip", childChip);
     }
 
     this._childChips = {};
+  }
+
+  protected _removeDeactivatedChildChips(): void {
+    for (const id in this._childChips) {
+      const childChip = this._childChips[id];
+
+      if (childChip.state === "inactive") {
+        delete this._childChips[id];
+        this.emit("deactivatedChildChip", childChip);
+      }
+    }
   }
 
   get defaultChildChipContext(): ChipContextResolvable {

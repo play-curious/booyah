@@ -384,10 +384,10 @@ describe("Sequence", () => {
     children[2].terminate(chip.makeSignal("third"));
     parent.tick(makeFrameInfo());
 
-    // Each child should be updated three times
+    // Each child should be updated 2 times
     for (const child of _.rest(children)) {
       expect(child._onActivate).toBeCalledTimes(1);
-      expect(child._onTick).toBeCalledTimes(3);
+      expect(child._onTick).toBeCalledTimes(2);
       expect(child._onTerminate).toBeCalledTimes(1);
     }
 
@@ -414,14 +414,14 @@ describe("Sequence", () => {
     // Run 1st child again
     parent.tick(makeFrameInfo());
 
-    // The first child should be activate twice
+    // The first child should be activated twice
     expect(children[0]._onActivate).toBeCalledTimes(2);
-    expect(children[0]._onTick).toBeCalledTimes(3);
+    expect(children[0]._onTick).toBeCalledTimes(2);
     expect(children[0]._onTerminate).toBeCalledTimes(1);
 
-    // The second child should be activate once
+    // The second child should be activated once
     expect(children[1]._onActivate).toBeCalledTimes(1);
-    expect(children[1]._onTick).toBeCalledTimes(2);
+    expect(children[1]._onTick).toBeCalledTimes(1);
     expect(children[1]._onTerminate).toBeCalledTimes(1);
 
     // There should be no output signal
