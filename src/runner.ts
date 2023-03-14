@@ -136,6 +136,9 @@ export interface Directives {
   screenSize: PIXI.IPoint;
   canvasId: string;
   fpsMeterPosition: string;
+
+  /** Function called in the case of an error */
+  onError: (e: any) => void;
 }
 
 const DEFAULT_DIRECTIVES: any = {
@@ -260,6 +263,7 @@ export function startLoading(directives: Partial<Directives> = {}) {
       console.error("Error during load", err);
 
       rootConfig.loadingEventEmitter.emit("error", err);
+      rootConfig.directives.onError?.(err);
 
       throw err;
     });
@@ -353,9 +357,16 @@ function update(timeScale: number) {
       gameState,
     };
 
-    entityToUpdate.update(lastFrameInfo);
+    try {
+      entityToUpdate.update(lastFrameInfo);
 
-    rootConfig.app.renderer.render(rootConfig.app.stage);
+      rootConfig.app.renderer.render(rootConfig.app.stage);
+    } catch (e: any) {
+      // Call error handler, if provided, then rethrow the error
+      rootConfig.directives?.onError(e);
+
+      throw e;
+    }
   }
 }
 
