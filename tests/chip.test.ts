@@ -334,8 +334,8 @@ describe("Composite", () => {
   });
 
   test("sends activation events", () => {
-    const deactivatedCallback = jest.fn();
-    parent.on("deactivatedChildChip", deactivatedCallback);
+    const terminatedCallback = jest.fn();
+    parent.on("terminatedChildChip", terminatedCallback);
 
     // Run once
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
@@ -346,12 +346,12 @@ describe("Composite", () => {
     // Run again
     parent.tick(makeFrameInfo());
 
-    expect(deactivatedCallback).toBeCalledTimes(1);
+    expect(terminatedCallback).toBeCalledTimes(1);
 
     // Teardown and activate again
     parent.terminate();
 
-    expect(deactivatedCallback).toBeCalledTimes(3);
+    expect(terminatedCallback).toBeCalledTimes(3);
 
     const activatedCallback = jest.fn();
     parent.on("activatedChildChip", activatedCallback);
@@ -455,13 +455,13 @@ describe("Parallel", () => {
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     parent.tick(makeFrameInfo());
 
-    // Deactivate middle child and run
-    parent.deactivateChildChip(1);
+    // Terminate middle child and run
+    parent.terminateChildChip(1);
     parent.tick(makeFrameInfo());
 
     // Reactivate middle child, terminate third child, and run
     parent.activateChildChip(1);
-    parent.deactivateChildChip(2);
+    parent.terminateChildChip(2);
     parent.tick(makeFrameInfo());
 
     expect(children[0]._onTick).toBeCalledTimes(3);

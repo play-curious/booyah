@@ -433,7 +433,7 @@ export class ActivateChildChipOptions {
  *
  * Events:
  * - activatedChildChip(chip: Chip, context: ChipContext, signal: Signal)
- * - deactivatedChildChip(chip: Chip)
+ * - terminatedChildChip(chip: Chip)
  */
 export abstract class Composite extends ChipBase {
   protected _childChips: Record<string, Chip>;
@@ -469,7 +469,7 @@ export abstract class Composite extends ChipBase {
   }
 
   public terminate(outputSignal?: Signal): void {
-    this._deactivateAllChildChips();
+    this._terminateAllChildChips();
 
     super.terminate(outputSignal);
   }
@@ -477,7 +477,7 @@ export abstract class Composite extends ChipBase {
   public pause(tickInfo: TickInfo): void {
     super.pause(tickInfo);
 
-    this._removeDeactivatedChildChips();
+    this._removeTerminatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.pause(tickInfo);
     }
@@ -486,7 +486,7 @@ export abstract class Composite extends ChipBase {
   public resume(tickInfo: TickInfo): void {
     super.resume(tickInfo);
 
-    this._removeDeactivatedChildChips();
+    this._removeTerminatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.resume(tickInfo);
     }
@@ -567,7 +567,7 @@ export abstract class Composite extends ChipBase {
     return chip;
   }
 
-  protected _deactivateChildChip(chip: Chip, outputSignal?: Signal): void {
+  protected _terminateChildChip(chip: Chip, outputSignal?: Signal): void {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
     // Try to find value
@@ -578,13 +578,13 @@ export abstract class Composite extends ChipBase {
         break;
       }
     }
-    if (!childId) throw new Error("Cannot find chip to deactivate");
+    if (!childId) throw new Error("Cannot find chip to terminate");
 
     chip.terminate(outputSignal);
 
     delete this._childChips[childId];
 
-    this.emit("deactivatedChildChip", chip);
+    this.emit("terminatedChildChip", chip);
   }
 
   /**
@@ -592,32 +592,32 @@ export abstract class Composite extends ChipBase {
    * Sends tick to all .
    */
   protected _tickChildChips(): void {
-    this._removeDeactivatedChildChips();
+    this._removeTerminatedChildChips();
 
     for (const childChip of Object.values(this._childChips)) {
       childChip.tick(this._lastTickInfo);
     }
   }
 
-  protected _deactivateAllChildChips(outputSignal?: Signal) {
+  protected _terminateAllChildChips(outputSignal?: Signal) {
     for (const childChip of Object.values(this._childChips)) {
       if (childChip.state === "active" || childChip.state === "paused") {
         childChip.terminate(outputSignal);
       }
 
-      this.emit("deactivatedChildChip", childChip);
+      this.emit("terminatedChildChip", childChip);
     }
 
     this._childChips = {};
   }
 
-  protected _removeDeactivatedChildChips(): void {
+  protected _removeTerminatedChildChips(): void {
     for (const id in this._childChips) {
       const childChip = this._childChips[id];
 
       if (childChip.state === "inactive") {
         delete this._childChips[id];
-        this.emit("deactivatedChildChip", childChip);
+        this.emit("terminatedChildChip", childChip);
       }
     }
   }
@@ -713,13 +713,13 @@ export class Parallel extends Composite {
 
     const chip = this.contextToChip.get(chipActivationInfo);
     if (chip) {
-      this._deactivateChildChip(chip);
+      this._terminateChildChip(chip);
       this.contextToChip.delete(chipActivationInfo);
     }
   }
 
   removeAllChildChips(): void {
-    this._deactivateAllChildChips();
+    this._terminateAllChildChips();
 
     this.childChipActivationInfos = [];
     this.contextToChip.clear();
@@ -748,7 +748,7 @@ export class Parallel extends Composite {
     chipActivationInfo.activated = true;
   }
 
-  deactivateChildChip(
+  terminateChildChip(
     e: ParallelActivationInfo | ChipResolvable | number
   ): void {
     let index: number;
@@ -765,7 +765,7 @@ export class Parallel extends Composite {
     const chip = this.contextToChip.get(chipActivationInfo);
     if (!chip) throw new Error("Chip not yet activated");
 
-    this._deactivateChildChip(chip);
+    this._terminateChildChip(chip);
     chipActivationInfo.activated = false;
     this.contextToChip.delete(chipActivationInfo);
   }
@@ -856,9 +856,9 @@ export class Sequence extends Composite {
   private _switchChip() {
     // Stop current chip
     if (this.currentChip) {
-      // The current chip may have already been deactivated, if it terminated before
+      // The current chip may have already been terminated, if it terminated before
       if (_.size(this._childChips) > 0)
-        this._deactivateChildChip(this.currentChip);
+        this._terminateChildChip(this.currentChip);
       delete this.currentChip;
     }
 
@@ -1083,9 +1083,9 @@ export class StateMachine extends Composite {
   private _changeState(nextState: Signal): void {
     // Stop current state
     if (this.activeChildChip) {
-      // The state may have already been deactivated, if terminated
+      // The state may have already been terminated, if terminated
       if (_.size(this._childChips) > 0)
-        this._deactivateChildChip(this.activeChildChip);
+        this._terminateChildChip(this.activeChildChip);
       delete this.activeChildChip;
     }
 
