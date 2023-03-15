@@ -408,17 +408,17 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   }
 }
 
-/** Empty class just to indicate an chip that does nothing and never requests a signal  */
-export class NullChip extends ChipBase {}
+/** Empty class just to indicate an chip that does nothing and never terminates  */
+export class Forever extends ChipBase {}
 
-/** An chip that returns the requested signal immediately  */
-export class TransitoryChip extends ChipBase {
-  constructor(readonly requestSignal = makeSignal()) {
+/** An chip that outputs a given signal immediately  */
+export class Transitory extends ChipBase {
+  constructor(public readonly terminateSignal = makeSignal()) {
     super();
   }
 
   _onActivate() {
-    this._outputSignal = this.requestSignal;
+    this.terminate(this.terminateSignal);
   }
 }
 
@@ -607,8 +607,8 @@ export interface ParallelActivationInfo extends ChipActivationInfo {
 
 /**
  Allows a bunch of chips to execute in parallel.
- Updates child chips until they ask for a signal, at which point they are torn down.
- Requests a signal when all child chips have completed.
+ Updates child chips until they terminate.
+ Terminates when all child chips have completed.
 */
 export class Parallel extends Composite {
   public readonly options: ParallelOptions;
@@ -645,7 +645,7 @@ export class Parallel extends Composite {
     super.tick(tickInfo);
 
     if (this.options.signalOnCompletion && !_.some(this._childChips))
-      this._outputSignal = makeSignal();
+      this.terminate(makeSignal());
   }
 
   addChildChip(chip: ParallelActivationInfo | ChipResolvable) {
@@ -792,7 +792,7 @@ export class SequenceOptions {
 
 /**
   Runs one child chip after another. 
-  When done, requestes the last signal demanded.
+  When done, terminates with output signal of the last chip in the sequence.
   Optionally can loop back to the first chip.
 */
 export class Sequence extends Composite {
@@ -828,7 +828,7 @@ export class Sequence extends Composite {
   private _switchChip() {
     // Stop current chip
     if (this.currentChip) {
-      // The current chip may have already been deactivated, if it requested a signal
+      // The current chip may have already been deactivated, if it terminated before
       if (_.size(this._childChips) > 0)
         this._deactivateChildChip(this.currentChip);
       delete this.currentChip;
@@ -851,7 +851,7 @@ export class Sequence extends Composite {
 
     if (this.chipActivationInfos.length === 0) {
       // Empty Sequence, stop immediately
-      if (this.options.signalOnCompletion) this._outputSignal = makeSignal();
+      if (this.options.signalOnCompletion) this.terminate(makeSignal());
     } else {
       // Start the Sequence
       this._switchChip();
@@ -885,8 +885,8 @@ export class Sequence extends Composite {
         this.currentChipIndex = 0;
         this._switchChip();
       } else if (this.options.signalOnCompletion) {
-        // otherwise request this signal
-        this._outputSignal = signal;
+        // otherwise terminate
+        this.terminate(signal);
       }
     }
   }
@@ -918,7 +918,7 @@ export class StateMachineOptions {
   Represents a state machine, where each state has a name, and is represented by an chip.
   Only one state is active at a time. 
   The state machine has one starting state, but can have multiple ending states.
-  When the machine reaches an ending state, it requests a signal with a name equal to the name of the ending state.
+  When the machine reaches an ending state, it terminates with a name equal to the name of the ending state.
   By default, the state machine begins at the state called "start", and stops at "end".
 
   The signals are not provided directly by the states (chips) by rather by a signal table provided in the constructor.
@@ -1023,7 +1023,7 @@ export class StateMachine extends Composite {
         !nextStateDescriptor.params ||
         _.isEmpty(nextStateDescriptor.params)
       ) {
-        // By default, pass through the params in the requested signal
+        // By default, pass through the params in the input signal
         nextState = makeSignal(nextStateDescriptor.name, signal.params);
       } else {
         nextState = nextStateDescriptor;
@@ -1055,7 +1055,7 @@ export class StateMachine extends Composite {
   private _changeState(nextState: Signal): void {
     // Stop current state
     if (this.activeChildChip) {
-      // The state may have already been deactivated, if it requested a signal
+      // The state may have already been deactivated, if terminated
       if (_.size(this._childChips) > 0)
         this._deactivateChildChip(this.activeChildChip);
       delete this.activeChildChip;
@@ -1066,8 +1066,8 @@ export class StateMachine extends Composite {
       this.lastSignal = nextState;
       this.visitedStates.push(nextState);
 
-      // Request signal
-      this._outputSignal = nextState;
+      // Termiante with signal
+      this.terminate(nextState);
       return;
     }
 
@@ -1128,14 +1128,14 @@ export interface FunctionalFunctions {
   pause: (chip: Functional) => void;
   resume: (chip: Functional) => void;
   terminate: (chip: Functional) => void;
-  requestSignal: (chip: Functional) => Signal | boolean;
+  shouldTerminate: (chip: Functional) => Signal | string | boolean;
   makeReloadMemento(): ReloadMemento;
 }
 
 /**
   An chip that gets its behavior from functions provided inline in the constructor.
   Useful for small chips that don't require their own class definition.
-  Additionally, a function called requestSignal(options, chip), called after tick(), can set the requested signal 
+  Additionally, a function called shouldTerminate(options, chip), called after activate() and tick(), can return a signal
 
   Example usage:
     new Functional({
@@ -1160,21 +1160,12 @@ export class Functional extends Composite {
 
   protected _onActivate() {
     if (this.functions.activate) this.functions.activate(this);
+    this._checkForTermination();
   }
 
   protected _onTick() {
     if (this.functions.tick) this.functions.tick(this);
-    if (this.functions.requestSignal) {
-      const result = this.functions.requestSignal(this);
-      if (result) {
-        if (_.isObject(result)) {
-          this._outputSignal = result;
-        } else {
-          // result is true
-          this._outputSignal = makeSignal();
-        }
-      }
-    }
+    this._checkForTermination();
   }
 
   protected _onPause() {
@@ -1188,9 +1179,24 @@ export class Functional extends Composite {
   protected _onTerminate() {
     if (this.functions.terminate) this.functions.terminate(this);
   }
+
+  private _checkForTermination() {
+    if (!this.functions.shouldTerminate) return;
+
+    const result = this.functions.shouldTerminate(this);
+    if (result) {
+      if (_.isString(result)) {
+        this.terminate(makeSignal(result));
+      } else if (_.isObject(result)) {
+        this.terminate(result);
+      } else {
+        // result is true
+        this.terminate(makeSignal());
+      }
+    }
+  }
 }
 
-// TODO: rename to lambda chip?
 /**
   An chip that calls a provided function just once (in activate), and immediately requests a signal.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
@@ -1204,8 +1210,9 @@ export class Lambda extends ChipBase {
   _onActivate() {
     const result = this.f.call(this.that);
 
-    if (typeof result === "string") this._outputSignal = makeSignal(result);
-    else this._outputSignal = makeSignal();
+    if (typeof result === "string") this.terminate(makeSignal(result));
+    else if (typeof result === "object") this.terminate(result);
+    else this.terminate(makeSignal());
   }
 }
 
@@ -1226,7 +1233,7 @@ export class Waiting extends ChipBase {
     this._accumulatedTime += this._lastTickInfo.timeSinceLastTick;
 
     if (this._accumulatedTime >= this.wait) {
-      this._outputSignal = makeSignal();
+      this.terminate(makeSignal());
     }
   }
 }
@@ -1236,12 +1243,13 @@ export class Waiting extends ChipBase {
  */
 export class Block extends ChipBase {
   done(signal = makeSignal()) {
-    this._outputSignal = signal;
+    this.terminate(signal);
   }
 }
 
 /**
- * Executes a function once and requests a signal equal to its value.
+ * Executes a function thatuntil the result is not undefined.
+ * Terminates with that signal equal to its value.
  */
 export class Decision extends ChipBase {
   constructor(private f: () => Signal | undefined) {
@@ -1249,7 +1257,18 @@ export class Decision extends ChipBase {
   }
 
   _onActivate() {
-    this._outputSignal = this.f();
+    this._checkTermination();
+  }
+
+  _onTick() {
+    this._checkTermination();
+  }
+
+  private _checkTermination() {
+    const out = this.f();
+    if (typeof out !== "undefined") {
+      this.terminate(out);
+    }
   }
 }
 
@@ -1275,10 +1294,10 @@ export class WaitForEvent extends ChipBase {
     if (!result) return;
 
     if (_.isObject(result)) {
-      this._outputSignal = result;
+      this.terminate(result);
     } else {
       // result is true
-      this._outputSignal = makeSignal();
+      this.terminate();
     }
   }
 }
@@ -1291,24 +1310,28 @@ export interface AlternativeChipActivationInfo extends ChipActivationInfo {
  *  Chip that requests a signal as soon as one of it's children requests one
  */
 export class Alternative extends Composite {
-  private readonly chipActivationInfos: AlternativeChipActivationInfo[];
+  private readonly _chipActivationInfos: AlternativeChipActivationInfo[];
 
   // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-  constructor(chipActivationInfos: AlternativeChipActivationInfo[]) {
+  constructor(
+    chipActivationInfos: Array<ChipResolvable | AlternativeChipActivationInfo>
+  ) {
     super();
 
     // Set default signal as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-    this.chipActivationInfos = _.map(
-      chipActivationInfos,
-      (chipActivationInfo, key) =>
-        _.defaults({}, chipActivationInfo, {
-          signal: key.toString(),
-        })
-    );
+    this._chipActivationInfos = chipActivationInfos.map((info, key) => {
+      if (isChip(info) || typeof info === "function") {
+        return {
+          chip: info,
+        };
+      } else {
+        return info;
+      }
+    });
   }
 
   _onActivate() {
-    for (const chipActivationInfo of this.chipActivationInfos) {
+    for (const chipActivationInfo of this._chipActivationInfos) {
       this._activateChildChip(chipActivationInfo.chip, {
         context: chipActivationInfo.context,
       });
@@ -1322,9 +1345,11 @@ export class Alternative extends Composite {
   }
 
   private _checkForSignal(): void {
-    for (let i = 0; i < this.chipActivationInfos.length; i++) {
+    for (let i = 0; i < this._chipActivationInfos.length; i++) {
       if (this._childChips[i].outputSignal) {
-        this._outputSignal = this.chipActivationInfos[i].signal;
+        const terminateWith =
+          this._chipActivationInfos[i].signal ?? makeSignal(i.toString());
+        this.terminate(terminateWith);
         break;
       }
     }

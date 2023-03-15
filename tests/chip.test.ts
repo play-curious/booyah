@@ -737,7 +737,7 @@ class ReloadingComposite extends chip.Composite {
 
 describe("Hot reloading", () => {
   test("Base chip doesn't provide memento", () => {
-    const e = new chip.NullChip();
+    const e = new chip.Forever();
     e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(e.makeReloadMemento().data).toBeUndefined();
   });
