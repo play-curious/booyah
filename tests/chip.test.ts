@@ -386,6 +386,24 @@ describe("Composite", () => {
     // @ts-ignore
     expect(parent.attr).toBeUndefined();
   });
+
+  test("adds children to the context", () => {
+    // Activate parent
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    const childChipA = new MockChip();
+    // @ts-ignore
+    parent._activateChildChip(childChipA, {
+      attribute: "attr",
+      includeInChildContext: true,
+    });
+
+    const childChipB = new MockChip();
+    // @ts-ignore
+    parent._activateChildChip(childChipB);
+    // @ts-ignore
+    expect(childChipB.chipContext.attr).toBe(childChipA);
+  });
 });
 
 describe("Parallel", () => {

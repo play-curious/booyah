@@ -426,6 +426,7 @@ export class ActivateChildChipOptions {
   attribute?: string;
   id?: string;
   reloadMemento?: ReloadMemento;
+  includeInChildContext?: boolean;
 }
 
 /** Base class for chips that contain other chips
@@ -435,7 +436,8 @@ export class ActivateChildChipOptions {
  * - deactivatedChildChip(chip: Chip)
  */
 export abstract class Composite extends ChipBase {
-  protected _childChips: Record<string, Chip> = {};
+  protected _childChips: Record<string, Chip>;
+  private _childChipContext: Record<string, unknown>;
 
   public activate(
     tickInfo: TickInfo,
@@ -443,8 +445,12 @@ export abstract class Composite extends ChipBase {
     inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void {
+    this._childChips = {};
+    this._childChipContext = {};
+
     super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
   }
+
   /**
    * By default, updates all child chips and remove those that have a signal
    * Overload this method in subclasses to change the behavior
@@ -497,9 +503,9 @@ export abstract class Composite extends ChipBase {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
     options = fillInOptions(options, new ActivateChildChipOptions());
-    const id = options.id ?? options.attribute;
+    const providedId = options.id ?? options.attribute;
 
-    if (id && id in this._childChips)
+    if (providedId && providedId in this._childChips)
       throw new Error("Duplicate child chip ID or attribute name provided");
 
     const inputSignal = options.inputSignal ?? makeSignal();
@@ -513,17 +519,18 @@ export abstract class Composite extends ChipBase {
 
     // Look for reload memento, if an id is provided
     let reloadMemento: ReloadMemento;
-    if (id && this._reloadMemento?.children[id]) {
-      reloadMemento = this._reloadMemento.children[id];
+    if (providedId && this._reloadMemento?.children[providedId]) {
+      reloadMemento = this._reloadMemento.children[providedId];
     }
 
     // If no childId is provided, use a random temporary value
     const childId =
-      options.id ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
+      providedId ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childChips[childId] = chip;
 
     const childConfig = processChipContext(
       this._chipContext,
+      this._childChipContext,
       this.defaultChildChipContext,
       options.context
     );
@@ -537,6 +544,21 @@ export abstract class Composite extends ChipBase {
       this._subscribeOnce(chip, "terminated", (signal: Signal) => {
         // @ts-ignore
         delete this[options.attribute];
+      });
+    }
+
+    if (options.includeInChildContext) {
+      if (!providedId)
+        throw new Error(
+          "To include a child chip in the context, provide an attribute name or ID"
+        );
+
+      this._childChipContext[providedId] = chip;
+
+      // When the chip is terminated, remove from the context
+      this._subscribeOnce(chip, "terminated", (signal: Signal) => {
+        // @ts-ignore
+        delete this._childChipContext[providedId];
       });
     }
 
@@ -766,8 +788,6 @@ export class Parallel extends Composite {
 }
 
 export class ContextProvider extends Composite {
-  private _childChipContext: Record<string, Chip>;
-
   constructor(
     private readonly _context: Record<string, ChipResolvable>,
     private readonly _child: ChipResolvable
@@ -777,21 +797,17 @@ export class ContextProvider extends Composite {
 
   protected _onActivate(): void {
     // First, activate the children that provide the context
-    this._childChipContext = {};
     for (const name in this._context) {
-      this._childChipContext[name] = this._activateChildChip(
-        this._context[name],
-        {
-          id: name,
-        }
-      );
+      this._activateChildChip(this._context[name], {
+        id: name,
+        includeInChildContext: true,
+      });
     }
 
     // Then activate the child
     {
       this._activateChildChip(this._child, {
         id: "child",
-        context: this._childChipContext,
       });
     }
   }
