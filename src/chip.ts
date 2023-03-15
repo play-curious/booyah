@@ -182,27 +182,21 @@ export interface Chip extends NodeEventSource {
 }
 
 /**
- In Booyah, the game is structured as a tree of chips. This is the base class for all chips.
-
- An chip has the following lifecycle:
- 1. It is instantiated using the contructor.
- Only parameters specific to the chip should be passed here.
- The chip should not make any changes to the environment here, it should wait for activate().
- 2. activate() is called just once, with a configuration.
- This is when the chip should add dispaly objects  to the scene, or subscribe to events.
- The typical chipContext contains { app, preloader, narrator, jukebox, container }
- 3. tick() is called one or more times, with options.
- It could also never be called, in case the chip is torn down directly.
- If the chip wishes to be terminated, it should set this._outputSignal to a truthy value.
- Typical options include { playTime, timeSinceStart, timeSinceLastTick, timeScale, gameState }
- For more complicated signals, it can return an object like { name: "", params: {} }
- 4. terminate() is called just once.
- The chip should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
-
- The base class will check that this lifecyle is respected, and will log errors to signal any problems.
-
- In the case that, subclasses do not need to override these methods, but override the underscore versions of them: _onActivate(), _onTick(), etc.
- This ensures that the base class behavior of will be called automatically.
+ * In Booyah, the game is structured as a tree of chips. This is the base class for all chips.
+ * An chip has the following lifecycle:
+ * 1. It is instantiated using the contructor
+ * Only parameters specific to the chip should be passed here.
+ * The chip should not make any changes to the environment here, it should wait for activate().
+ * 2. activate() is called just once, with a configuration.
+ * This is when the chip should add display objects to the scene, or subscribe to events.
+ * 3. tick() is called one or more times, with options.
+ * It could also never be called, in case the chip is terminated directly.
+ * 4. pause() and resume() might be called.
+ * 5. terminate() is called just once.
+ * The chip should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
+ * The base class will check that this lifecyle is respected, and will log errors to signal any problems.
+ * In general, subclasses do not need to override these methods, but instead override the underscore versions of them: _onActivate(), _onTick(), etc.
+ * This ensures that the base class behavior of will be called automatically.
  */
 export abstract class ChipBase extends EventEmitter implements Chip {
   protected _chipContext: ChipContext;
@@ -237,6 +231,8 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     else delete this._reloadMemento;
 
     this._onActivate();
+
+    this.emit("activated", inputSignal);
   }
 
   public tick(tickInfo: TickInfo): void {
@@ -257,6 +253,8 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this._unsubscribe(); // Remove all event listeners
 
     this._state = "inactive";
+
+    this.emit("terminated", this._outputSignal);
   }
 
   public pause(tickInfo: TickInfo): void {
@@ -424,7 +422,8 @@ export class Transitory extends ChipBase {
 
 export class ActivateChildChipOptions {
   context?: ChipContextResolvable;
-  signal?: Signal;
+  inputSignal?: Signal;
+  attribute?: string;
   id?: string;
   reloadMemento?: ReloadMemento;
 }
@@ -498,10 +497,12 @@ export abstract class Composite extends ChipBase {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
     options = fillInOptions(options, new ActivateChildChipOptions());
-    if (options.id && options.id in this._childChips)
-      throw new Error("Duplicate child chip id provided");
+    const id = options.id ?? options.attribute;
 
-    const inputSignal = options.signal ?? makeSignal();
+    if (id && id in this._childChips)
+      throw new Error("Duplicate child chip ID or attribute name provided");
+
+    const inputSignal = options.inputSignal ?? makeSignal();
 
     let chip;
     if (_.isFunction(chipResolvable)) {
@@ -512,8 +513,8 @@ export abstract class Composite extends ChipBase {
 
     // Look for reload memento, if an id is provided
     let reloadMemento: ReloadMemento;
-    if (options.id && this._reloadMemento?.children[options.id]) {
-      reloadMemento = this._reloadMemento.children[options.id];
+    if (id && this._reloadMemento?.children[id]) {
+      reloadMemento = this._reloadMemento.children[id];
     }
 
     // If no childId is provided, use a random temporary value
@@ -527,6 +528,17 @@ export abstract class Composite extends ChipBase {
       options.context
     );
     chip.activate(this._lastTickInfo, childConfig, inputSignal, reloadMemento);
+
+    if (options.attribute) {
+      // @ts-ignore
+      this[options.attribute] = chip;
+
+      // When the chip is terminated, delete the attribute
+      this._subscribeOnce(chip, "terminated", (signal: Signal) => {
+        // @ts-ignore
+        delete this[options.attribute];
+      });
+    }
 
     this.emit("activatedChildChip", chip, childConfig, inputSignal);
 
@@ -1075,7 +1087,7 @@ export class StateMachine extends Composite {
       const nextStateContext = this.states[nextState.name];
       this.activeChildChip = this._activateChildChip(nextStateContext.chip, {
         context: nextStateContext.context,
-        signal: nextState,
+        inputSignal: nextState,
         id: nextState.name,
       });
     } else {

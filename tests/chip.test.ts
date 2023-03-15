@@ -369,6 +369,23 @@ describe("Composite", () => {
     expect(children[0].chipContext.rootValue).toBe(1);
     expect(children[0].chipContext.defaultValue).toBe(2);
   });
+
+  test("creates and deletes attributes", () => {
+    // Activate parent
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    const childChip = new MockChip();
+
+    // @ts-ignore
+    parent._activateChildChip(childChip, { attribute: "attr" });
+    // @ts-ignore
+    expect(parent.attr).toBe(childChip);
+
+    childChip.terminate();
+
+    // @ts-ignore
+    expect(parent.attr).toBeUndefined();
+  });
 });
 
 describe("Parallel", () => {
