@@ -2,7 +2,7 @@
 
 This is a HTML5 browser-based game framework, written entirely in TypeScript.
 
-## Installatino
+## Installation
 
 Install the Yarn package manager.
 

@@ -18,7 +18,7 @@ export function cloneData<T = unknown>(o: T): T {
 }
 
 /**
- * Event source that uses a Node.js-like interface, in contrast to the DOM events pattern using `addEventListener()`.
+ * Event source that uses a Node.js-like interface using `on()` and `off()`.
  */
 export interface NodeEventSource {
   on(type: string, listener: () => void): void;
@@ -27,10 +27,59 @@ export interface NodeEventSource {
   emit(type: string, ...args: unknown[]): void;
 }
 
+export function isNodeEventSource(emitter: object): emitter is NodeEventSource {
+  return typeof (emitter as NodeEventSource).on === "function";
+}
+
+export function isEventTarget(emitter: object): emitter is EventTarget {
+  return typeof (emitter as EventTarget).addEventListener === "function";
+}
+
+export type UnsubscribeFunction = (
+  emitter: object,
+  event: string,
+  cb: () => void
+) => void;
+
+export interface SubscriptionHandler {
+  subscribe(emitter: object, event: string, cb: () => void): void;
+  subscribeOnce(emitter: object, event: string, cb: () => void): void;
+  unsubscribe(emitter: object, event: string, cb: () => void): void;
+}
+
+class NodeEventSourceSubscriptionHandler implements SubscriptionHandler {
+  subscribe(emitter: NodeEventSource, event: string, cb: () => void): void {
+    emitter.on(event, cb);
+  }
+
+  subscribeOnce(emitter: NodeEventSource, event: string, cb: () => void): void {
+    emitter.once(event, cb);
+  }
+
+  unsubscribe(emitter: NodeEventSource, event: string, cb: () => void): void {
+    emitter.off(event, cb);
+  }
+}
+
+class EventTargetSubscriptionHandler implements SubscriptionHandler {
+  subscribe(emitter: EventTarget, event: string, cb: () => void): void {
+    emitter.addEventListener(event, cb);
+  }
+
+  subscribeOnce(emitter: EventTarget, event: string, cb: () => void): void {
+    emitter.addEventListener(event, cb, { once: true });
+  }
+
+  unsubscribe(emitter: EventTarget, event: string, cb: () => void): void {
+    emitter.removeEventListener(event, cb);
+  }
+}
+
 export interface IEventListener {
-  emitter: NodeEventSource;
+  emitter: object;
   event: string;
   cb: () => void;
+  subscriptionHandler: SubscriptionHandler;
 }
 
 export interface Signal {
@@ -157,7 +206,7 @@ export interface Chip extends NodeEventSource {
  */
 export abstract class ChipBase extends EventEmitter implements Chip {
   protected _chipContext: ChipContext;
-  protected _lastFrameInfo: TickInfo;
+  protected _lastTickInfo: TickInfo;
   protected _inputSignal: Signal;
   protected _reloadMemento?: ReloadMemento;
   protected _eventListeners: IEventListener[] = [];
@@ -178,7 +227,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
       throw new Error(`activate() called from state ${this._state}`);
 
     this._chipContext = chipContext;
-    this._lastFrameInfo = tickInfo;
+    this._lastTickInfo = tickInfo;
     this._inputSignal = inputSignal;
     this._state = "active";
     delete this._outputSignal;
@@ -194,7 +243,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
-    this._lastFrameInfo = tickInfo;
+    this._lastTickInfo = tickInfo;
     this._onTick();
   }
 
@@ -229,21 +278,54 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   }
 
   protected _subscribe(
-    emitter: NodeEventSource,
+    emitter: object,
     event: string,
-    cb: (...args: unknown[]) => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cb: (...args: any[]) => void,
+    subscriptionHandler?: SubscriptionHandler
   ): void {
-    this._eventListeners.push({ emitter, event, cb });
-    emitter.on(event, cb);
+    if (!subscriptionHandler) {
+      if (isNodeEventSource(emitter)) {
+        subscriptionHandler = new NodeEventSourceSubscriptionHandler();
+      } else if (isEventTarget) {
+        subscriptionHandler = new EventTargetSubscriptionHandler();
+      } else {
+        throw new Error(
+          `Emitter is of unknown type "${typeof emitter}", requires custom SubscriptionHandler`
+        );
+      }
+    }
+
+    // Make sure the callback uses the correct `this`
+    cb = cb.bind(this);
+
+    this._eventListeners.push({ emitter, event, cb, subscriptionHandler });
+    subscriptionHandler.subscribe(emitter, event, cb);
   }
 
   protected _subscribeOnce(
-    emitter: NodeEventSource,
+    emitter: object,
     event: string,
-    cb: (...args: unknown[]) => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cb: (...args: any[]) => void,
+    subscriptionHandler?: SubscriptionHandler
   ): void {
-    this._eventListeners.push({ emitter, event, cb });
-    emitter.once(event, cb);
+    if (!subscriptionHandler) {
+      if (isNodeEventSource(emitter)) {
+        subscriptionHandler = new NodeEventSourceSubscriptionHandler();
+      } else if (isEventTarget) {
+        subscriptionHandler = new EventTargetSubscriptionHandler();
+      } else {
+        throw new Error(
+          `Emitter is of unknown type "${typeof emitter}", requires custom SubscriptionHandler`
+        );
+      }
+    }
+
+    cb = cb.bind(this);
+
+    this._eventListeners.push({ emitter, event, cb, subscriptionHandler });
+    subscriptionHandler.subscribeOnce(emitter, event, cb);
   }
 
   // if `cb` is undefined, will remove all event listeners for the given emitter and event
@@ -267,7 +349,11 @@ export abstract class ChipBase extends EventEmitter implements Chip {
       props
     );
     for (const listener of listenersToRemove)
-      listener.emitter.off(listener.event, listener.cb);
+      listener.subscriptionHandler.unsubscribe(
+        listener.emitter,
+        listener.event,
+        listener.cb
+      );
 
     this._eventListeners = listenersToKeep;
   }
@@ -275,12 +361,15 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   public get children(): Record<string, Chip> {
     return {};
   }
+
   public get outputSignal(): Signal {
     return this._outputSignal;
   }
+
   public get state(): ChipState {
     return this._state;
   }
+
   public makeReloadMemento(): ReloadMemento {
     if (this._state !== "active" && this._state !== "paused")
       throw new Error(`makeReloadMemento() called from state ${this._state}`);
@@ -365,7 +454,7 @@ export abstract class Composite extends ChipBase {
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
-    this._lastFrameInfo = tickInfo;
+    this._lastTickInfo = tickInfo;
 
     this._onTick();
 
@@ -437,7 +526,7 @@ export abstract class Composite extends ChipBase {
       this.defaultChildChipContext,
       options.context
     );
-    chip.activate(this._lastFrameInfo, childConfig, inputSignal, reloadMemento);
+    chip.activate(this._lastTickInfo, childConfig, inputSignal, reloadMemento);
 
     this.emit("activatedChildChip", chip, childConfig, inputSignal);
 
@@ -472,7 +561,7 @@ export abstract class Composite extends ChipBase {
     this._removeDeactivatedChildChips();
 
     for (const childChip of Object.values(this._childChips)) {
-      childChip.tick(this._lastFrameInfo);
+      childChip.tick(this._lastTickInfo);
     }
   }
 
@@ -661,6 +750,38 @@ export class Parallel extends Composite {
     this.contextToChip.clear();
 
     super.terminate(outputSignal);
+  }
+}
+
+export class ContextProvider extends Composite {
+  private _childChipContext: Record<string, Chip>;
+
+  constructor(
+    private readonly _context: Record<string, ChipResolvable>,
+    private readonly _child: ChipResolvable
+  ) {
+    super();
+  }
+
+  protected _onActivate(): void {
+    // First, activate the children that provide the context
+    this._childChipContext = {};
+    for (const name in this._context) {
+      this._childChipContext[name] = this._activateChildChip(
+        this._context[name],
+        {
+          id: name,
+        }
+      );
+    }
+
+    // Then activate the child
+    {
+      this._activateChildChip(this._child, {
+        id: "child",
+        context: this._childChipContext,
+      });
+    }
   }
 }
 
@@ -1028,7 +1149,7 @@ export class Functional extends Composite {
   }
 
   protected get lastFrameInfo(): TickInfo {
-    return this._lastFrameInfo;
+    return this._lastTickInfo;
   }
   protected get inputSignal(): Signal {
     return this._inputSignal;
@@ -1102,7 +1223,7 @@ export class Waiting extends ChipBase {
   }
 
   _onTick() {
-    this._accumulatedTime += this._lastFrameInfo.timeSinceLastTick;
+    this._accumulatedTime += this._lastTickInfo.timeSinceLastTick;
 
     if (this._accumulatedTime >= this.wait) {
       this._outputSignal = makeSignal();

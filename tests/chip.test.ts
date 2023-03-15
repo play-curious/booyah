@@ -130,8 +130,10 @@ describe("Chip", () => {
       e.resume(makeFrameInfo());
     }).toThrow();
   });
+});
 
-  test("receives events", () => {
+describe("Events", () => {
+  test("receives Node-style events", () => {
     const sender = new MockChip();
     const receiver = new (class extends chip.ChipBase {
       constructor() {
@@ -171,6 +173,109 @@ describe("Chip", () => {
 
     expect(receiver.receiveA).toBeCalledTimes(2);
     expect(receiver.receiveB).toBeCalledTimes(1);
+  });
+
+  test("receives DOM-style events", () => {
+    class CustomEvent extends Event {
+      constructor(name: string, public readonly value: number) {
+        super(name);
+      }
+    }
+
+    const sender = new EventTarget();
+
+    const receiver = new (class extends chip.ChipBase {
+      _onActivate() {
+        this._subscribe(sender, "a", this.receiveA);
+        this._subscribeOnce(sender, "b", this.receiveB);
+      }
+
+      receiveA() {
+        /* no op */
+      }
+      receiveB() {
+        /* no op */
+      }
+    })();
+
+    const spyA = jest.spyOn(receiver, "receiveA");
+    const spyB = jest.spyOn(receiver, "receiveB");
+
+    // Setup the receiver and send one event
+    receiver.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    sender.dispatchEvent(new CustomEvent("a", 1));
+    sender.dispatchEvent(new CustomEvent("a", 1));
+    sender.dispatchEvent(new CustomEvent("b", 2));
+    sender.dispatchEvent(new CustomEvent("b", 2));
+
+    // @ts-ignore
+    expect(spyA.mock.calls?.[0][0].value).toBe(1);
+    // @ts-ignore
+    expect(spyB.mock.calls?.[0][0].value).toBe(2);
+
+    // Teardown the receiver and send more events that should not be recieved
+    receiver.terminate();
+    sender.dispatchEvent(new CustomEvent("a", 1));
+    sender.dispatchEvent(new CustomEvent("b", 2));
+
+    expect(spyA).toBeCalledTimes(2);
+    expect(spyB).toBeCalledTimes(1);
+  });
+
+  test("receives custom-style events", () => {
+    const subscriptionHandlerA: chip.SubscriptionHandler = {
+      subscribe: jest.fn(),
+      subscribeOnce: jest.fn(),
+      unsubscribe: jest.fn(),
+    };
+    const subscriptionHandlerB: chip.SubscriptionHandler = {
+      subscribe: jest.fn(),
+      subscribeOnce: jest.fn(),
+      unsubscribe: jest.fn(),
+    };
+
+    const sender = {};
+
+    const receiver = new (class extends chip.ChipBase {
+      _onActivate() {
+        this._subscribe(sender, "a", this.receiveA, subscriptionHandlerA);
+        this._subscribeOnce(sender, "b", this.receiveB, subscriptionHandlerB);
+      }
+
+      receiveA() {
+        /* no op */
+      }
+      receiveB() {
+        /* no op */
+      }
+    })();
+
+    // Setup the receiver
+    receiver.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    // Check that the subscription handler was called
+    // @ts-ignore
+    expect(subscriptionHandlerA.subscribe.mock.calls[0][0]).toBe(sender);
+    // @ts-ignore
+    expect(subscriptionHandlerA.subscribe.mock.calls[0][1]).toBe("a");
+
+    // @ts-ignore
+    expect(subscriptionHandlerB.subscribeOnce.mock.calls[0][0]).toBe(sender);
+    // @ts-ignore
+    expect(subscriptionHandlerB.subscribeOnce.mock.calls[0][1]).toBe("b");
+
+    // Teardown the receiver and check that unsubscribe() was called
+    receiver.terminate();
+
+    // @ts-ignore
+    expect(subscriptionHandlerA.unsubscribe.mock.calls[0][0]).toBe(sender);
+    // @ts-ignore
+    expect(subscriptionHandlerA.unsubscribe.mock.calls[0][1]).toBe("a");
+
+    // @ts-ignore
+    expect(subscriptionHandlerB.unsubscribe.mock.calls[0][0]).toBe(sender);
+    // @ts-ignore
+    expect(subscriptionHandlerB.unsubscribe.mock.calls[0][1]).toBe("b");
   });
 });
 
