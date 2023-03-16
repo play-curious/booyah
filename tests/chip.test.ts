@@ -394,6 +394,7 @@ describe("Composite", () => {
     const childChipA = new MockChip();
     // @ts-ignore
     parent._activateChildChip(childChipA, {
+      // @ts-ignore
       attribute: "attr",
       includeInChildContext: true,
     });

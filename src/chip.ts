@@ -420,10 +420,10 @@ export class Transitory extends ChipBase {
   }
 }
 
-export class ActivateChildChipOptions {
+export class ActivateChildChipOptions<T> {
   context?: ChipContextResolvable;
   inputSignal?: Signal;
-  attribute?: string;
+  attribute?: keyof T & string;
   id?: string;
   reloadMemento?: ReloadMemento;
   includeInChildContext?: boolean;
@@ -498,7 +498,7 @@ export abstract class Composite extends ChipBase {
 
   protected _activateChildChip(
     chipResolvable: ChipResolvable,
-    options?: Partial<ActivateChildChipOptions>
+    options?: Partial<ActivateChildChipOptions<this>>
   ): Chip {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
