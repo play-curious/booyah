@@ -362,10 +362,18 @@ function update(timeScale: number) {
 
       rootConfig.app.renderer.render(rootConfig.app.stage);
     } catch (e: any) {
-      // Call error handler, if provided, then rethrow the error
-      rootConfig.directives?.onError(e);
+      // If an error handler is provided, call it. Otherwise rethrow
+      if (rootConfig.directives.onError) {
+        rootConfig.directives.onError(e);
+      } else {
+        throw e;
+      }
 
-      throw e;
+      // // Teardown the current entity and remove it
+      // entityToUpdate.teardown(lastFrameInfo);
+
+      // if (rootEntity) rootEntity = undefined;
+      // if (loadingScene) loadingScene = undefined;
     }
   }
 }
@@ -387,6 +395,16 @@ export function changeGameState(newGameState: entity.GameState) {
   }
 
   util.sendMetrics("send", "event", "changeGameState", newGameState);
+}
+
+export function changeRootEntity(newRootEntity: entity.Entity): void {
+  if (rootEntity) {
+    // Teardown the current entity
+    rootEntity.teardown(lastFrameInfo);
+  }
+
+  rootEntity = newRootEntity;
+  rootEntity.setup(lastFrameInfo, rootConfig, entity.makeTransition());
 }
 
 function loadFixedAssets() {
