@@ -20,6 +20,13 @@ class FilterPauseEntity extends entity.ParallelEntity {
   }
 }
 
+export type FpsMeterPosition =
+  | "none"
+  | "upper-left"
+  | "upper-right"
+  | "lower-left"
+  | "lower-right";
+
 export class PlayOptions extends PIXI.utils.EventEmitter {
   public options: {
     musicOn: boolean;
@@ -28,7 +35,7 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
     sceneParams: {};
     scene: any;
     startingProgress: any;
-    fpsMeterPosition: string;
+    fpsMeterPosition: FpsMeterPosition;
     maxFps?: number;
   };
 
@@ -70,7 +77,9 @@ export class PlayOptions extends PIXI.utils.EventEmitter {
     }
 
     if (searchParams.has("fps"))
-      this.options.fpsMeterPosition = searchParams.get("fps");
+      this.options.fpsMeterPosition = searchParams.get(
+        "fps"
+      ) as FpsMeterPosition;
     if (searchParams.has("maxFps"))
       this.options.maxFps = parseInt(searchParams.get("maxFps"));
   }
@@ -135,7 +144,7 @@ export interface Directives {
   endingScenes: string[];
   screenSize: PIXI.IPoint;
   canvasId: string;
-  fpsMeterPosition: string;
+  fpsMeterPosition: FpsMeterPosition;
 
   /** Function called in the case of an error */
   onError: (e: any) => void;
@@ -529,11 +538,14 @@ function loadVariable() {
 }
 
 let fpsMeter: Stats;
-function showFpsMeter(position: string) {
+function showFpsMeter(position: FpsMeterPosition) {
   fpsMeter = new Stats();
   fpsMeter.showPanel(0);
   fpsMeter.begin();
   document.body.appendChild(fpsMeter.dom);
+
+  // Add padding for rounded displays
+  fpsMeter.dom.style.padding = `env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0)`;
 
   switch (position) {
     // upper-left is default
