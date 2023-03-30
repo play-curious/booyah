@@ -44,7 +44,7 @@ export class TweenOptions<Value, Obj extends object = undefined> {
   property?: keyof Obj;
   from?: Value;
   to: Value;
-  duration: number = 1000;
+  duration = 1000;
   easing: easing.EasingFunction = easing.linear;
   interpolate: (from: Value, to: Value, easeProgress: number) => Value;
   onSetup?: () => unknown;
@@ -77,7 +77,7 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
     }
 
     if (this.options.onUpdate) {
-      this._on(this, "updatedValue", this.options.onUpdate);
+      this._subscribe(this, "updatedValue", this.options.onUpdate);
     }
   }
 
