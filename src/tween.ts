@@ -110,7 +110,7 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
       this._value = this.options.to;
       this._updateValue();
     } else {
-      this._timePassed += this._lastFrameInfo.timeSinceLastTick;
+      this._timePassed += this._lastTickInfo.timeSinceLastTick;
       const easedProgress = this.options.easing(
         this._timePassed / this.options.duration
       );

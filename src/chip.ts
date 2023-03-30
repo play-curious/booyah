@@ -592,11 +592,11 @@ export abstract class Composite extends ChipBase {
    * Sends tick to all .
    */
   protected _tickChildChips(): void {
-    this._removeTerminatedChildChips();
-
     for (const childChip of Object.values(this._childChips)) {
-      childChip.tick(this._lastTickInfo);
+      if (childChip.state !== "inactive") childChip.tick(this._lastTickInfo);
     }
+
+    this._removeTerminatedChildChips();
   }
 
   protected _terminateAllChildChips(outputSignal?: Signal) {
