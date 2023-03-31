@@ -503,10 +503,24 @@ export abstract class Composite extends ChipBase {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
     options = fillInOptions(options, new ActivateChildChipOptions());
-    const providedId = options.id ?? options.attribute;
 
+    if (options.attribute && this[options.attribute]) {
+      // If an existing chip with that attribute exists, terminate it
+      if (!isChip(this[options.attribute]))
+        throw new Error(
+          `Setting the attribute ${
+            options.attribute
+          } would replace a non-chip. Current attribute value = ${
+            this[options.attribute]
+          }`
+        );
+
+      this._terminateChildChip(this[options.attribute] as Chip);
+    }
+
+    const providedId = options.id ?? options.attribute;
     if (providedId && providedId in this._childChips)
-      throw new Error("Duplicate child chip ID or attribute name provided");
+      throw new Error("Duplicate child chip ID provided");
 
     const inputSignal = options.inputSignal ?? makeSignal();
 
@@ -528,14 +542,6 @@ export abstract class Composite extends ChipBase {
       providedId ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childChips[childId] = chip;
 
-    const childConfig = processChipContext(
-      this._chipContext,
-      this._childChipContext,
-      this.defaultChildChipContext,
-      options.context
-    );
-    chip.activate(this._lastTickInfo, childConfig, inputSignal, reloadMemento);
-
     if (options.attribute) {
       // @ts-ignore
       this[options.attribute] = chip;
@@ -546,6 +552,14 @@ export abstract class Composite extends ChipBase {
         delete this[options.attribute];
       });
     }
+
+    const childConfig = processChipContext(
+      this._chipContext,
+      this._childChipContext,
+      this.defaultChildChipContext,
+      options.context
+    );
+    chip.activate(this._lastTickInfo, childConfig, inputSignal, reloadMemento);
 
     if (options.includeInChildContext) {
       if (!providedId)
@@ -1245,7 +1259,7 @@ export class Lambda extends ChipBase {
 }
 
 // Waits until time is up, then requests signal
-export class Waiting extends ChipBase {
+export class Wait extends ChipBase {
   private _accumulatedTime: number;
 
   /** @wait is in milliseconds */
