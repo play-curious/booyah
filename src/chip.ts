@@ -91,7 +91,8 @@ export function makeSignal(name = "default", params = {}): Signal {
   return { name, params };
 }
 
-export type ChipContext = Readonly<Record<string, unknown>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ChipContext = Readonly<Record<string, any>>;
 
 export type ChipContextFactory = (context: ChipContext) => ChipContext;
 export type ChipContextResolvable = ChipContext | ChipContextFactory;
