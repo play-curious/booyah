@@ -68,6 +68,7 @@ export class Runner {
     if (!this._isRunning) return;
 
     let timeSinceLastTick = timeStamp - this._lastTimeStamp;
+    this._lastTimeStamp = timeStamp;
 
     // If no time elapsed, don't update
     if (timeSinceLastTick <= 0) return;

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import * as util from "./util";
 import * as geom from "./geom";
 import * as chip from "./chip";

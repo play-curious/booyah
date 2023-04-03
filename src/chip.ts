@@ -421,10 +421,10 @@ export class Transitory extends ChipBase {
   }
 }
 
-export class ActivateChildChipOptions<T> {
+export class ActivateChildChipOptions {
   context?: ChipContextResolvable;
   inputSignal?: Signal;
-  attribute?: keyof T & string;
+  attribute?: string;
   id?: string;
   reloadMemento?: ReloadMemento;
   includeInChildContext?: boolean;
@@ -499,24 +499,27 @@ export abstract class Composite extends ChipBase {
 
   protected _activateChildChip(
     chipResolvable: ChipResolvable,
-    options?: Partial<ActivateChildChipOptions<this>>
+    options?: Partial<ActivateChildChipOptions>
   ): Chip {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
     options = fillInOptions(options, new ActivateChildChipOptions());
 
-    if (options.attribute && this[options.attribute]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const thisAsAny = this as any;
+
+    if (options.attribute && thisAsAny[options.attribute]) {
       // If an existing chip with that attribute exists, terminate it
-      if (!isChip(this[options.attribute]))
+      if (!isChip(thisAsAny[options.attribute]))
         throw new Error(
           `Setting the attribute ${
             options.attribute
           } would replace a non-chip. Current attribute value = ${
-            this[options.attribute]
+            thisAsAny[options.attribute]
           }`
         );
 
-      this._terminateChildChip(this[options.attribute] as Chip);
+      this._terminateChildChip(thisAsAny[options.attribute] as Chip);
     }
 
     const providedId = options.id ?? options.attribute;
@@ -1276,7 +1279,7 @@ export class Wait extends ChipBase {
     this._accumulatedTime += this._lastTickInfo.timeSinceLastTick;
 
     if (this._accumulatedTime >= this.wait) {
-      this.terminate(makeSignal());
+      this.terminate();
     }
   }
 }
