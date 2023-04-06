@@ -508,8 +508,13 @@ export abstract class Composite extends ChipBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const thisAsAny = this as any;
 
-    if (options.attribute && thisAsAny[options.attribute]) {
-      // If an existing chip with that attribute exists, terminate it
+    // If an existing chip with that attribute exists, terminate it
+    // Don't remove arrays, though
+    if (
+      options.attribute &&
+      !options.attribute.endsWith("[]") &&
+      thisAsAny[options.attribute]
+    ) {
       if (!isChip(thisAsAny[options.attribute]))
         throw new Error(
           `Setting the attribute ${
@@ -522,13 +527,18 @@ export abstract class Composite extends ChipBase {
       this._terminateChildChip(thisAsAny[options.attribute] as Chip);
     }
 
-    const providedId = options.id ?? options.attribute;
-    if (providedId && providedId in this._childChips)
-      throw new Error("Duplicate child chip ID provided");
+    let providedId = options.id ?? options.attribute;
+    if (providedId) {
+      if (providedId.endsWith("[]")) {
+        providedId = _.uniqueId(providedId);
+      }
+      if (providedId in this._childChips)
+        throw new Error("Duplicate child chip ID provided");
+    }
 
     const inputSignal = options.inputSignal ?? makeSignal();
 
-    let chip;
+    let chip: Chip;
     if (_.isFunction(chipResolvable)) {
       chip = chipResolvable(inputSignal);
     } else {
@@ -547,14 +557,38 @@ export abstract class Composite extends ChipBase {
     this._childChips[childId] = chip;
 
     if (options.attribute) {
-      // @ts-ignore
-      this[options.attribute] = chip;
+      let attributeName = options.attribute;
+      // If the attribute name has an array syntax, add to the array
+      if (options.attribute.endsWith("[]")) {
+        // Take off the last 2 characters
+        attributeName = attributeName.slice(0, attributeName.length - 2);
+        let attributeAsArray = this[attributeName as keyof this] as Array<Chip>;
+        if (typeof attributeAsArray !== "undefined") {
+          // Add to array
+          attributeAsArray.push(chip);
+        } else {
+          // Create a new array
+          attributeAsArray = [chip];
+          // @ts-ignore
+          this[attributeName] = attributeAsArray;
+        }
 
-      // When the chip is terminated, delete the attribute
-      this._subscribeOnce(chip, "terminated", (signal: Signal) => {
+        // When the chip is terminated, remove the attribute
+        this._subscribeOnce(chip, "terminated", (signal: Signal) => {
+          // @ts-ignore
+          const attributeAsArray = this[attributeName] as Array<Chip>;
+          const index = attributeAsArray.indexOf(chip);
+          attributeAsArray.splice(index, 1);
+        });
+      } else {
         // @ts-ignore
-        delete this[options.attribute];
-      });
+        this[attributeName] = chip;
+
+        // When the chip is terminated, delete the attribute
+        this._subscribeOnce(chip, "terminated", (signal: Signal) => {
+          delete this[attributeName as keyof this];
+        });
+      }
     }
 
     const childConfig = processChipContext(
