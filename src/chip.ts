@@ -439,6 +439,9 @@ export class ActivateChildChipOptions {
 export abstract class Composite extends ChipBase {
   protected _childChips: Record<string, Chip>;
   private _childChipContext: Record<string, unknown>;
+  private _deferredOutputSignal: Signal;
+  // Are the activate() or tick() methods currently being run?
+  private _methodCallInProgress: boolean;
 
   public activate(
     tickInfo: TickInfo,
@@ -449,7 +452,9 @@ export abstract class Composite extends ChipBase {
     this._childChips = {};
     this._childChipContext = {};
 
+    this._methodCallInProgress = true;
     super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
+    this._methodCallInProgress = false;
   }
 
   /**
@@ -460,16 +465,26 @@ export abstract class Composite extends ChipBase {
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
+    if (this._deferredOutputSignal) {
+      this.terminate(this._deferredOutputSignal);
+      return;
+    }
+
     this._lastTickInfo = tickInfo;
 
     this._onTick();
-
+    this._methodCallInProgress = true;
     this._tickChildChips();
-
+    this._methodCallInProgress = false;
     this._onAfterTick();
   }
 
   public terminate(outputSignal?: Signal): void {
+    if (this._methodCallInProgress) {
+      this._deferredOutputSignal = outputSignal;
+      return;
+    }
+
     this._terminateAllChildChips();
 
     super.terminate(outputSignal);

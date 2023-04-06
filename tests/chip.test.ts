@@ -289,7 +289,7 @@ describe("Composite", () => {
     // Anonymous subclass
     parent = new (class extends MockComposite {
       _onActivate() {
-        for (let i = 0; i < 3; i++) this._activateChildChip(children[i]);
+        for (const child of children) this._activateChildChip(child);
       }
     })();
   });
@@ -404,6 +404,12 @@ describe("Composite", () => {
     parent._activateChildChip(childChipB);
     // @ts-ignore
     expect(childChipB.chipContext.attr).toBe(childChipA);
+  });
+
+  test("defers termination during tick", () => {
+    // @ts-ignore
+    children = [new chip.Lambda(() => parent.terminate())];
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
   });
 });
 
