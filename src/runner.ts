@@ -142,7 +142,8 @@ export interface Directives {
   states: entity.StateTableDescriptor;
   transitions: entity.TransitionTable;
   endingScenes: string[];
-  screenSize: PIXI.IPoint;
+  screenSize?: PIXI.IPoint;
+  resizeTo?: Window | HTMLElement;
   canvasId: string;
   fpsMeterPosition: FpsMeterPosition;
 
@@ -206,8 +207,9 @@ export function startLoading(directives: Partial<Directives> = {}) {
   rootConfig.gameStateMachine.on("stateChange", onGameStateMachineChange);
 
   rootConfig.app = new PIXI.Application({
-    width: rootConfig.directives.screenSize.x,
-    height: rootConfig.directives.screenSize.y,
+    width: rootConfig.directives.screenSize?.x,
+    height: rootConfig.directives.screenSize?.y,
+    resizeTo: rootConfig.directives.resizeTo,
     view: document.getElementById(
       rootConfig.directives.canvasId
     ) as HTMLCanvasElement,
