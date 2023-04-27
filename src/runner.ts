@@ -117,7 +117,7 @@ let fixedAudioLoaderProgress = 0;
 
 export interface Directives {
   loadingEntity: entity.Entity;
-  preloaderAssets: string[];
+  preloaderAssets: Array<string | { url: string; name: string }>;
 
   rootConfig: entity.EntityConfig;
   rootEntity: entity.Entity;
@@ -128,7 +128,7 @@ export interface Directives {
   startingProgress: any;
   videoAssets: string[];
   splashScreen: string;
-  graphicalAssets: string[];
+  graphicalAssets: Array<string | { url: string; name: string }>;
   fontAssets: string[];
   jsonAssets: Array<string | { key: string; url: string }>;
   subtitleAssets: Array<string>;
