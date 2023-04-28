@@ -2,130 +2,108 @@ import { sound } from "@pixi/sound";
 
 import * as chip from "booyah/src/chip";
 
-export class JukeboxOptions {
-  volume = 0.5;
+export class DJOptions {
+  musicChannelVolume = 0.5;
+  fxChannelVolume = 1;
+}
+
+export class PlayingMusicOptions {
+  volumeScale = 1;
+  loop = true;
+}
+
+export class PlayingFxOptions {
+  volumeScale = 1;
+  loop = false;
+  duckMusic = false;
+}
+
+class PlayingMusic extends PlayingMusicOptions {
+  name: string;
 }
 
 /** 
   A music player, that only plays one track at a time.
   By default the volume is lowered to not interfere with sound effects.
 */
-export class Jukebox extends chip.ChipBase {
-  private _options: JukeboxOptions;
-  private _volume: number;
-  private _musicName?: string;
+export class Dj extends chip.ChipBase {
+  private _options: DJOptions;
+  private _musicChannelVolume: number;
+  private _fxChannelVolume: number;
 
-  constructor(options?: Partial<JukeboxOptions>) {
+  private _playingMusic?: PlayingMusic;
+  private _playingFx: Record<string, PlayingFxOptions>;
+
+  constructor(options?: Partial<DJOptions>) {
     super();
 
-    this._options = chip.fillInOptions(options, new JukeboxOptions());
+    this._options = chip.fillInOptions(options, new DJOptions());
   }
 
   protected _onActivate(): void {
-    this._volume = this._options.volume;
+    this._musicChannelVolume = this._options.musicChannelVolume;
+    this._fxChannelVolume = this._options.fxChannelVolume;
+
+    this._playingFx = {};
   }
 
   _onTerminate() {
-    if (this._musicName) sound.stop(this._musicName);
-
-    delete this._musicName;
+    this.stopMusic();
+    this.stopAllFx();
   }
 
   protected _onPause(): void {
-    if (this._musicName) sound.pause(this._musicName);
+    this.pauseMusic();
+    this.pauseAllFx();
   }
 
   protected _onResume(): void {
-    if (this._musicName) sound.resume(this._musicName);
+    this.resumeMusic();
+    this.resumeAllFx();
   }
 
   pauseMusic(): void {
-    if (this._musicName) sound.pause(this._musicName);
+    if (this._playingMusic) sound.pause(this._playingMusic.name);
   }
 
   resumeMusic(): void {
-    if (this._musicName) sound.resume(this._musicName);
+    if (this._playingMusic) sound.resume(this._playingMusic.name);
   }
 
-  get volume(): number {
-    return this._volume;
+  get musicChannelVolume(): number {
+    return this._musicChannelVolume;
   }
 
-  set volume(value: number) {
-    this._volume = value;
-    if (this._musicName) sound.volume(this._musicName, value);
+  set musicChannelVolume(value: number) {
+    this._musicChannelVolume = value;
+    if (this._playingMusic)
+      sound.volume(
+        this._playingMusic.name,
+        this._playingMusic.volumeScale * this._musicChannelVolume
+      );
   }
 
-  play(name: string) {
-    if (this._musicName === name) return;
+  playMusic(name: string, options?: Partial<PlayingMusicOptions>) {
+    this.stopMusic();
 
-    this.stop();
+    const completeOptions = chip.fillInOptions(
+      options,
+      new PlayingMusicOptions()
+    );
 
     sound.play(name, {
-      volume: this._volume,
-      loop: true,
+      volume: this._musicChannelVolume * completeOptions.volumeScale,
+      loop: completeOptions.loop,
     });
+
+    this._playingMusic = Object.assign({}, completeOptions, { name });
   }
 
-  stop() {
-    if (!this._musicName) return;
+  stopMusic() {
+    if (!this._playingMusic) return;
 
-    sound.stop(this._musicName);
-    delete this._musicName;
-  }
-}
-
-/**
-  A chip that requests the music be changed upon activate.
-  Optionally can stop the music on terminate.
-*/
-export class MusicChip extends chip.ChipBase {
-  constructor(public trackName: string, public stopOnTeardown = false) {
-    super();
-  }
-
-  _onActivate() {
-    this._chipContext.jukebox.play(this.trackName);
-    this.terminate();
-  }
-
-  _onTerminate() {
-    if (this.stopOnTeardown) {
-      this._chipContext.jukebox.stop();
-    }
-  }
-}
-
-export class FxMachineOptions {
-  volume = 1;
-}
-
-class PlayingSoundOptions {
-  volumeScale = 1;
-  loop = false;
-}
-
-/**
-  Play sounds effects.
-*/
-export class FxMachine extends chip.ChipBase {
-  private _options: FxMachineOptions;
-  private _volume: number;
-  private _playingSounds: Record<string, PlayingSoundOptions>;
-
-  constructor(options?: Partial<FxMachineOptions>) {
-    super();
-
-    this._options = chip.fillInOptions(options, new FxMachineOptions());
-  }
-
-  _onActivate() {
-    this._volume = this._options.volume;
-    this._playingSounds = {};
-  }
-
-  protected _onTerminate(): void {
-    this.stopAll();
+    sound.stop(this._playingMusic.name);
+    delete this._playingMusic;
   }
 
   /** Returns sound duration in ms */
@@ -133,117 +111,117 @@ export class FxMachine extends chip.ChipBase {
     return sound.duration(name) * 1000;
   }
 
-  play(name: string, options?: Partial<PlayingSoundOptions>) {
-    if (!sound.exists(name)) throw new Error(`Missing sound effect ${name}`);
+  playFx(name: string, options?: Partial<PlayingFxOptions>) {
+    if (!sound.exists(name)) throw new Error(`Missing sound fx ${name}`);
 
-    const completeOptions = chip.fillInOptions(
-      options,
-      new PlayingSoundOptions()
-    );
+    const completeOptions = chip.fillInOptions(options, new PlayingFxOptions());
+
+    if (completeOptions.duckMusic) {
+      this.pauseMusic();
+    }
 
     sound.play(name, {
-      volume: this._volume * completeOptions.volumeScale,
+      volume: this._fxChannelVolume * completeOptions.volumeScale,
       loop: completeOptions.loop,
       complete: () => {
-        delete this._playingSounds[name];
+        delete this._playingFx[name];
+
+        if (completeOptions.duckMusic) {
+          this.resumeMusic();
+        }
+
         this.emit("complete", name);
       },
     });
 
-    this._playingSounds[name] = completeOptions;
+    this._playingFx[name] = completeOptions;
   }
 
-  stop(name: string): void {
+  stopFx(name: string): void {
     sound.stop(name);
-    delete this._playingSounds[name];
+    delete this._playingFx[name];
   }
 
-  stopAll(): void {
-    for (const name in this._playingSounds) {
-      this.stop(name);
+  stopAllFx(): void {
+    for (const name in this._playingFx) {
+      this.stopFx(name);
     }
   }
 
-  pauseSound(name: string): void {
+  pauseFx(name: string): void {
     sound.pause(name);
   }
 
-  pauseAll(): void {
-    // console.log("Pausing all sounds", this._playingSounds);
-    for (const name in this._playingSounds) {
-      this.pauseSound(name);
+  pauseAllFx(): void {
+    for (const name in this._playingFx) {
+      this.pauseFx(name);
     }
   }
 
-  resumeSound(name: string): void {
+  resumeFx(name: string): void {
     sound.resume(name);
   }
 
-  resumeAll(): void {
-    for (const name in this._playingSounds) {
-      this.resumeSound(name);
+  resumeAllFx(): void {
+    for (const name in this._playingFx) {
+      this.resumeFx(name);
     }
   }
 
-  protected _onPause(): void {
-    sound.pauseAll();
+  get fxChannelVolume(): number {
+    return this._fxChannelVolume;
   }
 
-  protected _onResume(): void {
-    sound.resumeAll();
-  }
+  set fxChannelVolume(value: number) {
+    this._fxChannelVolume = value;
 
-  get volume(): number {
-    return this._volume;
-  }
-
-  set volume(value: number) {
-    this._volume = value;
-
-    for (const name in this._playingSounds) {
-      sound.volume(name, value);
+    for (const name in this._playingFx) {
+      sound.volume(
+        name,
+        this._fxChannelVolume * this._playingFx[name].volumeScale
+      );
     }
   }
 }
 
-// export function installFxMachine(rootConfig: any, rootChip: any) {
-//   rootConfig.fxMachine = new FxMachine();
-//   rootChip.addChildChip(rootConfig.fxMachine);
-// }
+/**
+  A chip that requests the music be changed
+*/
+export class PlayMusic extends chip.ChipBase {
+  private _options: PlayingMusicOptions;
 
-// export function makeInstallFxMachine(options: FxMachineOptions) {
-//   return (rootConfig: chip.ChipContext, rootChip: chip.Parallel) => {
-//     rootConfig.fxMachine = new FxMachine(options);
-//     rootChip.addChildChip(rootConfig.fxMachine);
-//   };
-// }
+  constructor(
+    private readonly _trackName: string,
+    options?: Partial<PlayingMusicOptions>
+  ) {
+    super();
 
-// /** Creates a Promise from the Howl callbacks used for loading */
+    this._options = chip.fillInOptions(options, new PlayingMusicOptions());
+  }
 
-// export function makeHowlerLoadPromise(howl: Howl) {
-//   return new Promise((resolve, reject) => {
-//     howl.on("load", () => resolve(howl));
-//     howl.on("loaderror", (id, err) => reject({ howl, id, err }));
-//   });
-// }
+  _onActivate() {
+    this._chipContext.dj.playMusic(this._trackName, this._options);
+    this.terminate();
+  }
+}
 
-// /** Create map of file names or {key, url} to Howl objects */
-// export function makeHowls(
-//   directory: string,
-//   assetDescriptions: (string | { key: string; url: string })[]
-// ) {
-//   const assets: { [key: string]: Howl } = {};
-//   for (const assetDescription of assetDescriptions) {
-//     if (_.isString(assetDescription)) {
-//       assets[assetDescription] = new Howl({
-//         src: assetDescription,
-//       });
-//     } else {
-//       const url = assetDescription.url;
-//       assets[assetDescription.key] = new Howl({
-//         src: assetDescription.url,
-//       });
-//     }
-//   }
-//   return assets;
-// }
+/**
+  A chip that plays a sounds efect
+*/
+export class PlayFx extends chip.ChipBase {
+  private _options: PlayingFxOptions;
+
+  constructor(
+    private readonly _trackName: string,
+    options?: Partial<PlayingFxOptions>
+  ) {
+    super();
+
+    this._options = chip.fillInOptions(options, new PlayingFxOptions());
+  }
+
+  _onActivate() {
+    this._chipContext.dj.playFx(this._trackName, this._options);
+    this.terminate();
+  }
+}
