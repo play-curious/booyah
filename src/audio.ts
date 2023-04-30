@@ -1,9 +1,10 @@
 import { sound } from "@pixi/sound";
+import * as PIXI from "pixi.js";
 
 import * as chip from "booyah/src/chip";
 
 export class DJOptions {
-  musicChannelVolume = 0.5;
+  musicChannelVolume = 0.25;
   fxChannelVolume = 1;
 }
 
@@ -33,6 +34,7 @@ export class Dj extends chip.ChipBase {
 
   private _playingMusic?: PlayingMusic;
   private _playingFx: Record<string, PlayingFxOptions>;
+  private _lastRequestedMusicName?: string;
 
   constructor(options?: Partial<DJOptions>) {
     super();
@@ -83,7 +85,20 @@ export class Dj extends chip.ChipBase {
       );
   }
 
-  playMusic(name: string, options?: Partial<PlayingMusicOptions>) {
+  async playMusic(name: string, options?: Partial<PlayingMusicOptions>) {
+    console.log("playMusic() called", name, options, this._playingMusic);
+
+    this._lastRequestedMusicName = name;
+
+    // Wait for the music to load, if not already loaded
+    await PIXI.Assets.load(name);
+
+    // Some other music must have been requested in the meantime
+    if (this._lastRequestedMusicName !== name) return;
+
+    // Don't play the same thing twice
+    if (this._playingMusic && this._playingMusic.name === name) return;
+
     this.stopMusic();
 
     const completeOptions = chip.fillInOptions(
@@ -97,10 +112,13 @@ export class Dj extends chip.ChipBase {
     });
 
     this._playingMusic = Object.assign({}, completeOptions, { name });
+    console.log("playMusic() end", name, options, this._playingMusic);
   }
 
   stopMusic() {
     if (!this._playingMusic) return;
+
+    console.log("stopMusic() called", this._playingMusic);
 
     sound.stop(this._playingMusic.name);
     delete this._playingMusic;
@@ -111,8 +129,8 @@ export class Dj extends chip.ChipBase {
     return sound.duration(name) * 1000;
   }
 
-  playFx(name: string, options?: Partial<PlayingFxOptions>) {
-    if (!sound.exists(name)) throw new Error(`Missing sound fx ${name}`);
+  async playFx(name: string, options?: Partial<PlayingFxOptions>) {
+    await PIXI.Assets.load(name);
 
     const completeOptions = chip.fillInOptions(options, new PlayingFxOptions());
 
