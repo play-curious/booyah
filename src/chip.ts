@@ -84,7 +84,8 @@ export interface IEventListener {
 
 export interface Signal {
   readonly name: string;
-  readonly params: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly params: Record<string, any>;
 }
 
 export function makeSignal(name = "default", params = {}): Signal {
@@ -1448,5 +1449,28 @@ export class Alternative extends Composite {
         break;
       }
     }
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class Settings<T extends Record<string, any>> extends ChipBase {
+  constructor(private _values: T) {
+    super();
+  }
+
+  getValue(key: keyof T & string): T[typeof key] {
+    return this._values[key];
+  }
+
+  setValue(key: keyof T & string, value: T[typeof key]): void {
+    const oldValue = this._values[key];
+    this._values[key] = value;
+    this.emit("change", key, value, oldValue);
+    this.emit(`change:${key}`, value, oldValue);
+  }
+
+  toggleValue(key: keyof T & string): void {
+    // @ts-ignore
+    this.setValue(key, !this._values[key]);
   }
 }

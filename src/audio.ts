@@ -110,6 +110,8 @@ export class Dj extends chip.ChipBase {
       volume: this._musicChannelVolume * completeOptions.volumeScale,
       loop: completeOptions.loop,
     });
+    // For some reason the volume in play() seems to be ignored, so set it again here...
+    sound.volume(name, this._musicChannelVolume * completeOptions.volumeScale);
 
     this._playingMusic = Object.assign({}, completeOptions, { name });
     console.log("playMusic() end", name, options, this._playingMusic);
@@ -151,6 +153,8 @@ export class Dj extends chip.ChipBase {
         this.emit("complete", name);
       },
     });
+    // For some reason the volume in play() seems to be ignored, so set it again here...
+    sound.volume(name, this._fxChannelVolume * completeOptions.volumeScale);
 
     this._playingFx[name] = completeOptions;
   }
