@@ -1,4 +1,4 @@
-import { sound } from "@pixi/sound";
+import * as sound from "@pixi/sound";
 import * as PIXI from "pixi.js";
 
 import * as chip from "booyah/src/chip";
@@ -65,11 +65,15 @@ export class Dj extends chip.ChipBase {
   }
 
   pauseMusic(): void {
-    if (this._playingMusic) sound.pause(this._playingMusic.name);
+    if (!this._playingMusic) return;
+
+    this._getSoundResource(this._playingMusic.name).pause();
   }
 
   resumeMusic(): void {
-    if (this._playingMusic) sound.resume(this._playingMusic.name);
+    if (!this._playingMusic) return;
+
+    this._getSoundResource(this._playingMusic.name).resume();
   }
 
   get musicChannelVolume(): number {
@@ -78,11 +82,10 @@ export class Dj extends chip.ChipBase {
 
   set musicChannelVolume(value: number) {
     this._musicChannelVolume = value;
-    if (this._playingMusic)
-      sound.volume(
-        this._playingMusic.name,
-        this._playingMusic.volumeScale * this._musicChannelVolume
-      );
+    if (!this._playingMusic) return;
+
+    this._getSoundResource(this._playingMusic.name).volume =
+      this._playingMusic.volumeScale * this._musicChannelVolume;
   }
 
   async playMusic(name: string, options?: Partial<PlayingMusicOptions>) {
@@ -91,7 +94,7 @@ export class Dj extends chip.ChipBase {
     this._lastRequestedMusicName = name;
 
     // Wait for the music to load, if not already loaded
-    await PIXI.Assets.load(name);
+    const resource = await PIXI.Assets.load(name);
 
     // Some other music must have been requested in the meantime
     if (this._lastRequestedMusicName !== name) return;
@@ -106,12 +109,12 @@ export class Dj extends chip.ChipBase {
       new PlayingMusicOptions()
     );
 
-    sound.play(name, {
-      volume: this._musicChannelVolume * completeOptions.volumeScale,
+    resource.play({
       loop: completeOptions.loop,
+      singleInstance: true,
     });
-    // For some reason the volume in play() seems to be ignored, so set it again here...
-    sound.volume(name, this._musicChannelVolume * completeOptions.volumeScale);
+    // For some reason the volume in play() seems to be ignored, so set it  here...
+    resource.volume = this._musicChannelVolume * completeOptions.volumeScale;
 
     this._playingMusic = Object.assign({}, completeOptions, { name });
     console.log("playMusic() end", name, options, this._playingMusic);
@@ -122,17 +125,17 @@ export class Dj extends chip.ChipBase {
 
     console.log("stopMusic() called", this._playingMusic);
 
-    sound.stop(this._playingMusic.name);
+    this._getSoundResource(this._playingMusic.name).stop();
     delete this._playingMusic;
   }
 
   /** Returns sound duration in ms */
   getDuration(name: string): number {
-    return sound.duration(name) * 1000;
+    return this._getSoundResource(name).duration * 1000;
   }
 
   async playFx(name: string, options?: Partial<PlayingFxOptions>) {
-    await PIXI.Assets.load(name);
+    const resource = this._getSoundResource(name);
 
     const completeOptions = chip.fillInOptions(options, new PlayingFxOptions());
 
@@ -140,8 +143,7 @@ export class Dj extends chip.ChipBase {
       this.pauseMusic();
     }
 
-    sound.play(name, {
-      volume: this._fxChannelVolume * completeOptions.volumeScale,
+    resource.play({
       loop: completeOptions.loop,
       complete: () => {
         delete this._playingFx[name];
@@ -153,14 +155,15 @@ export class Dj extends chip.ChipBase {
         this.emit("complete", name);
       },
     });
-    // For some reason the volume in play() seems to be ignored, so set it again here...
-    sound.volume(name, this._fxChannelVolume * completeOptions.volumeScale);
+
+    // For some reason the volume given to play() seems to be ignored, so let's set it here
+    resource.volume = this._fxChannelVolume * completeOptions.volumeScale;
 
     this._playingFx[name] = completeOptions;
   }
 
   stopFx(name: string): void {
-    sound.stop(name);
+    this._getSoundResource(name).stop();
     delete this._playingFx[name];
   }
 
@@ -171,7 +174,7 @@ export class Dj extends chip.ChipBase {
   }
 
   pauseFx(name: string): void {
-    sound.pause(name);
+    this._getSoundResource(name).pause();
   }
 
   pauseAllFx(): void {
@@ -181,7 +184,7 @@ export class Dj extends chip.ChipBase {
   }
 
   resumeFx(name: string): void {
-    sound.resume(name);
+    this._getSoundResource(name).resume();
   }
 
   resumeAllFx(): void {
@@ -198,11 +201,16 @@ export class Dj extends chip.ChipBase {
     this._fxChannelVolume = value;
 
     for (const name in this._playingFx) {
-      sound.volume(
-        name,
-        this._fxChannelVolume * this._playingFx[name].volumeScale
-      );
+      this._getSoundResource(name).volume =
+        this._fxChannelVolume * this._playingFx[name].volumeScale;
     }
+  }
+
+  private _getSoundResource(name: string): sound.Sound {
+    const resource = PIXI.Assets.get<sound.Sound>(name);
+    if (!resource) throw new Error(`Sound fx ${name} is not loaded`);
+
+    return resource;
   }
 }
 
