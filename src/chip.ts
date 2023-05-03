@@ -7,8 +7,11 @@ import * as _ from "underscore";
  * @param defaults Defaults provided by the author
  */
 // @es-li
-export function fillInOptions<T>(options: Partial<T>, defaults: T): T {
-  if (options) return { ...defaults, ...options };
+export function fillInOptions<T>(
+  options: Partial<T> | unknown,
+  defaults: T
+): T {
+  if (options) return { ...defaults, ...(options as object) };
   else return defaults;
 }
 
