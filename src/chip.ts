@@ -127,7 +127,10 @@ export interface TickInfo {
   timeSinceLastTick: number;
 }
 
-export type ChipFactory = (signal: Signal) => Chip;
+export type ChipFactory = (
+  context: ChipContext,
+  signal: Signal
+) => Chip | undefined;
 
 export type ChipResolvable = Chip | ChipFactory;
 
@@ -241,6 +244,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   }
 
   public tick(tickInfo: TickInfo): void {
+    if (this._state === "paused") return;
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
@@ -466,6 +470,7 @@ export abstract class Composite extends ChipBase {
    * Overload this method in subclasses to change the behavior
    */
   public tick(tickInfo: TickInfo): void {
+    if (this._state === "paused") return;
     if (this._state !== "active")
       throw new Error(`tick() called from state ${this._state}`);
 
@@ -557,12 +562,22 @@ export abstract class Composite extends ChipBase {
 
     const inputSignal = options.inputSignal ?? makeSignal();
 
+    const childContext = processChipContext(
+      this._chipContext,
+      this._childChipContext,
+      this.defaultChildChipContext,
+      options.context
+    );
+
     let chip: Chip;
     if (_.isFunction(chipResolvable)) {
-      chip = chipResolvable(inputSignal);
+      chip = chipResolvable(childContext, inputSignal);
     } else {
       chip = chipResolvable;
     }
+
+    // If no chip is returned, then nothing more to do
+    if (!chip) return;
 
     // Look for reload memento, if an id is provided
     let reloadMemento: ReloadMemento;
@@ -610,13 +625,7 @@ export abstract class Composite extends ChipBase {
       }
     }
 
-    const childConfig = processChipContext(
-      this._chipContext,
-      this._childChipContext,
-      this.defaultChildChipContext,
-      options.context
-    );
-    chip.activate(this._lastTickInfo, childConfig, inputSignal, reloadMemento);
+    chip.activate(this._lastTickInfo, childContext, inputSignal, reloadMemento);
 
     if (options.includeInChildContext) {
       if (!providedId)
@@ -633,7 +642,7 @@ export abstract class Composite extends ChipBase {
       });
     }
 
-    this.emit("activatedChildChip", chip, childConfig, inputSignal);
+    this.emit("activatedChildChip", chip, childContext, inputSignal);
 
     return chip;
   }
@@ -1452,28 +1461,5 @@ export class Alternative extends Composite {
         break;
       }
     }
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class Settings<T extends Record<string, any>> extends ChipBase {
-  constructor(private _values: T) {
-    super();
-  }
-
-  getValue(key: keyof T & string): T[typeof key] {
-    return this._values[key];
-  }
-
-  setValue(key: keyof T & string, value: T[typeof key]): void {
-    const oldValue = this._values[key];
-    this._values[key] = value;
-    this.emit("change", key, value, oldValue);
-    this.emit(`change:${key}`, value, oldValue);
-  }
-
-  toggleValue(key: keyof T & string): void {
-    // @ts-ignore
-    this.setValue(key, !this._values[key]);
   }
 }

@@ -41,7 +41,7 @@ export class Runner {
 
     this._rootContext = chip.processChipContext(this._options.rootContext, {});
     this._rootChip = _.isFunction(this._options.rootChip)
-      ? this._options.rootChip(chip.makeSignal())
+      ? this._options.rootChip(this._rootContext, chip.makeSignal())
       : this._options.rootChip;
 
     const tickInfo: chip.TickInfo = {
