@@ -6,9 +6,9 @@ import Stats from "stats.js";
 // eslint-disable-next-line
 const FontFaceObserver = require("fontfaceobserver");
 
-import * as entity from "booyah/src/entity";
-import * as util from "booyah/src/util";
-import * as audio from "booyah/src/audio";
+import * as entity from "./entity";
+import * as util from "./util";
+import * as audio from "./audio";
 
 /** String of characters to look for in a font */
 const FONT_OBSERVER_CHARS = "asdf";
