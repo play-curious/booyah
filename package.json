@@ -27,7 +27,6 @@
   "repository": "https://github.com/play-curious/booyah.git",
   "author": "drpepper",
   "devDependencies": {
-    "@jest/globals": "^29.5.0",
-    "@types/webpack-env": "^1.18.0"
+    "@jest/globals": "^29.5.0"
   }
 }
