@@ -105,7 +105,6 @@ export function processChipContext(
   chipContext: ChipContext,
   ...alteredContexts: Array<ChipContextResolvable>
 ): ChipContext {
-  // if (!alteredContext) return chipContext;
   let context = chipContext;
   for (const alteredContext of alteredContexts) {
     if (!alteredContext) continue;
@@ -169,42 +168,60 @@ export type ReloadMemento = {
 /**
  * In Booyah, the game is structured as a tree of chips. This is the interface for all chips.
  * When creating a new chip, you most likely want to extend ChipBase or Composite,
- * which both implement this interface and do the busywork for you.
+ * which implement this interface and do the busywork for you.
+ *
+ * Events:
+ * - activated()
+ * - terminated()
  **/
 export interface Chip extends NodeEventSource {
+  /** Current state of the chip */
   readonly state: ChipState;
+
+  /** Once the chip is terminated, contains the signal */
   readonly outputSignal: Signal;
+
+  /** Children of this chip, if any */
   readonly children: Record<string, Chip>;
 
+  /** Activate the chip, with a provided context and input signal.
+   * Should only be called from an inactive state
+   * */
   activate(
     tickInfo: TickInfo,
     chipContext: ChipContext,
     inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void;
+
+  /** Update the chip, provided a new time */
   tick(tickInfo: TickInfo): void;
+
+  /** Terminate the chip. Should only be called from an active or paused state */
   terminate(outputSignal?: Signal): void;
+
+  /** Pause the chip, informing it that it won't receive ticks for a while */
   pause(tickInfo: TickInfo): void;
+
+  /** Resumes the chip after it was paused */
   resume(tickInfo: TickInfo): void;
+
   makeReloadMemento(): ReloadMemento;
 }
 
 /**
- * In Booyah, the game is structured as a tree of chips. This is the base class for all chips.
- * An chip has the following lifecycle:
- * 1. It is instantiated using the contructor
- * Only parameters specific to the chip should be passed here.
- * The chip should not make any changes to the environment here, it should wait for activate().
- * 2. activate() is called just once, with a configuration.
- * This is when the chip should add display objects to the scene, or subscribe to events.
- * 3. tick() is called one or more times, with options.
- * It could also never be called, in case the chip is terminated directly.
- * 4. pause() and resume() might be called.
- * 5. terminate() is called just once.
- * The chip should remove any changes it made, such as adding display objects to the scene, or subscribing to events.
- * The base class will check that this lifecyle is respected, and will log errors to signal any problems.
- * In general, subclasses do not need to override these methods, but instead override the underscore versions of them: _onActivate(), _onTick(), etc.
- * This ensures that the base class behavior of will be called automatically.
+ * A base class for creating chips that reduces boilterplate code.
+ * To use it, simply override some or all of the following protected methods:
+ * - _onActivate()
+ * - _onTick()
+ * - _onTerminate()
+ * - _onPause()
+ * - _onResume()
+ * In these methods, you can access the `_chipContext` `_lastTickInfo` properties to obtain
+ * the latest information there.
+ *
+ * In addition, you can subscribe to events using `_subscribe()` in a way that automatically
+ * unsubscribes when the chip is terminated.
  */
 export abstract class ChipBase extends EventEmitter implements Chip {
   protected _chipContext: ChipContext;
@@ -284,6 +301,13 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this._onResume();
   }
 
+  /**
+   * Start listening to events of a certain type emitted by an object.
+   * The callback will be called with the chip as `this`.
+   * Works by default for both NodeJS- and DOM-style events.
+   * If you are interfacing with a different event system, you can provide a
+   * `subscriptionHandler` that knows how to handle it.
+   */
   protected _subscribe(
     emitter: object,
     event: string,
@@ -310,6 +334,13 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     subscriptionHandler.subscribe(emitter, event, cb);
   }
 
+  /**
+   * Listen to a single event emitted by an object, then stop.
+   * The callback will be called with the chip as `this`.
+   * Works by default for both NodeJS- and DOM-style events.
+   * If you are interfacing with a different event system, you can provide a
+   * `subscriptionHandler` that knows how to handle them.
+   */
   protected _subscribeOnce(
     emitter: object,
     event: string,
@@ -335,7 +366,10 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     subscriptionHandler.subscribeOnce(emitter, event, cb);
   }
 
-  // if `cb` is undefined, will remove all event listeners for the given emitter and event
+  /** Unsubscribe to a set of events.
+   * By default, unsubscribes to everything. If `emitter`, `event`, or `cb` is provided,
+   * unsubscribe only to those.
+   */
   protected _unsubscribe(
     emitter?: NodeEventSource,
     event?: string,
@@ -393,18 +427,37 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     };
   }
 
+  /**
+   * Template method called by `activate()`.
+   */
   protected _onActivate() {
     /* no op */
   }
+
+  /**
+   * Template method called by `tick()`.
+   */
   protected _onTick() {
     /* no op */
   }
+
+  /**
+   * Template method called by `terminate()`.
+   */
   protected _onTerminate() {
     /* no op */
   }
+
+  /**
+   * Template method called by `pause()`.
+   */
   protected _onPause() {
     /* no op */
   }
+
+  /**
+   * Template method called by `resume()`.
+   */
   protected _onResume() {
     /* no op */
   }
@@ -415,10 +468,10 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   }
 }
 
-/** Empty class just to indicate an chip that does nothing and never terminates  */
+/** Empty chip that does nothing and never terminates  */
 export class Forever extends ChipBase {}
 
-/** An chip that outputs a given signal immediately  */
+/** An chip that terminates with a given output signal immediately  */
 export class Transitory extends ChipBase {
   constructor(public readonly terminateSignal = makeSignal()) {
     super();
@@ -429,16 +482,33 @@ export class Transitory extends ChipBase {
   }
 }
 
+/** Options that can be passed to Composite._activateChildChip() */
 export class ActivateChildChipOptions {
+  /** Additional context or function to return a context */
   context?: ChipContextResolvable;
+
+  /** An input signal given to the chip */
   inputSignal?: Signal;
+
+  /**
+   * If provided, will store the chip using this attribute name.
+   * If the name ends with `[]` or if the attribute is an array,
+   * adds the chip to the array attribute of that name.
+   */
   attribute?: string;
+
+  /**
+   * If true, adds the child chip to the context provided to children, using the
+   * provided `attribute` or `id`.
+   */
+  includeInChildContext?: boolean;
+
   id?: string;
   reloadMemento?: ReloadMemento;
-  includeInChildContext?: boolean;
 }
 
-/** Base class for chips that contain other chips
+/**
+ * Base class for chips that contain other chips
  *
  * Events:
  * - activatedChildChip(chip: Chip, context: ChipContext, signal: Signal)
@@ -521,6 +591,12 @@ export abstract class Composite extends ChipBase {
     return this._childChips;
   }
 
+  /**
+   * Activate a child chip
+   * @param chipResolvable A chip or function to create a chip
+   * @param options
+   * @returns The activated chip
+   */
   protected _activateChildChip(
     chipResolvable: ChipResolvable,
     options?: Partial<ActivateChildChipOptions>
@@ -679,6 +755,7 @@ export abstract class Composite extends ChipBase {
     this._removeTerminatedChildChips();
   }
 
+  /** Terminate all the children, with the provided signal */
   protected _terminateAllChildChips(outputSignal?: Signal) {
     for (const childChip of Object.values(this._childChips)) {
       if (childChip.state === "active" || childChip.state === "paused") {
@@ -691,6 +768,7 @@ export abstract class Composite extends ChipBase {
     this._childChips = {};
   }
 
+  /** Remove any child chips */
   protected _removeTerminatedChildChips(): void {
     for (const id in this._childChips) {
       const childChip = this._childChips[id];
@@ -702,10 +780,15 @@ export abstract class Composite extends ChipBase {
     }
   }
 
+  /**
+   * Template getter for the chip context provided to children.
+   * Overload to add extra attributes to the context.
+   */
   get defaultChildChipContext(): ChipContextResolvable {
     return undefined;
   }
 
+  /** Template method called after children are ticked */
   protected _onAfterTick(): void {
     /* no op */
   }
@@ -721,8 +804,7 @@ export interface ParallelActivationInfo extends ChipActivationInfo {
 
 /**
  Allows a bunch of chips to execute in parallel.
- Updates child chips until they terminate.
- Terminates when all child chips have completed.
+ Terminates when all child chips have completed, unless `options.signalOnCompletion` is false.
 */
 export class Parallel extends Composite {
   public readonly options: ParallelOptions;
@@ -921,6 +1003,7 @@ export class Sequence extends Composite {
     for (const e of chipActivationInfos) this.addChildChip(e);
   }
 
+  /** Add a new chip to the sequence */
   addChildChip(chip: ChipActivationInfo | ChipResolvable) {
     if (isChipResolvable(chip)) {
       this.chipActivationInfos.push({ chip: chip });
@@ -929,6 +1012,7 @@ export class Sequence extends Composite {
     }
   }
 
+  /** Skips to the next chip */
   skip() {
     this._advance(makeSignal("skip"));
   }
@@ -977,6 +1061,7 @@ export class Sequence extends Composite {
     delete this.currentChip;
   }
 
+  /** Restart the sequence on the first chip */
   restart() {
     this.currentChipIndex = 0;
     this._switchChip();
@@ -1306,7 +1391,8 @@ export class Functional extends Composite {
 }
 
 /**
-  An chip that calls a provided function just once (in activate), and immediately requests a signal.
+  An chip that calls a provided function just once (in activate), and immediately terminates.
+  If the function returns a signal, will terminate with that signal.
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class Lambda extends ChipBase {
@@ -1324,7 +1410,7 @@ export class Lambda extends ChipBase {
   }
 }
 
-// Waits until time is up, then requests signal
+/** Waits until time is up, then requests signal */
 export class Wait extends ChipBase {
   private _accumulatedTime: number;
 
@@ -1347,36 +1433,11 @@ export class Wait extends ChipBase {
 }
 
 /**
- * Does not request a signal until done() is called with a given signal
+ * Does not terminate until done() is called with a given signal
  */
 export class Block extends ChipBase {
   done(signal = makeSignal()) {
     this.terminate(signal);
-  }
-}
-
-/**
- * Executes a function thatuntil the result is not undefined.
- * Terminates with that signal equal to its value.
- */
-export class Decision extends ChipBase {
-  constructor(private f: () => Signal | undefined) {
-    super();
-  }
-
-  _onActivate() {
-    this._checkTermination();
-  }
-
-  _onTick() {
-    this._checkTermination();
-  }
-
-  private _checkTermination() {
-    const out = this.f();
-    if (typeof out !== "undefined") {
-      this.terminate(out);
-    }
   }
 }
 
