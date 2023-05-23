@@ -85,6 +85,14 @@ export interface IEventListener {
   subscriptionHandler: SubscriptionHandler;
 }
 
+/**
+ * A `Signal` represents a immutable message that is provided to a chip when it activates,
+ * as well as when it terminates.
+ * A signal has a `name` and an optional map of strings to data.
+ *
+ * Because Signal is an interface, it cannot be created with `new`.
+ * Instead, call `makeSignal()` to create one.
+ */
 export interface Signal {
   readonly name: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,12 +103,24 @@ export function makeSignal(name = "default", params = {}): Signal {
   return { name, params };
 }
 
+/**
+ * A ChipContext is a immutable map of strings to data.
+ * It is provided to chips by their parents.
+ *
+ * Instead of modifying a chip context, it should be overloaded,
+ * by calling `processChipContext90`
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ChipContext = Readonly<Record<string, any>>;
 
 export type ChipContextFactory = (context: ChipContext) => ChipContext;
 export type ChipContextResolvable = ChipContext | ChipContextFactory;
 
+/**
+ * Create a new `ChipContext` from a previous context and a list of alterations.
+ * Each alteration can be a new map of strings to data, which overload previous keys,
+ * or a function that takes the old context and returns a new one.
+ */
 export function processChipContext(
   chipContext: ChipContext,
   ...alteredContexts: Array<ChipContextResolvable>
@@ -116,16 +136,16 @@ export function processChipContext(
   return context;
 }
 
-export function extendContext(
-  values: ChipContext
-): (chipContext: ChipContext) => ChipContext {
-  return (chipContext) => _.extend({}, chipContext, values);
-}
-
+/**
+ * Information provided to a chip on each tick
+ */
 export interface TickInfo {
   timeSinceLastTick: number;
 }
 
+/**
+ * A function that takes a context and a signal to optionally produce a new `Chip`.
+ */
 export type ChipFactory = (
   context: ChipContext,
   signal: Signal
@@ -798,14 +818,10 @@ export class ParallelOptions {
   signalOnCompletion = true;
 }
 
-export interface ParallelActivationInfo extends ChipActivationInfo {
-  activated?: boolean;
-}
-
 /**
- Allows a bunch of chips to execute in parallel.
- Terminates when all child chips have completed, unless `options.signalOnCompletion` is false.
-*/
+ * Executes a set of chips at the same time.
+ * By default, terminates when all child chips have completed, unless `options.signalOnCompletion` is false.
+ */
 export class Parallel extends Composite {
   public readonly options: ParallelOptions;
 
