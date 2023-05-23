@@ -149,7 +149,6 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
 export const interpolation = {
   scalar: geom.lerp,
   color: geom.lerpColor,
-  point: geom.lerpPoint,
   angle: geom.lerpAngle,
   array: geom.lerpArray,
 };

@@ -837,8 +837,6 @@ describe("Hot reloading", () => {
     child1V1.value = 88;
     child2V1.value = 99;
 
-    debugger;
-
     const memento = parentV1.makeReloadMemento();
     expect(_.size(memento.children)).toBe(2);
 
