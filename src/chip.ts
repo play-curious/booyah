@@ -153,10 +153,8 @@ export type ChipFactory = (
 
 export type ChipResolvable = Chip | ChipFactory;
 
-export interface ChipActivationInfo {
+export interface ChipActivationInfo extends ActivateChildChipOptions {
   chip: ChipResolvable;
-  context?: ChipContextResolvable;
-  id?: string;
 }
 
 export type ChipState = "inactive" | "active" | "paused";
@@ -815,7 +813,7 @@ export abstract class Composite extends ChipBase {
 }
 
 export class ParallelOptions {
-  signalOnCompletion = true;
+  terminateOnCompletion = true;
 }
 
 /**
@@ -823,145 +821,86 @@ export class ParallelOptions {
  * By default, terminates when all child chips have completed, unless `options.signalOnCompletion` is false.
  */
 export class Parallel extends Composite {
-  public readonly options: ParallelOptions;
+  private readonly _options: ParallelOptions;
 
-  protected childChipActivationInfos: ParallelActivationInfo[] = [];
-  protected contextToChip = new Map<ParallelActivationInfo, Chip>();
+  private _chipActivationInfos: ChipActivationInfo[] = [];
+  private _infoToChip = new Map<ChipActivationInfo, Chip>();
 
   constructor(
-    chipActivationInfos: Array<ChipResolvable | ParallelActivationInfo> = [],
+    chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
     options?: Partial<ParallelOptions>
   ) {
     super();
 
-    this.options = fillInOptions(options, new ParallelOptions());
+    this._options = fillInOptions(options, new SequenceOptions());
 
     for (const e of chipActivationInfos) this.addChildChip(e);
   }
 
-  activate(
-    tickInfo: TickInfo,
-    chipContext: ChipContext,
-    inputSignal?: Signal,
-    reloadMemento?: ReloadMemento
-  ) {
-    super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
+  /** Add a new chip. If the chip is running, activate it */
+  addChildChip(chip: ChipActivationInfo | ChipResolvable) {
+    const info = isChipResolvable(chip) ? { chip: chip } : chip;
+    this._chipActivationInfos.push(info);
 
-    for (const chipActivationInfo of this.childChipActivationInfos) {
-      if (chipActivationInfo.activated)
-        this.activateChildChip(chipActivationInfo);
+    if (this.state !== "inactive") {
+      const defaultId = (this._chipActivationInfos.length - 1).toString();
+      this._activateChildChip(
+        info.chip,
+        _.defaults({}, info, { id: defaultId })
+      );
     }
   }
 
-  tick(tickInfo: TickInfo) {
-    super.tick(tickInfo);
+  _onActivate() {
+    if (this._chipActivationInfos.length === 0) {
+      // Empty set, stop immediately
+      if (this._options.terminateOnCompletion) this.terminate(makeSignal());
+      return;
+    }
 
-    if (this.options.signalOnCompletion && !_.some(this._childChips))
+    // Activate all provided chips
+    for (let i = 0; i < this._chipActivationInfos.length; i++) {
+      const info = this._chipActivationInfos[i];
+      const chip = this._activateChildChip(
+        info.chip,
+        _.defaults({}, info, { id: i.toString() })
+      );
+      this._infoToChip.set(info, chip);
+    }
+  }
+
+  _onAfterTick() {
+    if (!Object.keys(this._childChips) && this._options.terminateOnCompletion)
       this.terminate(makeSignal());
   }
 
-  addChildChip(chip: ParallelActivationInfo | ChipResolvable) {
-    const index = this.indexOfChildChipActivationInfo(chip);
-    if (index !== -1) throw new Error("Chip context already added");
-
-    let chipActivationInfo: ParallelActivationInfo;
-    if (isChipResolvable(chip)) {
-      chipActivationInfo = { chip, activated: true };
-    } else {
-      chipActivationInfo = chip;
-    }
-
-    this.childChipActivationInfos.push(chipActivationInfo);
-
-    // Automatically activate the child chip
-    if (this.state !== "inactive" && chipActivationInfo.activated) {
-      const chip = this._activateChildChip(chipActivationInfo.chip, {
-        context: chipActivationInfo.context,
-      });
-      this.contextToChip.set(chipActivationInfo, chip);
-    }
-  }
-
-  removeChildChip(e: ParallelActivationInfo | ChipResolvable): void {
-    const index = this.indexOfChildChipActivationInfo(e);
-    if (index === -1) throw new Error("Cannot find chip context");
-
-    const chipActivationInfo = this.childChipActivationInfos[index];
-    this.childChipActivationInfos.splice(index, 1);
-
-    const chip = this.contextToChip.get(chipActivationInfo);
-    if (chip) {
-      this._terminateChildChip(chip);
-      this.contextToChip.delete(chipActivationInfo);
-    }
-  }
-
-  removeAllChildChips(): void {
-    this._terminateAllChildChips();
-
-    this.childChipActivationInfos = [];
-    this.contextToChip.clear();
-  }
-
-  activateChildChip(e: number | ParallelActivationInfo | ChipResolvable): void {
+  /**
+   * Remove the child chip, by value or index.
+   * If the chip is running, terminate it
+   */
+  removeChildChip(e: ChipActivationInfo | ChipResolvable | number): void {
     let index: number;
     if (typeof e === "number") {
       index = e;
-      if (index < 0 || index >= this.childChipActivationInfos.length)
-        throw new Error("Invalid index");
+      if (index < 0 || index >= this._chipActivationInfos.length)
+        throw new Error("Invalid index of chip to remove");
     } else {
-      index = this.indexOfChildChipActivationInfo(e);
-      if (index === -1) throw new Error("Cannot find chip context");
+      index = this.indexOfChipActivationInfo(e);
+      if (index === -1) throw new Error("Cannot find chip to remove");
     }
 
-    const chipActivationInfo = this.childChipActivationInfos[index];
-    if (this.contextToChip.has(chipActivationInfo))
-      throw new Error("Chip is already activated");
-
-    const chip = this._activateChildChip(chipActivationInfo.chip, {
-      context: chipActivationInfo.context,
-      id: chipActivationInfo.id ?? index.toString(),
-    });
-    this.contextToChip.set(chipActivationInfo, chip);
-    chipActivationInfo.activated = true;
-  }
-
-  terminateChildChip(
-    e: ParallelActivationInfo | ChipResolvable | number
-  ): void {
-    let index: number;
-    if (typeof e === "number") {
-      index = e;
-      if (index < 0 || index >= this.childChipActivationInfos.length)
-        throw new Error("Invalid index");
-    } else {
-      index = this.indexOfChildChipActivationInfo(e);
-      if (index === -1) throw new Error("Cannot find chip context");
+    if (this.state !== "inactive") {
+      const chip = this._infoToChip.get(this._chipActivationInfos[index]);
+      chip.terminate();
     }
-
-    const chipActivationInfo = this.childChipActivationInfos[index];
-    const chip = this.contextToChip.get(chipActivationInfo);
-    if (!chip) throw new Error("Chip not yet activated");
-
-    this._terminateChildChip(chip);
-    chipActivationInfo.activated = false;
-    this.contextToChip.delete(chipActivationInfo);
   }
 
-  indexOfChildChipActivationInfo(
-    chip: ParallelActivationInfo | ChipResolvable
-  ): number {
+  indexOfChipActivationInfo(chip: ChipActivationInfo | ChipResolvable): number {
     if (isChipResolvable(chip)) {
-      return _.indexOf(this.childChipActivationInfos, { chip });
+      return _.indexOf(this._chipActivationInfos, { chip });
     } else {
-      return this.childChipActivationInfos.indexOf(chip);
+      return this._chipActivationInfos.indexOf(chip);
     }
-  }
-
-  terminate(outputSignal?: Signal): void {
-    this.contextToChip.clear();
-
-    super.terminate(outputSignal);
   }
 }
 
@@ -993,7 +932,7 @@ export class ContextProvider extends Composite {
 
 export class SequenceOptions {
   loop = false;
-  signalOnCompletion = true;
+  terminateOnCompletion = true;
 }
 
 /**
@@ -1002,11 +941,11 @@ export class SequenceOptions {
   Optionally can loop back to the first chip.
 */
 export class Sequence extends Composite {
-  public readonly options: SequenceOptions;
+  private readonly _options: SequenceOptions;
 
-  private chipActivationInfos: ChipActivationInfo[] = [];
-  private currentChipIndex = 0;
-  private currentChip: Chip;
+  private _chipActivationInfos: ChipActivationInfo[] = [];
+  private _currentChipIndex = 0;
+  private _currentChip: Chip;
 
   constructor(
     chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
@@ -1014,7 +953,7 @@ export class Sequence extends Composite {
   ) {
     super();
 
-    this.options = fillInOptions(options, new SequenceOptions());
+    this._options = fillInOptions(options, new SequenceOptions());
 
     for (const e of chipActivationInfos) this.addChildChip(e);
   }
@@ -1022,9 +961,9 @@ export class Sequence extends Composite {
   /** Add a new chip to the sequence */
   addChildChip(chip: ChipActivationInfo | ChipResolvable) {
     if (isChipResolvable(chip)) {
-      this.chipActivationInfos.push({ chip: chip });
+      this._chipActivationInfos.push({ chip: chip });
     } else {
-      this.chipActivationInfos.push(chip);
+      this._chipActivationInfos.push(chip);
     }
   }
 
@@ -1035,31 +974,33 @@ export class Sequence extends Composite {
 
   private _switchChip() {
     // Stop current chip
-    if (this.currentChip) {
+    if (this._currentChip) {
       // The current chip may have already been terminated, if it terminated before
       if (_.size(this._childChips) > 0)
-        this._terminateChildChip(this.currentChip);
-      delete this.currentChip;
+        this._terminateChildChip(this._currentChip);
+      delete this._currentChip;
     }
 
-    if (this.currentChipIndex < this.chipActivationInfos.length) {
+    if (this._currentChipIndex < this._chipActivationInfos.length) {
       const chipActivationInfo =
-        this.chipActivationInfos[this.currentChipIndex];
-      this.currentChip = this._activateChildChip(chipActivationInfo.chip, {
-        context: chipActivationInfo.context,
-        id: chipActivationInfo.id ?? this.currentChipIndex.toString(),
-      });
+        this._chipActivationInfos[this._currentChipIndex];
+      this._currentChip = this._activateChildChip(
+        chipActivationInfo.chip,
+        _.defaults({}, chipActivationInfo, {
+          id: this._currentChipIndex.toString(),
+        })
+      );
     }
   }
 
   _onActivate() {
-    this.currentChipIndex =
+    this._currentChipIndex =
       (this._reloadMemento?.data.currentChipIndex as number) ?? 0;
-    delete this.currentChip;
+    delete this._currentChip;
 
-    if (this.chipActivationInfos.length === 0) {
+    if (this._chipActivationInfos.length === 0) {
       // Empty Sequence, stop immediately
-      if (this.options.signalOnCompletion) this.terminate(makeSignal());
+      if (this._options.terminateOnCompletion) this.terminate(makeSignal());
     } else {
       // Start the Sequence
       this._switchChip();
@@ -1067,33 +1008,33 @@ export class Sequence extends Composite {
   }
 
   _onAfterTick() {
-    if (!this.currentChip) return;
+    if (!this._currentChip) return;
 
-    const signal = this.currentChip.outputSignal;
+    const signal = this._currentChip.outputSignal;
     if (signal) this._advance(signal);
   }
 
   _onTerminate() {
-    delete this.currentChip;
+    delete this._currentChip;
   }
 
   /** Restart the sequence on the first chip */
   restart() {
-    this.currentChipIndex = 0;
+    this._currentChipIndex = 0;
     this._switchChip();
   }
 
   private _advance(signal: Signal) {
-    this.currentChipIndex++;
+    this._currentChipIndex++;
     this._switchChip();
 
     // If we've reached the end of the Sequence...
-    if (this.currentChipIndex >= this.chipActivationInfos.length) {
-      if (this.options.loop) {
+    if (this._currentChipIndex >= this._chipActivationInfos.length) {
+      if (this._options.loop) {
         // ... and we loop, go back to start
-        this.currentChipIndex = 0;
+        this._currentChipIndex = 0;
         this._switchChip();
-      } else if (this.options.signalOnCompletion) {
+      } else if (this._options.terminateOnCompletion) {
         // otherwise terminate
         this.terminate(signal);
       }
@@ -1102,7 +1043,7 @@ export class Sequence extends Composite {
 
   protected _makeReloadMementoData(): ReloadMementoData {
     return {
-      currentChipIndex: this.currentChipIndex,
+      currentChipIndex: this._currentChipIndex,
     };
   }
 }

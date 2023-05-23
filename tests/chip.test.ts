@@ -435,25 +435,6 @@ describe("Parallel", () => {
     }
   });
 
-  test("children can be inactive at start", () => {
-    const middleChildContext = {
-      chip: new MockChip(),
-      activated: false,
-    };
-    const parent = new chip.Parallel([
-      new MockChip(),
-      middleChildContext,
-      new MockChip(),
-    ]);
-
-    // Run once
-    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
-    parent.tick(makeFrameInfo());
-
-    expect(middleChildContext.chip._onActivate).not.toBeCalled();
-    expect((parent.children[0] as MockChip)._onActivate).toBeCalled();
-  });
-
   test("can activate and terminate children", () => {
     const children = [new MockChip(), new MockChip(), new MockChip()];
     const parent = new chip.Parallel(children);
@@ -463,12 +444,12 @@ describe("Parallel", () => {
     parent.tick(makeFrameInfo());
 
     // Terminate middle child and run
-    parent.terminateChildChip(1);
+    parent.removeChildChip(1);
     parent.tick(makeFrameInfo());
 
     // Reactivate middle child, terminate third child, and run
-    parent.activateChildChip(1);
-    parent.terminateChildChip(2);
+    parent.addChildChip(children[1]);
+    parent.removeChildChip(2);
     parent.tick(makeFrameInfo());
 
     expect(children[0]._onTick).toBeCalledTimes(3);
@@ -855,6 +836,8 @@ describe("Hot reloading", () => {
     // Change the values
     child1V1.value = 88;
     child2V1.value = 99;
+
+    debugger;
 
     const memento = parentV1.makeReloadMemento();
     expect(_.size(memento.children)).toBe(2);
