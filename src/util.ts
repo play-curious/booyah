@@ -1,20 +1,15 @@
-import * as PIXI from "pixi.js";
-
-import * as geom from "./geom";
-import * as entity from "./entity";
-import * as narration from "./narration";
 import * as _ from "underscore";
 
 /** Test containment using _.isEqual() */
-export function contains<T = any>(list: T[], p: T): boolean {
-  for (let x of list) {
+export function contains<T>(list: T[], p: T): boolean {
+  for (const x of list) {
     if (_.isEqual(x, p)) return true;
   }
   return false;
 }
 
 /** Test containment using _.isEqual() */
-export function indexOf<T = any>(list: T[], p: T): number {
+export function indexOf<T>(list: T[], p: T): number {
   for (let i = 0; i < list.length; i++) {
     if (_.isEqual(list[i], p)) return i;
   }
@@ -22,9 +17,9 @@ export function indexOf<T = any>(list: T[], p: T): number {
 }
 
 /** Find unique elements using _.isEqual() */
-export function uniq<T = any>(array: T[]): T[] {
-  let results: T[] = [];
-  let seen: T[] = [];
+export function uniq<T>(array: T[]): T[] {
+  const results: T[] = [];
+  const seen: T[] = [];
   array.forEach((value, index) => {
     if (!contains(seen, value)) {
       seen.push(value);
@@ -34,29 +29,21 @@ export function uniq<T = any>(array: T[]): T[] {
   return results;
 }
 
-/** Like _.difference(), but uses contains() */
-export function difference<T = any>(array: T[]): T[] {
-  const rest = Array.prototype.concat.apply(
-    Array.prototype,
-    Array.prototype.slice.call(arguments, 1)
-  );
-  return _.filter(array, (value) => !contains(rest, value));
-}
-
 /** Returns a new array with the given element excluded, tested using _.isEqual() */
-export function removeFromArray<T = any>(array: T[], value: T): T[] {
-  let ret: T[] = [];
-  for (let element of array) if (!_.isEqual(element, value)) ret.push(element);
+export function removeFromArray<T>(array: T[], value: T): T[] {
+  const ret: T[] = [];
+  for (const element of array)
+    if (!_.isEqual(element, value)) ret.push(element);
   return ret;
 }
 
 /** Deep clone of JSON-serializable objects */
-export function cloneData<T = any>(o: T): T {
+export function cloneData<T>(o: T): T {
   return JSON.parse(JSON.stringify(o));
 }
 
 /** Picks a random element from the array */
-export function randomArrayElement<T = any>(array: T[]): T {
+export function randomArrayElement<T>(array: T[]): T {
   return array[_.random(0, array.length - 1)];
 }
 
@@ -86,33 +73,9 @@ export function toFixedFloor(x: number, decimalPlaces: number): number {
   return Number((Math.floor(x * divider) / divider).toFixed(decimalPlaces));
 }
 
-export function resizeGame(appSize: PIXI.Point): void {
-  const parentSize = new PIXI.Point(window.innerWidth, window.innerHeight);
-  const scale = toFixedFloor(
-    Math.min(parentSize.x / appSize.x, parentSize.y / appSize.y),
-    2
-  );
-
-  const newSize = geom.multiply(appSize, scale);
-  const remainingSpace = geom.subtract(parentSize, newSize);
-
-  console.log("setting scale to", scale);
-
-  const parent = document.getElementById("game-parent");
-  parent.style.height = `${newSize.y}px`;
-
-  const container = document.getElementById("game-container");
-  const transformCss = `translate(${(remainingSpace.x / 2).toFixed(
-    2
-  )}px, 0px) scale(${scale})`;
-  for (const prop of ["transform", "webkitTransform", "msTransform"]) {
-    // @ts-ignore
-    container.style[prop] = transformCss;
-  }
-}
-
 export function supportsFullscreen(): boolean {
   // Stop TypeScript from complaining about feature detection
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const d: any = document;
   return !!(
     d.fullscreenEnabled ||
@@ -122,6 +85,7 @@ export function supportsFullscreen(): boolean {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function requestFullscreen(element: any): void {
   if (element.requestFullscreen) {
     element.requestFullscreen();
@@ -156,40 +120,6 @@ export function inFullscreen(): boolean {
   );
 }
 
-export function makePixiLoadPromise(loader: PIXI.Loader): Promise<void> {
-  return new Promise((resolve, reject) => {
-    loader.onError.add(reject);
-    loader.load(resolve as any);
-  });
-}
-
-export function makeDomContentLoadPromise(
-  document: Document
-): Promise<true | void> {
-  if (_.contains(["complete", "loaded", "interactive"], document.readyState))
-    return Promise.resolve(true);
-
-  return new Promise((resolve, reject) => {
-    document.addEventListener("DOMContentLoaded", resolve as any);
-  });
-}
-
-export function sendMetrics(...params: any) {
-  if (typeof ga === "undefined") return;
-
-  ga("send", ...params);
-}
-
-const eventTimings: { [key: string]: number } = {};
-export function startTiming(eventName: string): void {
-  eventTimings[eventName] = Date.now();
-}
-export function endTiming(eventName: string, category = "loading"): void {
-  const diff = Date.now() - eventTimings[eventName];
-  console.debug("Timing for ", eventName, diff);
-  sendMetrics("timing", category, eventName, diff);
-}
-
 /* Makes a video element plays easily on iOS. Requires muting */
 export function makeVideoElement(): HTMLVideoElement {
   const videoElement = document.createElement("video");
@@ -199,107 +129,18 @@ export function makeVideoElement(): HTMLVideoElement {
   return videoElement;
 }
 
-export const REQUIRED_OPTION = new (class REQUIRED_OPTION {})();
-
-// Copies over the defaulted options into obj. Takes care to only copy those options specified in the provided _defaults_
-// Options that are required should have a value of REQUIRED_OPTION
-export function setupOptions(obj: {}, options: {}, defaults: {}) {
-  const requiredKeys = _.chain(defaults)
-    .pairs()
-    .filter(([key, value]) => value === REQUIRED_OPTION)
-    .map(([key, value]) => key)
-    .value();
-  const providedKeys = _.chain(options)
-    .pairs()
-    .filter(([key, value]) => !_.isUndefined(value))
-    .map(([key, value]) => key)
-    .value();
-  const missingOptions = _.difference(requiredKeys, providedKeys);
-  if (missingOptions.length > 0) {
-    console.error("Missing options", missingOptions, "for", obj);
-    throw new Error("Missing options");
-  }
-
-  const allowedKeys = _.keys(defaults);
-  const unneededOptions = _.difference(providedKeys, allowedKeys);
-  if (unneededOptions.length > 0) {
-    console.warn("Unneeded options", unneededOptions, "for", obj);
-  }
-
-  return _.extend(
-    obj,
-    _.defaults(_.pick(options, _.keys(defaults) as any), defaults)
-  );
-}
-
 /**
  * Fills in the mising options from the provided defaults
  * @param options Options provided by the caller
  * @param defaults Defaults provided by the author
  */
-export function fillInOptions<T extends {}>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function fillInOptions<T extends Record<string, any>>(
   options: Partial<T>,
   defaults: T
 ): T {
   if (options) return { ...defaults, ...options };
   else return defaults;
-}
-
-export function loadJson(fileName: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("GET", fileName);
-    request.responseType = "json";
-    request.onload = () => resolve(request.response);
-    request.onerror = reject;
-    request.send();
-  });
-}
-
-export async function loadSubtitles(
-  fileName: string
-): Promise<narration.ParsedSubtitle[]> {
-  const plainText = await new Promise<string>((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("GET", fileName);
-    request.responseType = "text";
-    request.onload = () => resolve(String(request.response));
-    request.onerror = reject;
-    request.send();
-  });
-
-  const subtitleRegex =
-    /^(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})\n([\S\s]+?)\n\d*\n/gm;
-
-  let match,
-    output: narration.ParsedSubtitle[] = [];
-  while ((match = subtitleRegex.exec(plainText))) {
-    const [
-      fullMatch,
-      start_h,
-      start_m,
-      start_s,
-      start_ms,
-      end_h,
-      end_m,
-      end_s,
-      end_ms,
-      text,
-    ] = match;
-
-    output.push({
-      startsAt:
-        +start_ms +
-        +start_s * 1000 +
-        +start_m * 1000 * 60 +
-        +start_h * 1000 * 60 * 60,
-      endsAt:
-        +end_ms + +end_s * 1000 + +end_m * 1000 * 60 + +end_h * 1000 * 60 * 60,
-      text,
-    });
-  }
-
-  return output;
 }
 
 export function stringToBool(s?: string): boolean {
@@ -312,7 +153,7 @@ export function stringToBool(s?: string): boolean {
  * Returns true if @list all of the values in @values.
  * Uses _.contains() internally
  */
-export function containsAll<T = any>(list: _.List<T>, values: T[]) {
+export function containsAll<T>(list: _.List<T>, values: T[]) {
   for (const value of values) {
     if (!_.contains(list, value)) return false;
   }
@@ -320,6 +161,7 @@ export function containsAll<T = any>(list: _.List<T>, values: T[]) {
 }
 
 /** Like Underscore's defaults(), excepts merges embedded objects */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function deepDefaults(...args: any[]) {
   if (args.length === 0) return {};
 
@@ -354,28 +196,17 @@ export function shortenString(text: string, maxLength: number): string {
  * Set properties recursively in a PIXI scene graph
  */
 export interface Root {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   children: Root[];
 }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setPropertyInTree(root: Root, name: string, value: any): void {
   if (name in root) root[name] = value;
 
   for (const child of root.children) {
     setPropertyInTree(child, name, value);
   }
-}
-
-export function makeAnimatedSprite(
-  resource: PIXI.LoaderResource,
-  options?: {
-    resetFrame?: boolean;
-    transitionOnComplete?: boolean;
-  }
-): entity.AnimatedSpriteEntity {
-  return new entity.AnimatedSpriteEntity(
-    new PIXI.AnimatedSprite(Object.values(resource.textures)),
-    options
-  );
 }
 
 /**
@@ -439,6 +270,99 @@ export function subarray<T>(
 }
 
 /** Returns true if x is null or undefined */
-export function isNullish(x: any): boolean {
+export function isNullish(x: unknown): boolean {
   return x == void 0;
+}
+
+// Geometry
+
+export const EPSILON = 0.001;
+
+/** Returns a number for x that is between min and max */
+export function clamp(x: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, x));
+}
+
+/** Linear interpolation between numbers a and b, using the fraction p */
+export function lerp(a: number, b: number, p: number): number {
+  return a + (b - a) * p;
+}
+
+/** Linear interpolation between arrays a and b, using the fraction p */
+export function lerpArray(a: number[], b: number[], p: number) {
+  const result = [];
+  for (let i = 0; i < a.length; i++) {
+    result.push(lerp(a[i], b[i], p));
+  }
+  return result;
+}
+
+/**
+ Find the direction around the circle that is shorter
+ Based on https://stackoverflow.com/a/2007279
+ */
+export function angleBetweenAngles(source: number, target: number): number {
+  return Math.atan2(Math.sin(target - source), Math.cos(target - source));
+}
+
+/** Linear interpolation between angles a and b, using fraction p */
+export function lerpAngle(a: number, b: number, p: number): number {
+  return a + p * angleBetweenAngles(a, b);
+}
+
+/** Returns a copy of a that is > 0 */
+export function makeAnglePositive(a: number): number {
+  while (a < 0) a += 2 * Math.PI;
+  return a;
+}
+
+/** Normalizes an angle between -pi and pi */
+export function normalizeAngle(a: number): number {
+  while (a > Math.PI) a -= 2 * Math.PI;
+  while (a < -Math.PI) a += 2 * Math.PI;
+  return a;
+}
+
+/** Converts radians to degrees */
+export function radiansToDegrees(a: number): number {
+  return (a * 180) / Math.PI;
+}
+
+/** Converts degrees to radians */
+export function degreesToRadians(a: number): number {
+  return (a * Math.PI) / 180;
+}
+
+/**
+ Returs an angle between a and b, turning at a given speed.
+ Will not "overshoot" b.
+ */
+export function moveTowardsAngle(a: number, b: number, speed: number): number {
+  const diff = angleBetweenAngles(a, b);
+  if (diff >= 0) {
+    const targetDiff = Math.min(diff, speed);
+    return a + targetDiff;
+  } else {
+    const targetDiff = Math.min(-diff, speed);
+    return a - targetDiff;
+  }
+}
+
+/**
+ Returns a number along the line between a and b, moving at a given speed.
+ Will not "overshoot" b.
+ */
+export function moveTowardsScalar(a: number, b: number, speed: number): number {
+  const d = Math.abs(b - a);
+  return lerp(a, b, clamp(speed / d, 0, 1));
+}
+
+/** Returns a random number between a and b */
+export function randomInRange(a: number, b: number): number {
+  return a + Math.random() * (b - a);
+}
+
+/** Returns if two numbers are within an epsilon of each other */
+export function areAlmostEqualNumber(x: number, y: number): boolean {
+  return Math.abs(x - y) <= EPSILON;
 }

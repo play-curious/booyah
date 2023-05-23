@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import * as util from "./util";
 import * as geom from "./geom";
-import * as entity from "./entity";
+import * as chip from "./chip";
 import * as easing from "./easing";
 import * as _ from "underscore";
 
 /**
- * Creates a ParallelEntity that carries out multiple tweens on the same object.
+ * Creates a Parallel that carries out multiple tweens on the same object.
  * Usage: tween.make(filter, { brightness: { to: 5 } }, { duration: 2000 })
  * @obj Object on which to carry out the tween
  * @props Map of property names to options for that property (like Tween() would take)
@@ -13,9 +15,9 @@ import * as _ from "underscore";
  */
 export function make(
   obj: any,
-  props: { [prop: string]: TweenOptions },
-  options: TweenOptions
-): entity.ParallelEntity {
+  props: { [prop: string]: Partial<TweenOptions<any, any>> },
+  options: TweenOptions<any, any>
+): chip.Parallel {
   const tweens: any[] = [];
   for (const key in props) {
     const tweenOptions = _.defaults(
@@ -25,7 +27,7 @@ export function make(
     );
     tweens.push(new Tween(tweenOptions));
   }
-  return new entity.ParallelEntity(tweens);
+  return new chip.Parallel(tweens);
 }
 
 /**
@@ -39,17 +41,17 @@ export function make(
  * @interpolate - Function to use for setting a new value.
  *  Depends on data type, such as color, vector, angle, ...
  **/
-export class TweenOptions {
-  obj?: { [k: string]: any };
-  property?: string;
-  from?: any;
-  to: any;
-  duration: number = 1000;
+export class TweenOptions<Value, Obj extends object = undefined> {
+  obj?: Obj;
+  property?: keyof Obj;
+  from?: Value;
+  to: Value;
+  duration = 1000;
   easing: easing.EasingFunction = easing.linear;
-  interpolate?: (...params: any) => any = interpolation.scalar;
-  onSetup?: () => any;
-  onUpdate?: (value: number) => any;
-  onTeardown?: () => any;
+  interpolate: (from: Value, to: Value, easeProgress: number) => Value;
+  onSetup?: () => unknown;
+  onUpdate?: (value: Value) => unknown;
+  onTeardown?: () => unknown;
 }
 
 // TODO: add onSetup
@@ -58,27 +60,32 @@ export class TweenOptions {
  * Events:
  *  updatedValue(value)
  */
-export class Tween extends entity.EntityBase {
-  public readonly options: TweenOptions;
+export class Tween<Value, Obj extends object> extends chip.ChipBase {
+  public readonly options: TweenOptions<Value, Obj>;
 
-  private _currentObj: { [k: string]: any };
-  private _startValue: any;
-  private _value: any;
-  private _startTime: number;
+  private _currentObj: Obj;
+  private _startValue: Value;
+  private _value: Value;
+  private _timePassed: number;
 
-  constructor(options?: Partial<TweenOptions>) {
+  constructor(options?: Partial<TweenOptions<Value, Obj>>) {
     super();
 
     this.options = util.fillInOptions(options, new TweenOptions());
 
+    if (!this.options.interpolate) {
+      // @ts-ignore
+      this.options.interpolate = interpolation.scalar;
+    }
+
     if (this.options.onUpdate) {
-      this._on(this, "updatedValue", this.options.onUpdate);
+      this._subscribe(this, "updatedValue", this.options.onUpdate);
     }
   }
 
-  _setup() {
+  _onActivate() {
     this._currentObj = _.isFunction(this.options.obj)
-      ? this.options.obj
+      ? this.options.obj()
       : this.options.obj;
 
     if (util.isNullish(this.options.from)) {
@@ -90,27 +97,24 @@ export class Tween extends entity.EntityBase {
       this._updateValue();
     }
 
-    this._startTime = this._lastFrameInfo.timeSinceStart;
+    this._timePassed = 0;
 
     if (this.options.onSetup) {
       this.options.onSetup();
     }
   }
 
-  _update() {
-    if (
-      this._lastFrameInfo.timeSinceStart - this._startTime >=
-      this.options.duration
-    ) {
-      this._transition = entity.makeTransition();
+  _onTick() {
+    if (this._timePassed >= this.options.duration) {
+      this._outputSignal = chip.makeSignal();
 
       // Snap to end
       this._value = this.options.to;
       this._updateValue();
     } else {
+      this._timePassed += this._lastTickInfo.timeSinceLastTick;
       const easedProgress = this.options.easing(
-        (this._lastFrameInfo.timeSinceStart - this._startTime) /
-          this.options.duration
+        this._timePassed / this.options.duration
       );
       this._value = this.options.interpolate(
         this._startValue,
@@ -121,7 +125,7 @@ export class Tween extends entity.EntityBase {
     }
   }
 
-  _teardown() {
+  _onTerminate() {
     if (this.options.onTeardown) {
       this.options.onTeardown();
     }
@@ -132,6 +136,7 @@ export class Tween extends entity.EntityBase {
   }
 
   _updateValue() {
+    // @ts-ignore
     if (this._currentObj) this._currentObj[this.options.property] = this._value;
 
     this.emit("updatedValue", this._value);
@@ -144,7 +149,6 @@ export class Tween extends entity.EntityBase {
 export const interpolation = {
   scalar: geom.lerp,
   color: geom.lerpColor,
-  point: geom.lerpPoint,
   angle: geom.lerpAngle,
   array: geom.lerpArray,
 };

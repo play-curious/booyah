@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 // Based on https://github.com/AndrewRayCode/easing-utils
 // Example on http://andrewraycode.github.io/easing-utils/gh-pages/
 
