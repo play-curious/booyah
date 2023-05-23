@@ -833,23 +833,27 @@ export class Parallel extends Composite {
     super();
 
     this._options = fillInOptions(options, new ParallelOptions());
+    this._infoToChip = new Map();
 
     for (const e of chipActivationInfos) this.addChildChip(e);
   }
 
   /** Add a new chip. If the chip is running, activate it */
-  addChildChip(chip: ChipActivationInfo | ChipResolvable) {
-    let info = isChipResolvable(chip) ? { chip: chip } : chip;
+  addChildChip(e: ChipActivationInfo | ChipResolvable) {
+    const info = isChipResolvable(e) ? { chip: e } : e;
     this._chipActivationInfos.push(info);
 
     if (this.state !== "inactive") {
       // If no attribute or ID given, make a default one
-      if (!info.attribute && !info.id)
-        info = _.defaults({}, info, {
-          id: (this._chipActivationInfos.length - 1).toString(),
-        });
+      const infoWithId =
+        info.attribute || info.id
+          ? info
+          : _.extend({}, info, {
+              id: (this._chipActivationInfos.length - 1).toString(),
+            });
 
-      this._activateChildChip(info.chip, info);
+      const chip = this._activateChildChip(info.chip, infoWithId);
+      this._infoToChip.set(info, chip);
     }
   }
 
@@ -862,14 +866,16 @@ export class Parallel extends Composite {
 
     // Activate all provided chips
     for (let i = 0; i < this._chipActivationInfos.length; i++) {
-      let info = this._chipActivationInfos[i];
+      const info = this._chipActivationInfos[i];
       // If no attribute or ID given, make a default one
-      if (!info.attribute && !info.id)
-        info = _.defaults({}, info, {
-          id: (this._chipActivationInfos.length - 1).toString(),
-        });
+      const infoWithId =
+        info.attribute || info.id
+          ? info
+          : _.extend({}, info, {
+              id: i.toString(),
+            });
 
-      const chip = this._activateChildChip(info.chip, info);
+      const chip = this._activateChildChip(info.chip, infoWithId);
       this._infoToChip.set(info, chip);
     }
   }
@@ -987,18 +993,17 @@ export class Sequence extends Composite {
     }
 
     if (this._currentChipIndex < this._chipActivationInfos.length) {
-      let chipActivationInfo =
-        this._chipActivationInfos[this._currentChipIndex];
-      // If no attribute or ID given, make a default one
-      if (!chipActivationInfo.attribute && !chipActivationInfo.id)
-        chipActivationInfo = _.defaults({}, chipActivationInfo, {
-          id: (this._chipActivationInfos.length - 1).toString(),
-        });
+      const info = this._chipActivationInfos[this._currentChipIndex];
 
-      this._currentChip = this._activateChildChip(
-        chipActivationInfo.chip,
-        chipActivationInfo
-      );
+      // If no attribute or ID given, make a default one
+      const infoWithId =
+        info.attribute || info.id
+          ? info
+          : _.extend({}, info, {
+              id: (this._chipActivationInfos.length - 1).toString(),
+            });
+
+      this._currentChip = this._activateChildChip(info.chip, infoWithId);
     }
   }
 
