@@ -11,7 +11,6 @@ interface HMR {
 }
 
 export class RunnerOptions {
-  rootChip: chip.ChipResolvable;
   rootContext: chip.ChipContext = {};
   inputSignal: chip.Signal = chip.makeSignal();
 
@@ -22,6 +21,9 @@ export class RunnerOptions {
   hmr?: HMR;
 }
 
+/**
+ * Manages running the game code at a regular refresh rate.
+ */
 export class Runner {
   private _options: RunnerOptions;
   private _isRunning = false;
@@ -29,20 +31,28 @@ export class Runner {
   private _rootContext: chip.ChipContext;
   private _rootChip: chip.Chip;
 
-  constructor(options?: Partial<RunnerOptions>) {
+  /**
+   *
+   * @param _rootChipResolvable The chip at the root of the game
+   * @param options
+   */
+  constructor(
+    private readonly _rootChipResolvable: chip.ChipResolvable,
+    options?: Partial<RunnerOptions>
+  ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
   }
 
   start() {
-    if (this._isRunning) throw new Error("Aleady started");
+    if (this._isRunning) throw new Error("Already started");
 
     this._isRunning = true;
     this._lastTimeStamp = 0;
 
     this._rootContext = chip.processChipContext(this._options.rootContext, {});
-    this._rootChip = _.isFunction(this._options.rootChip)
-      ? this._options.rootChip(this._rootContext, chip.makeSignal())
-      : this._options.rootChip;
+    this._rootChip = _.isFunction(this._rootChipResolvable)
+      ? this._rootChipResolvable(this._rootContext, chip.makeSignal())
+      : this._rootChipResolvable;
 
     const tickInfo: chip.TickInfo = {
       timeSinceLastTick: 0,
@@ -59,7 +69,7 @@ export class Runner {
   }
 
   stop() {
-    if (!this._isRunning) throw new Error("Aleady stopped");
+    if (!this._isRunning) throw new Error("Already stopped");
 
     this._isRunning = true;
   }
