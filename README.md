@@ -22,11 +22,43 @@ To use Booyah for your project, install it with `yarn add booyah` or `npm i booy
 
 Then follow the [Getting Started guide](https://github.com/play-curious/booyah/wiki).
 
+We suggest using a packaging tool such as [Parcel](https://parceljs.org/) or [Webpack](https://webpack.js.org/) to bring together all your assets into bundles, as well as provide a auto-reloading web server.
+
+## Libraries
+
+In addition to TypeScript, we also rely heavily on the following libraries:
+
+- [Underscore.js](https://underscorejs.org/) to do functional-style coding.
+- [EventEmitter3](https://github.com/primus/eventemitter3) for a fast events framework.
+
+Of course, you'll probably want to use libraries for rendering and audio, among other things. To keep Booyah independent of a particular game tools, those integrations are provided in separate libraries:
+
+- [booyah-pixi](https://github.com/play-curious/booyah-pixi) integrates into [PixiJS](https://pixijs.com/) and [PixiJS Sound](https://github.com/pixijs/sound).
+- More to come...
+
 ## Development
 
 Install the Yarn package manager.
 
 Run `yarn` to install the dependencies.
+
+## Coding Standards
+
+To save time dealing with coding standards, we use [Prettier](https://prettier.io/). It integrates nicely into most IDEs, so that Prettier will reformat the code upon save.
+
+In the same vein, we use [ESLint](https://eslint.org/) to catch certain coding errors.
+
+We use [Jest](https://jestjs.io/) for unit tests on certain parts of Booyah. You can run them using `yarn test`.
+
+Currently there is no automated testing, which is not something that we're proud of.
+
+In addition to what Prettier enforces, there are a few standards that we enforce in Booyah:
+
+- Indentation: 2-character indents, using spaces.
+- Case: Camel-case variables and class names. Class names start with capital letters
+- Private or protected methods & attributes should start with an underscore.
+- Use a single blank line to separate functions and methods. Prettier will remove multiple blank lines.
+- Documentation: Document classes and methods using multiline comments like `/** ... */`.
 
 ## Tests
 

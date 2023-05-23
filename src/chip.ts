@@ -832,22 +832,24 @@ export class Parallel extends Composite {
   ) {
     super();
 
-    this._options = fillInOptions(options, new SequenceOptions());
+    this._options = fillInOptions(options, new ParallelOptions());
 
     for (const e of chipActivationInfos) this.addChildChip(e);
   }
 
   /** Add a new chip. If the chip is running, activate it */
   addChildChip(chip: ChipActivationInfo | ChipResolvable) {
-    const info = isChipResolvable(chip) ? { chip: chip } : chip;
+    let info = isChipResolvable(chip) ? { chip: chip } : chip;
     this._chipActivationInfos.push(info);
 
     if (this.state !== "inactive") {
-      const defaultId = (this._chipActivationInfos.length - 1).toString();
-      this._activateChildChip(
-        info.chip,
-        _.defaults({}, info, { id: defaultId })
-      );
+      // If no attribute or ID given, make a default one
+      if (!info.attribute && !info.id)
+        info = _.defaults({}, info, {
+          id: (this._chipActivationInfos.length - 1).toString(),
+        });
+
+      this._activateChildChip(info.chip, info);
     }
   }
 
@@ -860,11 +862,14 @@ export class Parallel extends Composite {
 
     // Activate all provided chips
     for (let i = 0; i < this._chipActivationInfos.length; i++) {
-      const info = this._chipActivationInfos[i];
-      const chip = this._activateChildChip(
-        info.chip,
-        _.defaults({}, info, { id: i.toString() })
-      );
+      let info = this._chipActivationInfos[i];
+      // If no attribute or ID given, make a default one
+      if (!info.attribute && !info.id)
+        info = _.defaults({}, info, {
+          id: (this._chipActivationInfos.length - 1).toString(),
+        });
+
+      const chip = this._activateChildChip(info.chip, info);
       this._infoToChip.set(info, chip);
     }
   }
@@ -982,13 +987,17 @@ export class Sequence extends Composite {
     }
 
     if (this._currentChipIndex < this._chipActivationInfos.length) {
-      const chipActivationInfo =
+      let chipActivationInfo =
         this._chipActivationInfos[this._currentChipIndex];
+      // If no attribute or ID given, make a default one
+      if (!chipActivationInfo.attribute && !chipActivationInfo.id)
+        chipActivationInfo = _.defaults({}, chipActivationInfo, {
+          id: (this._chipActivationInfos.length - 1).toString(),
+        });
+
       this._currentChip = this._activateChildChip(
         chipActivationInfo.chip,
-        _.defaults({}, chipActivationInfo, {
-          id: this._currentChipIndex.toString(),
-        })
+        chipActivationInfo
       );
     }
   }
