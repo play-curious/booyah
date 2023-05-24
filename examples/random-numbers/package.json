@@ -1,9 +1,14 @@
 {
-  "name": "booyah-examples-hello-world",
+  "name": "booyah-example-random-numbers",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "source": "src/index.html",
   "private": "true",
+  "scripts": {
+    "start": "parcel",
+    "build": "parcel build"
+  },
   "dependencies": {
     "booyah": "^3.0.0"
   },
