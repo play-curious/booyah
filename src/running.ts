@@ -41,6 +41,8 @@ export class Runner {
     options?: Partial<RunnerOptions>
   ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
+
+    this._isRunning = false;
   }
 
   start() {
@@ -53,6 +55,8 @@ export class Runner {
     this._rootChip = _.isFunction(this._rootChipResolvable)
       ? this._rootChipResolvable(this._rootContext, chip.makeSignal())
       : this._rootChipResolvable;
+
+    this._rootChip.once("terminated", () => (this._isRunning = false));
 
     const tickInfo: chip.TickInfo = {
       timeSinceLastTick: 0,
@@ -71,7 +75,8 @@ export class Runner {
   stop() {
     if (!this._isRunning) throw new Error("Already stopped");
 
-    this._isRunning = true;
+    this._isRunning = false;
+    this._rootChip.terminate(chip.makeSignal("stop"));
   }
 
   private _onTick(timeStamp: number) {
@@ -131,5 +136,9 @@ export class Runner {
         reloadMemento
       );
     });
+  }
+
+  get isRunning(): boolean {
+    return this._isRunning;
   }
 }
