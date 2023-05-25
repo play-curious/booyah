@@ -1,5 +1,5 @@
 {
-  "include": ["src/chip.ts", "src/running.ts"],
+  "include": ["src/*.ts"],
   "exclude": ["node_modules"],
   "compilerOptions": {
     "alwaysStrict": true,
