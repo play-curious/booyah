@@ -770,9 +770,9 @@ boolbase@^1.0.0:
   integrity sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==
 
 booyah@^3.0.0:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/booyah/-/booyah-3.0.1.tgz#5b6121866e4f843d79ed462a641c119c8685ec06"
-  integrity sha512-vTI4dAoy36kbaRFN9x0LYQvxgqzq5daSoBqRLYv9ICX7QkjOpxT2LA6V0HgKBQZDhZuVmyENe7wQSBSzdd1ACA==
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/booyah/-/booyah-3.0.2.tgz#df2650a440a6704a41345c64a6b84e548693d556"
+  integrity sha512-b+HCJkfLGzPx32GVzSN99lm8Tct/bufPVPqVXtw73tgoLUwEQxlmE2o3FJvgPRK3WzCYha+fWF3SM3wJPLgHuw==
   dependencies:
     "@types/underscore" "~1.11"
     eventemitter3 "^5.0.0"
