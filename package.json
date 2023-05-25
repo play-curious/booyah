@@ -1,6 +1,6 @@
 {
   "name": "booyah",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "HTML5 game engine",
   "scripts": {
     "build": "tsc",

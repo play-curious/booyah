@@ -881,7 +881,10 @@ export class Parallel extends Composite {
   }
 
   _onAfterTick() {
-    if (!Object.keys(this._childChips) && this._options.terminateOnCompletion)
+    if (
+      Object.keys(this._childChips).length === 0 &&
+      this._options.terminateOnCompletion
+    )
       this.terminate(makeSignal());
   }
 

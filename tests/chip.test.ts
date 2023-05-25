@@ -456,6 +456,26 @@ describe("Parallel", () => {
     expect(children[1]._onTick).toBeCalledTimes(2);
     expect(children[2]._onTick).toBeCalledTimes(2);
   });
+
+  test("terminates when children complete", () => {
+    const children = [new MockChip(), new MockChip()];
+    const parent = new chip.Parallel(children);
+
+    // Run once
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    parent.tick(makeFrameInfo());
+
+    // Terminate one child
+    children[0].terminate();
+    parent.tick(makeFrameInfo());
+    expect(parent.state === "active");
+
+    // Terminate second child
+    children[1].terminate();
+    parent.tick(makeFrameInfo());
+
+    expect(parent.state === "inactive");
+  });
 });
 
 describe("Sequence", () => {
