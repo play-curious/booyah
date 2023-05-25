@@ -20,7 +20,7 @@ I have developed an open-source framework for game development which helps with 
 
 To use Booyah for your project, install it with `yarn add booyah` or `npm i booyah`.
 
-Then follow the [Getting Started guide](https://github.com/play-curious/booyah/wiki).
+Then follow the [Getting Started guide](https://github.com/play-curious/booyah/wiki), or read the [API Documentation](https://play-curious.github.io/booyah/).
 
 We suggest using a packaging tool such as [Parcel](https://parceljs.org/) or [Webpack](https://webpack.js.org/) to bring together all your assets into bundles, as well as provide a auto-reloading web server.
 
