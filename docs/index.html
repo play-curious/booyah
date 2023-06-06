@@ -43,7 +43,6 @@
 <a id="md:coding-standards" class="tsd-anchor"></a><h2><a href="#md:coding-standards">Coding Standards</a></h2><p>To save time dealing with coding standards, we use <a href="https://prettier.io/">Prettier</a>. It integrates nicely into most IDEs, so that Prettier will reformat the code upon save.</p>
 <p>In the same vein, we use <a href="https://eslint.org/">ESLint</a> to catch certain coding errors.</p>
 <p>We use <a href="https://jestjs.io/">Jest</a> for unit tests on certain parts of Booyah. You can run them using <code>yarn test</code>.</p>
-<p>Currently there is no automated testing, which is not something that we&#39;re proud of.</p>
 <p>In addition to what Prettier enforces, there are a few standards that we enforce in Booyah:</p>
 <ul>
 <li>Indentation: 2-character indents, using spaces.</li>
@@ -51,6 +50,13 @@
 <li>Private or protected methods &amp; attributes should start with an underscore.</li>
 <li>Use a single blank line to separate functions and methods. Prettier will remove multiple blank lines.</li>
 <li>Documentation: Document classes and methods using multiline comments like <code>/** ... */</code>.</li>
+<li>For functions or methods that take more than 1 arguments, consider using an object to contain all the optional attributes. Naming the arguments avoids errors and having to decide the correct order or the arguments. The function <code>chip.fillInOptions()</code> can make this process easier by filling in default values.</li>
+</ul>
+<a id="md:coding-chips" class="tsd-anchor"></a><h3><a href="#md:coding-chips">Coding Chips</a></h3><p>Specifically for chips, here are general rules for making them resusable:</p>
+<ul>
+<li>Attributes should generally be private. Otherwise the values could be modified by any other code at any time. If external code needs access to them, provide getters and (potentially) setters.</li>
+<li>Most attributes should be initialized in the <code>_onActivate()</code> method, not in the constructor. The exception are &quot;options&quot; provided in the constructor that describe how the chip should work.</li>
+<li>Parent chips should generally call methods directly on their child chips. Inversely, however, child chips should <em>not</em> call parent methods. Instead, child chips can emit events that parents subscribe and react to. The exception is &quot;services&quot; chips that are available more or less globally, such as an audio player or a metrics service, which should be created so that any code can call them.</li>
 </ul>
 <a id="md:tests" class="tsd-anchor"></a><h2><a href="#md:tests">Tests</a></h2><p>We use <a href="https://jestjs.io/">Jest</a> for unit tests on certain parts of Booyah. You can run them using <code>yarn test</code>.</p>
 <p>To only run some tests, use <code>yarn jest -t &lt;name of test&gt;</code>.</p>
@@ -92,6 +98,9 @@
 <li><a href="#md:libraries"><span>Libraries</span></a></li>
 <li><a href="#md:development"><span>Development</span></a></li>
 <li><a href="#md:coding-standards"><span>Coding <wbr/>Standards</span></a></li>
+<li>
+<ul>
+<li><a href="#md:coding-chips"><span>Coding <wbr/>Chips</span></a></li></ul></li>
 <li><a href="#md:tests"><span>Tests</span></a></li>
 <li><a href="#md:copyright"><span>Copyright</span></a></li>
 <li><a href="#md:license"><span>License</span></a></li></ul></li></ul></li></ul></div></details></div>
