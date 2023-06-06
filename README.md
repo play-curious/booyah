@@ -50,8 +50,6 @@ In the same vein, we use [ESLint](https://eslint.org/) to catch certain coding e
 
 We use [Jest](https://jestjs.io/) for unit tests on certain parts of Booyah. You can run them using `yarn test`.
 
-Currently there is no automated testing, which is not something that we're proud of.
-
 In addition to what Prettier enforces, there are a few standards that we enforce in Booyah:
 
 - Indentation: 2-character indents, using spaces.
@@ -59,6 +57,15 @@ In addition to what Prettier enforces, there are a few standards that we enforce
 - Private or protected methods & attributes should start with an underscore.
 - Use a single blank line to separate functions and methods. Prettier will remove multiple blank lines.
 - Documentation: Document classes and methods using multiline comments like `/** ... */`.
+- For functions or methods that take more than 1 arguments, consider using an object to contain all the optional attributes. Naming the arguments avoids errors and having to decide the correct order or the arguments. The function `chip.fillInOptions()` can make this process easier by filling in default values.  
+
+### Coding Chips
+
+Specifically for chips, here are general rules for making them resusable:
+
+- Attributes should generally be private. Otherwise the values could be modified by any other code at any time. If external code needs access to them, provide getters and (potentially) setters.
+- Most attributes should be initialized in the `_onActivate()` method, not in the constructor. The exception are "options" provided in the constructor that describe how the chip should work.
+- Parent chips should generally call methods directly on their child chips. Inversely, however, child chips should _not_ call parent methods. Instead, child chips can emit events that parents subscribe and react to. The exception is "services" chips that are available more or less globally, such as an audio player or a metrics service, which should be created so that any code can call them.  
 
 ## Tests
 
