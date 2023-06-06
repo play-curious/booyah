@@ -121,7 +121,7 @@ describe("Chip", () => {
     }).toThrow();
   });
 
-  test("throws on mulitple resume", () => {
+  test("throws on multiple resume", () => {
     expect(() => {
       e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
       e.pause(makeFrameInfo());
@@ -600,6 +600,26 @@ describe("Sequence", () => {
 
     // There should be a skipped signal
     expect(parent.outputSignal.name).toBe("skip");
+  });
+
+  test("runs single child in loop", () => {
+    let counter = 0;
+    class TerminatingCounter extends chip.ChipBase {
+      protected _onActivate(): void {
+        counter++;
+        this.terminate();
+      }
+    }
+
+    const children = [new TerminatingCounter()];
+    const parent = new chip.Sequence(children, { loop: true });
+
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    expect(counter).toBe(1);
+    parent.tick(makeFrameInfo());
+    expect(counter).toBe(2);
+    parent.tick(makeFrameInfo());
+    expect(counter).toBe(3);
   });
 });
 
