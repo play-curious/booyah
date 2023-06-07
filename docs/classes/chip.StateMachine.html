@@ -18,12 +18,16 @@
 <h1>Class StateMachine</h1></div>
 <section class="tsd-panel tsd-comment">
 <div class="tsd-comment tsd-typography"><p>Represents a state machine, where each state has a name, and is represented by an chip.
-Only one state is active at a time. 
+Only one state is active at a time.
 The state machine has one starting state, but can have multiple ending states.
 When the machine reaches an ending state, it terminates with a name equal to the name of the ending state.
 By default, the state machine begins at the state called &quot;start&quot;, and stops at &quot;end&quot;.</p>
-<p>The signals are not provided directly by the states (chips) by rather by a signal table provided in the constructor.
-To use have a signal table within a signal table, use the function makeSignalTable()</p>
+<p>When the active state chip terminates, the state machine transitions to another.
+To determine the next state, it first looks if there is a corresponding entry in the <code>signals</code> table, which
+can be either a state name or a function that takes <code>(ChipContext, Signal)</code> and returns a signal.
+If there is nothing in the signal table for the state, it next looks if the terminating signal is the name of another
+state, in which case it switches directly to that state,</p>
+<p>If you want to create embedded signal tables, try the <code>makeSignalTable()</code> function.</p>
 </div></section>
 <section class="tsd-panel tsd-hierarchy">
 <h4>Hierarchy</h4>
@@ -32,7 +36,7 @@ To use have a signal table within a signal table, use the function makeSignalTab
 <ul class="tsd-hierarchy">
 <li><span class="target">StateMachine</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1094">src/chip.ts:1094</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1098">src/chip.ts:1098</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -44,23 +48,21 @@ To use have a signal table within a signal table, use the function makeSignalTab
 </div></section>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading">Properties</h3>
-<div class="tsd-index-list"><a href="chip.StateMachine.html#_childChips" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="#FF984D" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="12" id="icon-1024-path"></rect><path d="M9.354 16V7.24H12.174C12.99 7.24 13.638 7.476 14.118 7.948C14.606 8.412 14.85 9.036 14.85 9.82C14.85 10.604 14.606 11.232 14.118 11.704C13.638 12.168 12.99 12.4 12.174 12.4H10.434V16H9.354ZM10.434 11.428H12.174C12.646 11.428 13.022 11.284 13.302 10.996C13.59 10.7 13.734 10.308 13.734 9.82C13.734 9.324 13.59 8.932 13.302 8.644C13.022 8.356 12.646 8.212 12.174 8.212H10.434V11.428Z" fill="var(--color-text)" id="icon-1024-text"></path></svg><span>_child<wbr/>Chips</span></a>
+<div class="tsd-index-list"><a href="chip.StateMachine.html#_activeChildChip" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="#FF984D" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="12" id="icon-1024-path"></rect><path d="M9.354 16V7.24H12.174C12.99 7.24 13.638 7.476 14.118 7.948C14.606 8.412 14.85 9.036 14.85 9.82C14.85 10.604 14.606 11.232 14.118 11.704C13.638 12.168 12.99 12.4 12.174 12.4H10.434V16H9.354ZM10.434 11.428H12.174C12.646 11.428 13.022 11.284 13.302 10.996C13.59 10.7 13.734 10.308 13.734 9.82C13.734 9.324 13.59 8.932 13.302 8.644C13.022 8.356 12.646 8.212 12.174 8.212H10.434V11.428Z" fill="var(--color-text)" id="icon-1024-text"></path></svg><span>_active<wbr/>Child<wbr/>Chip</span></a>
+<a href="chip.StateMachine.html#_childChips" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_child<wbr/>Chips</span></a>
 <a href="chip.StateMachine.html#_chipContext" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_chip<wbr/>Context</span></a>
 <a href="chip.StateMachine.html#_eventListeners" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_event<wbr/>Listeners</span></a>
 <a href="chip.StateMachine.html#_inputSignal" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_input<wbr/>Signal</span></a>
+<a href="chip.StateMachine.html#_lastSignal" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_last<wbr/>Signal</span></a>
 <a href="chip.StateMachine.html#_lastTickInfo" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_last<wbr/>Tick<wbr/>Info</span></a>
 <a href="chip.StateMachine.html#_outputSignal" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_output<wbr/>Signal</span></a>
 <a href="chip.StateMachine.html#_reloadMemento" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_reload<wbr/>Memento?</span></a>
+<a href="chip.StateMachine.html#_signals" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_signals</span></a>
+<a href="chip.StateMachine.html#_startingState" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_starting<wbr/>State</span></a>
 <a href="chip.StateMachine.html#_state" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_state</span></a>
-<a href="chip.StateMachine.html#activeChildChip" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>active<wbr/>Child<wbr/>Chip</span></a>
-<a href="chip.StateMachine.html#lastSignal" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>last<wbr/>Signal</span></a>
+<a href="chip.StateMachine.html#_states" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_states</span></a>
+<a href="chip.StateMachine.html#_visitedStates" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_visited<wbr/>States</span></a>
 <a href="chip.StateMachine.html#options" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>options</span></a>
-<a href="chip.StateMachine.html#progress" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>progress</span></a>
-<a href="chip.StateMachine.html#signals" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>signals</span></a>
-<a href="chip.StateMachine.html#startingState" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>starting<wbr/>State</span></a>
-<a href="chip.StateMachine.html#stateParams" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>state<wbr/>Params</span></a>
-<a href="chip.StateMachine.html#states" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>states</span></a>
-<a href="chip.StateMachine.html#visitedStates" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>visited<wbr/>States</span></a>
 <a href="chip.StateMachine.html#prefixed" class="tsd-index-link tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>prefixed</span></a>
 </div></section>
 <section class="tsd-index-section">
@@ -68,8 +70,10 @@ To use have a signal table within a signal table, use the function makeSignalTab
 <div class="tsd-index-list"><a href="chip.StateMachine.html#children" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="#FF4D4D" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="12" id="icon-262144-path"></rect><path d="M8.85 16L11.13 7.24H12.582L14.85 16H13.758L13.182 13.672H10.53L9.954 16H8.85ZM10.746 12.76H12.954L12.282 10.06C12.154 9.548 12.054 9.12 11.982 8.776C11.91 8.432 11.866 8.208 11.85 8.104C11.834 8.208 11.79 8.432 11.718 8.776C11.646 9.12 11.546 9.544 11.418 10.048L10.746 12.76Z" fill="var(--color-text)" id="icon-262144-text"></path></svg><span>children</span></a>
 <a href="chip.StateMachine.html#chipContext" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>chip<wbr/>Context</span></a>
 <a href="chip.StateMachine.html#defaultChildChipContext" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>default<wbr/>Child<wbr/>Chip<wbr/>Context</span></a>
+<a href="chip.StateMachine.html#lastSignal" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>last<wbr/>Signal</span></a>
 <a href="chip.StateMachine.html#outputSignal" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>output<wbr/>Signal</span></a>
 <a href="chip.StateMachine.html#state" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>state</span></a>
+<a href="chip.StateMachine.html#visitedStates" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>visited<wbr/>States</span></a>
 </div></section>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading">Methods</h3>
@@ -124,102 +128,92 @@ To use have a signal table within a signal table, use the function makeSignalTab
 <h4 class="tsd-returns-title">Returns <a href="chip.StateMachine.html" class="tsd-signature-type tsd-kind-class">StateMachine</a></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#constructor">constructor</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1106">src/chip.ts:1106</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1108">src/chip.ts:1108</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Properties</h2>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="_activeChildChip" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_active<wbr/>Child<wbr/>Chip</span><a href="#_activeChildChip" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_active<wbr/>Child<wbr/>Chip</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Chip.html" class="tsd-signature-type tsd-kind-interface">Chip</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1105">src/chip.ts:1105</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_childChips" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_child<wbr/>Chips</span><a href="#_childChips" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_child<wbr/>Chips</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><a href="../interfaces/chip.Chip.html" class="tsd-signature-type tsd-kind-interface">Chip</a><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_childChips">_childChips</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L536">src/chip.ts:536</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L536">src/chip.ts:536</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_chipContext" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_chip<wbr/>Context</span><a href="#_chipContext" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_chip<wbr/>Context</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type ">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_chipContext">_chipContext</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L245">src/chip.ts:245</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L245">src/chip.ts:245</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_eventListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_event<wbr/>Listeners</span><a href="#_eventListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_event<wbr/>Listeners</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.IEventListener.html" class="tsd-signature-type tsd-kind-interface">IEventListener</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_eventListeners">_eventListeners</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L249">src/chip.ts:249</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L249">src/chip.ts:249</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_inputSignal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_input<wbr/>Signal</span><a href="#_inputSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_input<wbr/>Signal</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_inputSignal">_inputSignal</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L247">src/chip.ts:247</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L247">src/chip.ts:247</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="_lastSignal" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_last<wbr/>Signal</span><a href="#_lastSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_last<wbr/>Signal</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1106">src/chip.ts:1106</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_lastTickInfo" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_last<wbr/>Tick<wbr/>Info</span><a href="#_lastTickInfo" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_last<wbr/>Tick<wbr/>Info</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.TickInfo.html" class="tsd-signature-type tsd-kind-interface">TickInfo</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_lastTickInfo">_lastTickInfo</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L246">src/chip.ts:246</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L246">src/chip.ts:246</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_outputSignal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_output<wbr/>Signal</span><a href="#_outputSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_output<wbr/>Signal</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_outputSignal">_outputSignal</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L250">src/chip.ts:250</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L250">src/chip.ts:250</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_reloadMemento" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <code class="tsd-tag ts-flagOptional">Optional</code> <span>_reload<wbr/>Memento</span><a href="#_reloadMemento" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_reload<wbr/>Memento</span><span class="tsd-signature-symbol">?:</span> <a href="../types/chip.ReloadMemento.html" class="tsd-signature-type tsd-kind-type-alias">ReloadMemento</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_reloadMemento">_reloadMemento</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L248">src/chip.ts:248</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L248">src/chip.ts:248</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="_signals" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_signals</span><a href="#_signals" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_signals</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.SignalTable.html" class="tsd-signature-type tsd-kind-type-alias">SignalTable</a><span class="tsd-signature-symbol"> = {}</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1102">src/chip.ts:1102</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="_startingState" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_starting<wbr/>State</span><a href="#_startingState" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_starting<wbr/>State</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.SignalDescriptor.html" class="tsd-signature-type tsd-kind-type-alias">SignalDescriptor</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1103">src/chip.ts:1103</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_state" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_state</span><a href="#_state" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_state</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.ChipState.html" class="tsd-signature-type tsd-kind-type-alias">ChipState</a><span class="tsd-signature-symbol"> = &quot;inactive&quot;</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_state">_state</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L251">src/chip.ts:251</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="activeChildChip" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>active<wbr/>Child<wbr/>Chip</span><a href="#activeChildChip" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">active<wbr/>Child<wbr/>Chip</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Chip.html" class="tsd-signature-type tsd-kind-interface">Chip</a></div><aside class="tsd-sources">
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L251">src/chip.ts:251</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="_states" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_states</span><a href="#_states" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_states</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.StateTable.html" class="tsd-signature-type tsd-kind-type-alias">StateTable</a><span class="tsd-signature-symbol"> = {}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1102">src/chip.ts:1102</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member tsd-is-private"><a id="lastSignal" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>last<wbr/>Signal</span><a href="#lastSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">last<wbr/>Signal</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></div><aside class="tsd-sources">
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1101">src/chip.ts:1101</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="_visitedStates" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_visited<wbr/>States</span><a href="#_visitedStates" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_visited<wbr/>States</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1104">src/chip.ts:1104</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1104">src/chip.ts:1104</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="options" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagReadonly">Readonly</code> <span>options</span><a href="#options" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">options</span><span class="tsd-signature-symbol">:</span> <a href="chip.StateMachineOptions.html" class="tsd-signature-type tsd-kind-class">StateMachineOptions</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1095">src/chip.ts:1095</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="progress" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>progress</span><a href="#progress" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">progress</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
-<ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1101">src/chip.ts:1101</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="signals" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>signals</span><a href="#signals" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">signals</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.SignalTable.html" class="tsd-signature-type tsd-kind-type-alias">SignalTable</a><span class="tsd-signature-symbol"> = {}</span></div><aside class="tsd-sources">
-<ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1098">src/chip.ts:1098</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="startingState" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>starting<wbr/>State</span><a href="#startingState" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">starting<wbr/>State</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.SignalDescriptor.html" class="tsd-signature-type tsd-kind-type-alias">SignalDescriptor</a></div><aside class="tsd-sources">
-<ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1099">src/chip.ts:1099</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="stateParams" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>state<wbr/>Params</span><a href="#stateParams" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">state<wbr/>Params</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
-<ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1103">src/chip.ts:1103</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="states" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>states</span><a href="#states" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">states</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.StateTable.html" class="tsd-signature-type tsd-kind-type-alias">StateTable</a><span class="tsd-signature-symbol"> = {}</span></div><aside class="tsd-sources">
-<ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1097">src/chip.ts:1097</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="visitedStates" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>visited<wbr/>States</span><a href="#visitedStates" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">visited<wbr/>States</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
-<ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1100">src/chip.ts:1100</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1099">src/chip.ts:1099</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="prefixed" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>prefixed</span><a href="#prefixed" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">prefixed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
@@ -238,7 +232,7 @@ To use have a signal table within a signal table, use the function makeSignalTab
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><a href="../interfaces/chip.Chip.html" class="tsd-signature-type tsd-kind-interface">Chip</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from Composite.children</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L608">src/chip.ts:608</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L608">src/chip.ts:608</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="chipContext" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>chip<wbr/>Context</span><a href="#chipContext" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -247,7 +241,7 @@ To use have a signal table within a signal table, use the function makeSignalTab
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from Composite.chipContext</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L253">src/chip.ts:253</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L253">src/chip.ts:253</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="defaultChildChipContext" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>default<wbr/>Child<wbr/>Chip<wbr/>Context</span><a href="#defaultChildChipContext" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -259,7 +253,17 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <a href="../types/chip.ChipContextResolvable.html" class="tsd-signature-type tsd-kind-type-alias">ChipContextResolvable</a></h4><aside class="tsd-sources">
 <p>Inherited from Composite.defaultChildChipContext</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L805">src/chip.ts:805</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L805">src/chip.ts:805</a></li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member"><a id="lastSignal" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><span>last<wbr/>Signal</span><a href="#lastSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="tsd-signature" id="lastSignal.lastSignal-1"><span class="tsd-signature-symbol">get</span> lastSignal<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></li>
+<li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The last signal used by the machine. If the machine is running, this describes the current state</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1263">src/chip.ts:1263</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="outputSignal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>output<wbr/>Signal</span><a href="#outputSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -270,7 +274,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></h4><aside class="tsd-sources">
 <p>Inherited from Composite.outputSignal</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L424">src/chip.ts:424</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L424">src/chip.ts:424</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="state" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>state</span><a href="#state" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -281,7 +285,17 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <a href="../types/chip.ChipState.html" class="tsd-signature-type tsd-kind-type-alias">ChipState</a></h4><aside class="tsd-sources">
 <p>Inherited from Composite.state</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L428">src/chip.ts:428</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L428">src/chip.ts:428</a></li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member"><a id="visitedStates" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><span>visited<wbr/>States</span><a href="#visitedStates" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="tsd-signature" id="visitedStates.visitedStates-1"><span class="tsd-signature-symbol">get</span> visitedStates<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a><span class="tsd-signature-symbol">[]</span></li>
+<li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>An array of all the signals the machine has gone through, in order. It may contain duplicates</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a><span class="tsd-signature-symbol">[]</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1268">src/chip.ts:1268</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Methods</h2>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_activateChildChip" class="tsd-anchor"></a>
@@ -304,7 +318,7 @@ Overload to add extra attributes to the context.</p>
 <aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_activateChildChip">_activateChildChip</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L618">src/chip.ts:618</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L618">src/chip.ts:618</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="_changeState" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_change<wbr/>State</span><a href="#_changeState" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-private">
@@ -317,7 +331,7 @@ Overload to add extra attributes to the context.</p>
 <h5><span class="tsd-kind-parameter">nextState</span>: <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1222">src/chip.ts:1222</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1224">src/chip.ts:1224</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected"><a id="_makeReloadMementoData" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_make<wbr/>Reload<wbr/>Memento<wbr/>Data</span><a href="#_makeReloadMementoData" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected">
@@ -328,7 +342,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <a href="../types/chip.ReloadMementoData.html" class="tsd-signature-type tsd-kind-type-alias">ReloadMementoData</a></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_makeReloadMementoData">_makeReloadMementoData</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1208">src/chip.ts:1208</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1209">src/chip.ts:1209</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_onActivate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_on<wbr/>Activate</span><a href="#_onActivate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -339,7 +353,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_onActivate">_onActivate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L451">src/chip.ts:451</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L451">src/chip.ts:451</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="_onAfterTick" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_on<wbr/>After<wbr/>Tick</span><a href="#_onAfterTick" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -350,7 +364,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_onAfterTick">_onAfterTick</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1161">src/chip.ts:1161</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1162">src/chip.ts:1162</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_onPause" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_on<wbr/>Pause</span><a href="#_onPause" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -361,7 +375,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_onPause">_onPause</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L472">src/chip.ts:472</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L472">src/chip.ts:472</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_onResume" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_on<wbr/>Resume</span><a href="#_onResume" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -372,7 +386,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_onResume">_onResume</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L479">src/chip.ts:479</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L479">src/chip.ts:479</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="_onTerminate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_on<wbr/>Terminate</span><a href="#_onTerminate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -383,7 +397,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_onTerminate">_onTerminate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1203">src/chip.ts:1203</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1204">src/chip.ts:1204</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_onTick" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_on<wbr/>Tick</span><a href="#_onTick" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -394,7 +408,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_onTick">_onTick</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L458">src/chip.ts:458</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L458">src/chip.ts:458</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_removeTerminatedChildChips" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_remove<wbr/>Terminated<wbr/>Child<wbr/>Chips</span><a href="#_removeTerminatedChildChips" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -405,7 +419,7 @@ Overload to add extra attributes to the context.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_removeTerminatedChildChips">_removeTerminatedChildChips</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L790">src/chip.ts:790</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L790">src/chip.ts:790</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_subscribe" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_subscribe</span><a href="#_subscribe" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -442,7 +456,7 @@ If you are interfacing with a different event system, you can provide a
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_subscribe">_subscribe</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L329">src/chip.ts:329</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L329">src/chip.ts:329</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_subscribeOnce" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_subscribe<wbr/>Once</span><a href="#_subscribeOnce" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -479,7 +493,7 @@ If you are interfacing with a different event system, you can provide a
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_subscribeOnce">_subscribeOnce</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L362">src/chip.ts:362</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L362">src/chip.ts:362</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_terminateAllChildChips" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_terminate<wbr/>All<wbr/>Child<wbr/>Chips</span><a href="#_terminateAllChildChips" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -495,7 +509,7 @@ If you are interfacing with a different event system, you can provide a
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_terminateAllChildChips">_terminateAllChildChips</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L777">src/chip.ts:777</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L777">src/chip.ts:777</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_terminateChildChip" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_terminate<wbr/>Child<wbr/>Chip</span><a href="#_terminateChildChip" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -511,7 +525,7 @@ If you are interfacing with a different event system, you can provide a
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_terminateChildChip">_terminateChildChip</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L744">src/chip.ts:744</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L744">src/chip.ts:744</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_tickChildChips" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_tick<wbr/>Child<wbr/>Chips</span><a href="#_tickChildChips" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -523,7 +537,7 @@ Sends tick to all .</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_tickChildChips">_tickChildChips</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L768">src/chip.ts:768</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L768">src/chip.ts:768</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_unsubscribe" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_unsubscribe</span><a href="#_unsubscribe" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -556,7 +570,7 @@ unsubscribe only to those.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#_unsubscribe">_unsubscribe</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L391">src/chip.ts:391</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L391">src/chip.ts:391</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="activate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>activate</span><a href="#activate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -579,7 +593,7 @@ Should only be called from an inactive state</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#activate">activate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1139">src/chip.ts:1139</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1141">src/chip.ts:1141</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="addListener" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>add<wbr/>Listener</span><a href="#addListener" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -619,6 +633,8 @@ Should only be called from an inactive state</p>
 <ul class="tsd-signatures">
 <li class="tsd-signature tsd-anchor-link" id="changeState.changeState-1"><span class="tsd-kind-call-signature">change<wbr/>State</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">nextState</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#changeState.changeState-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Switch directly to a new state, terminating the current one</p>
+</div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
@@ -626,7 +642,7 @@ Should only be called from an inactive state</p>
 <h5><span class="tsd-kind-parameter">nextState</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L1214">src/chip.ts:1214</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L1216">src/chip.ts:1216</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="emit" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>emit</span><a href="#emit" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -707,7 +723,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <a href="../types/chip.ReloadMemento.html" class="tsd-signature-type tsd-kind-type-alias">ReloadMemento</a></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#makeReloadMemento">makeReloadMemento</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L432">src/chip.ts:432</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L432">src/chip.ts:432</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="off" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>off</span><a href="#off" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -831,7 +847,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#pause">pause</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L590">src/chip.ts:590</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L590">src/chip.ts:590</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="removeAllListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>remove<wbr/>All<wbr/>Listeners</span><a href="#removeAllListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -901,7 +917,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#resume">resume</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L599">src/chip.ts:599</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L599">src/chip.ts:599</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="terminate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>terminate</span><a href="#terminate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -917,7 +933,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#terminate">terminate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L579">src/chip.ts:579</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L579">src/chip.ts:579</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="tick" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>tick</span><a href="#tick" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -934,7 +950,7 @@ Overload this method in subclasses to change the behavior</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.Composite.html">Composite</a>.<a href="chip.Composite.html#tick">tick</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/add2123/src/chip.ts#L560">src/chip.ts:560</a></li></ul></aside></li></ul></section></section></div>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/b358555/src/chip.ts#L560">src/chip.ts:560</a></li></ul></aside></li></ul></section></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -955,29 +971,29 @@ Overload this method in subclasses to change the behavior</p>
 <div class="tsd-accordion-details">
 <ul>
 <li><a href="#constructor" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-512-path"></use><use href="#icon-512-text"></use></svg><span>constructor</span></a></li>
+<li><a href="#_activeChildChip" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_active<wbr/>Child<wbr/>Chip</span></a></li>
 <li><a href="#_childChips" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_child<wbr/>Chips</span></a></li>
 <li><a href="#_chipContext" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_chip<wbr/>Context</span></a></li>
 <li><a href="#_eventListeners" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_event<wbr/>Listeners</span></a></li>
 <li><a href="#_inputSignal" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_input<wbr/>Signal</span></a></li>
+<li><a href="#_lastSignal" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_last<wbr/>Signal</span></a></li>
 <li><a href="#_lastTickInfo" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_last<wbr/>Tick<wbr/>Info</span></a></li>
 <li><a href="#_outputSignal" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_output<wbr/>Signal</span></a></li>
 <li><a href="#_reloadMemento" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_reload<wbr/>Memento</span></a></li>
+<li><a href="#_signals" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_signals</span></a></li>
+<li><a href="#_startingState" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_starting<wbr/>State</span></a></li>
 <li><a href="#_state" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_state</span></a></li>
-<li><a href="#activeChildChip" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>active<wbr/>Child<wbr/>Chip</span></a></li>
-<li><a href="#lastSignal" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>last<wbr/>Signal</span></a></li>
+<li><a href="#_states" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_states</span></a></li>
+<li><a href="#_visitedStates" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_visited<wbr/>States</span></a></li>
 <li><a href="#options" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>options</span></a></li>
-<li><a href="#progress" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>progress</span></a></li>
-<li><a href="#signals" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>signals</span></a></li>
-<li><a href="#startingState" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>starting<wbr/>State</span></a></li>
-<li><a href="#stateParams" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>state<wbr/>Params</span></a></li>
-<li><a href="#states" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>states</span></a></li>
-<li><a href="#visitedStates" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>visited<wbr/>States</span></a></li>
 <li><a href="#prefixed" class="tsd-is-inherited tsd-is-external"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>prefixed</span></a></li>
 <li><a href="#children" class="tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>children</span></a></li>
 <li><a href="#chipContext" class="tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>chip<wbr/>Context</span></a></li>
 <li><a href="#defaultChildChipContext" class="tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>default<wbr/>Child<wbr/>Chip<wbr/>Context</span></a></li>
+<li><a href="#lastSignal" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>last<wbr/>Signal</span></a></li>
 <li><a href="#outputSignal" class="tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>output<wbr/>Signal</span></a></li>
 <li><a href="#state" class="tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>state</span></a></li>
+<li><a href="#visitedStates" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-262144-path"></use><use href="#icon-262144-text"></use></svg><span>visited<wbr/>States</span></a></li>
 <li><a href="#_activateChildChip" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>_activate<wbr/>Child<wbr/>Chip</span></a></li>
 <li><a href="#_changeState" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>_change<wbr/>State</span></a></li>
 <li><a href="#_makeReloadMementoData" class="tsd-is-protected"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>_make<wbr/>Reload<wbr/>Memento<wbr/>Data</span></a></li>

@@ -166,7 +166,7 @@ describe("Events", () => {
     expect(receiver.receiveA).toBeCalledWith(1, 2, 3);
     expect(receiver.receiveB).toBeCalledWith(1, 2, 3);
 
-    // Teardown the receiver and send more events that should not be recieved
+    // Teardown the receiver and send more events that should not be received
     receiver.terminate();
     sender.emit("a");
     sender.emit("b");
@@ -213,7 +213,7 @@ describe("Events", () => {
     // @ts-ignore
     expect(spyB.mock.calls?.[0][0].value).toBe(2);
 
-    // Teardown the receiver and send more events that should not be recieved
+    // Teardown the receiver and send more events that should not be received
     receiver.terminate();
     sender.dispatchEvent(new CustomEvent("a", 1));
     sender.dispatchEvent(new CustomEvent("b", 2));
@@ -317,7 +317,7 @@ describe("Composite", () => {
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     parent.tick(makeFrameInfo());
 
-    // Deactiavate middle child
+    // Deactivate middle child
     children[1].terminate();
 
     // Run two more times
@@ -738,7 +738,7 @@ describe("StateMachine", () => {
       },
     });
 
-    // Run once, then termiate
+    // Run once, then terminate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
 
@@ -754,7 +754,10 @@ describe("StateMachine", () => {
     expect(states.b._onActivate).toBeCalledTimes(1);
 
     expect(stateMachine.options.signals.a).toBeCalledTimes(1);
-    expect(stateMachine.options.signals.a).toBeCalledWith(signal);
+    expect(stateMachine.options.signals.a).toBeCalledWith(
+      stateMachine.chipContext,
+      signal
+    );
   });
 });
 

@@ -2,7 +2,7 @@ import { EventEmitter } from "eventemitter3";
 import * as _ from "underscore";
 
 /**
- * Fills in the mising options from the provided defaults
+ * Fills in the missing options from the provided defaults
  * @param options Options provided by the caller
  * @param defaults Defaults provided by the author
  */
@@ -228,7 +228,7 @@ export interface Chip extends NodeEventSource {
 }
 
 /**
- * A base class for creating chips that reduces boilterplate code.
+ * A base class for creating chips that reduces boilerplate code.
  * To use it, simply override some or all of the following protected methods:
  * - _onActivate()
  * - _onTick()
@@ -1070,7 +1070,7 @@ export type StateTableDescriptor = {
   [n: string]: ChipActivationInfo | ChipResolvable;
 };
 
-export type SignalFunction = (signal: Signal) => Signal;
+export type SignalFunction = (context: ChipContext, signal: Signal) => Signal;
 export type SignalDescriptor = Signal | SignalFunction;
 export type SignalTable = { [name: string]: SignalDescriptor };
 
@@ -1078,30 +1078,32 @@ export class StateMachineOptions {
   startingState: Signal | string = "start";
   signals: { [n: string]: SignalDescriptor | string };
   endingStates: string[] = ["end"];
-  startingProgress: Record<string, unknown> = {};
 }
 
-/** 
-  Represents a state machine, where each state has a name, and is represented by an chip.
-  Only one state is active at a time. 
-  The state machine has one starting state, but can have multiple ending states.
-  When the machine reaches an ending state, it terminates with a name equal to the name of the ending state.
-  By default, the state machine begins at the state called "start", and stops at "end".
-
-  The signals are not provided directly by the states (chips) by rather by a signal table provided in the constructor.
-  To use have a signal table within a signal table, use the function makeSignalTable()
-*/
+/**
+ * Represents a state machine, where each state has a name, and is represented by an chip.
+ * Only one state is active at a time.
+ * The state machine has one starting state, but can have multiple ending states.
+ * When the machine reaches an ending state, it terminates with a name equal to the name of the ending state.
+ * By default, the state machine begins at the state called "start", and stops at "end".
+ *
+ * When the active state chip terminates, the state machine transitions to another.
+ * To determine the next state, it first looks if there is a corresponding entry in the `signals` table, which
+ * can be either a state name or a function that takes `(ChipContext, Signal)` and returns a signal.
+ * If there is nothing in the signal table for the state, it next looks if the terminating signal is the name of another
+ * state, in which case it switches directly to that state,
+ *
+ * If you want to create embedded signal tables, try the `makeSignalTable()` function.
+ */
 export class StateMachine extends Composite {
   public readonly options: StateMachineOptions;
 
-  public states: StateTable = {};
-  public signals: SignalTable = {};
-  public startingState: SignalDescriptor;
-  public visitedStates: Signal[];
-  public progress: Record<string, unknown>;
-  public activeChildChip: Chip;
-  public stateParams: Record<string, unknown>;
-  private lastSignal: Signal;
+  private _states: StateTable = {};
+  private _signals: SignalTable = {};
+  private _startingState: SignalDescriptor;
+  private _visitedStates: Signal[];
+  private _activeChildChip: Chip;
+  private _lastSignal: Signal;
 
   constructor(
     states: StateTableDescriptor,
@@ -1113,9 +1115,9 @@ export class StateMachine extends Composite {
     for (const name in states) {
       const state = states[name];
       if (isChipResolvable(state)) {
-        this.states[name] = { chip: state };
+        this._states[name] = { chip: state };
       } else {
-        this.states[name] = state;
+        this._states[name] = state;
       }
     }
 
@@ -1123,15 +1125,15 @@ export class StateMachine extends Composite {
 
     // Ensure all signals are of the correct type
     if (typeof this.options.startingState === "string")
-      this.startingState = makeSignal(this.options.startingState);
-    else this.startingState = this.options.startingState;
+      this._startingState = makeSignal(this.options.startingState);
+    else this._startingState = this.options.startingState;
 
     for (const key in this.options.signals) {
       const value = this.options.signals[key];
       if (typeof value === "string") {
-        this.signals[key] = makeSignal(value);
+        this._signals[key] = makeSignal(value);
       } else {
-        this.signals[key] = value;
+        this._signals[key] = value;
       }
     }
   }
@@ -1144,30 +1146,29 @@ export class StateMachine extends Composite {
   ) {
     super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
 
-    this.visitedStates = [];
-    this.progress = cloneData(this.options.startingProgress);
+    this._visitedStates = [];
 
     if (this._reloadMemento) {
-      this.visitedStates = this._reloadMemento.data.visitedStates as Signal[];
-      this._changeState(_.last(this.visitedStates));
+      this._visitedStates = this._reloadMemento.data.visitedStates as Signal[];
+      this._changeState(_.last(this._visitedStates));
     } else {
-      const startingState = _.isFunction(this.startingState)
-        ? this.startingState(makeSignal())
-        : this.startingState;
+      const startingState = _.isFunction(this._startingState)
+        ? this._startingState(chipContext, makeSignal())
+        : this._startingState;
       this._changeState(startingState);
     }
   }
 
   _onAfterTick() {
-    if (!this.activeChildChip) return;
+    if (!this._activeChildChip) return;
 
-    const signal = this.activeChildChip.outputSignal;
+    const signal = this._activeChildChip.outputSignal;
     if (signal) {
       let nextStateDescriptor: Signal;
       // The signal could directly be the name of another state, or ending state
-      if (!(this.lastSignal.name in this.signals)) {
+      if (!(this._lastSignal.name in this._signals)) {
         if (
-          signal.name in this.states ||
+          signal.name in this._states ||
           _.contains(this.options.endingStates, signal.name)
         ) {
           nextStateDescriptor = signal;
@@ -1176,9 +1177,9 @@ export class StateMachine extends Composite {
         }
       } else {
         const signalDescriptor: SignalDescriptor =
-          this.signals[this.lastSignal.name];
+          this._signals[this._lastSignal.name];
         if (_.isFunction(signalDescriptor)) {
-          nextStateDescriptor = signalDescriptor(signal);
+          nextStateDescriptor = signalDescriptor(this._chipContext, signal);
         } else {
           nextStateDescriptor = signalDescriptor;
         }
@@ -1201,16 +1202,17 @@ export class StateMachine extends Composite {
   }
 
   _onTerminate() {
-    delete this.activeChildChip;
-    delete this.lastSignal;
+    delete this._activeChildChip;
+    delete this._lastSignal;
   }
 
   protected _makeReloadMementoData(): ReloadMementoData {
     return {
-      visitedStates: this.visitedStates,
+      visitedStates: this._visitedStates,
     };
   }
 
+  /** Switch directly to a new state, terminating the current one */
   changeState(nextState: string | Signal): void {
     if (typeof nextState === "string") {
       nextState = makeSignal(nextState);
@@ -1221,26 +1223,26 @@ export class StateMachine extends Composite {
 
   private _changeState(nextState: Signal): void {
     // Stop current state
-    if (this.activeChildChip) {
+    if (this._activeChildChip) {
       // The state may have already been terminated, if terminated
       if (_.size(this._childChips) > 0)
-        this._terminateChildChip(this.activeChildChip);
-      delete this.activeChildChip;
+        this._terminateChildChip(this._activeChildChip);
+      delete this._activeChildChip;
     }
 
     // If reached an ending state, stop here.
     if (_.contains(this.options.endingStates, nextState.name)) {
-      this.lastSignal = nextState;
-      this.visitedStates.push(nextState);
+      this._lastSignal = nextState;
+      this._visitedStates.push(nextState);
 
-      // Termiante with signal
+      // Terminate with signal
       this.terminate(nextState);
       return;
     }
 
-    if (nextState.name in this.states) {
-      const nextStateContext = this.states[nextState.name];
-      this.activeChildChip = this._activateChildChip(nextStateContext.chip, {
+    if (nextState.name in this._states) {
+      const nextStateContext = this._states[nextState.name];
+      this._activeChildChip = this._activateChildChip(nextStateContext.chip, {
         context: nextStateContext.context,
         inputSignal: nextState,
         id: nextState.name,
@@ -1249,12 +1251,22 @@ export class StateMachine extends Composite {
       throw new Error(`Cannot find state '${nextState.name}'`);
     }
 
-    const previousSignal = this.lastSignal;
-    this.lastSignal = nextState;
+    const previousSignal = this._lastSignal;
+    this._lastSignal = nextState;
 
-    this.visitedStates.push(nextState);
+    this._visitedStates.push(nextState);
 
     this.emit("stateChange", previousSignal, nextState);
+  }
+
+  /** The last signal used by the machine. If the machine is running, this describes the current state */
+  get lastSignal() {
+    return this._lastSignal;
+  }
+
+  /** An array of all the signals the machine has gone through, in order. It may contain duplicates */
+  get visitedStates() {
+    return this._visitedStates;
   }
 }
 
@@ -1272,11 +1284,11 @@ export class StateMachine extends Composite {
 export function makeSignalTable(table: {
   [key: string]: string | SignalFunction;
 }): SignalFunction {
-  const f = function (signal: Signal): Signal {
+  const f = function (context: ChipContext, signal: Signal): Signal {
     if (signal.name in table) {
       const signalResolvable = table[signal.name];
       if (_.isFunction(signalResolvable)) {
-        return signalResolvable(signal);
+        return signalResolvable(context, signal);
       } else {
         return makeSignal(signalResolvable);
       }
