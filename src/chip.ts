@@ -911,7 +911,7 @@ export class Parallel extends Composite {
 
   indexOfChipActivationInfo(chip: ChipActivationInfo | ChipResolvable): number {
     if (isChipResolvable(chip)) {
-      return _.indexOf(this._chipActivationInfos, { chip });
+      return this._chipActivationInfos.findIndex((x) => x.chip === chip);
     } else {
       return this._chipActivationInfos.indexOf(chip);
     }
