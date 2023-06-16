@@ -825,6 +825,7 @@ export class Parallel extends Composite {
 
   private _chipActivationInfos: ChipActivationInfo[] = [];
   private _infoToChip = new Map<ChipActivationInfo, Chip>();
+  private _activatedChipCount = 0;
 
   constructor(
     chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
@@ -849,11 +850,13 @@ export class Parallel extends Composite {
         info.attribute || info.id
           ? info
           : _.extend({}, info, {
-              id: (this._chipActivationInfos.length - 1).toString(),
+              id: this._activatedChipCount.toString(),
             });
 
       const chip = this._activateChildChip(info.chip, infoWithId);
       this._infoToChip.set(info, chip);
+
+      this._activatedChipCount++;
     }
   }
 
@@ -872,11 +875,13 @@ export class Parallel extends Composite {
         info.attribute || info.id
           ? info
           : _.extend({}, info, {
-              id: i.toString(),
+              id: this._activatedChipCount.toString(),
             });
 
       const chip = this._activateChildChip(info.chip, infoWithId);
       this._infoToChip.set(info, chip);
+
+      this._activatedChipCount++;
     }
   }
 
@@ -903,8 +908,17 @@ export class Parallel extends Composite {
       if (index === -1) throw new Error("Cannot find chip to remove");
     }
 
+    // Remove chip from _chipActivationInfos
+    const activationInfo = this._chipActivationInfos[index];
+    this._chipActivationInfos.splice(index, 1);
+
     if (this.state !== "inactive") {
-      const chip = this._infoToChip.get(this._chipActivationInfos[index]);
+      const chip = this._infoToChip.get(activationInfo);
+
+      // Remove chip  _infoToChip
+      this._infoToChip.delete(activationInfo);
+
+      // Terminate chip
       chip.terminate();
     }
   }

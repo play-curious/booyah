@@ -443,13 +443,21 @@ describe("Parallel", () => {
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     parent.tick(makeFrameInfo());
 
+    expect(children[0]._onTick).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(1);
+    expect(children[2]._onTick).toBeCalledTimes(1);
+
     // Terminate middle child and run
     parent.removeChildChip(1);
     parent.tick(makeFrameInfo());
 
+    expect(children[0]._onTick).toBeCalledTimes(2);
+    expect(children[1]._onTick).toBeCalledTimes(1);
+    expect(children[2]._onTick).toBeCalledTimes(2);
+
     // Reactivate middle child, terminate third child, and run
     parent.addChildChip(children[1]);
-    parent.removeChildChip(2);
+    parent.removeChildChip(children[2]);
     parent.tick(makeFrameInfo());
 
     expect(children[0]._onTick).toBeCalledTimes(3);
@@ -490,6 +498,10 @@ describe("Parallel", () => {
     parent.tick(makeFrameInfo());
 
     expect(children[1].state).toBe("inactive");
+    // @ts-ignore
+    expect(parent._chipActivationInfos.length).toBe(2);
+    // @ts-ignore
+    expect(parent._infoToChip.size).toBe(2);
 
     // Run again
     parent.tick(makeFrameInfo());
