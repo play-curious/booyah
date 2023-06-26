@@ -67,7 +67,7 @@ export class Runner {
       this._options.inputSignal
     );
 
-    requestAnimationFrame((timeStamp) => this._onTick(timeStamp));
+    requestAnimationFrame(() => this._onTick());
 
     if (this._options.hmr) this._enableHotReloading();
   }
@@ -79,8 +79,10 @@ export class Runner {
     this._rootChip.terminate(chip.makeSignal("stop"));
   }
 
-  private _onTick(timeStamp: number) {
+  private _onTick() {
     if (!this._isRunning) return;
+
+    const timeStamp = performance.now();
 
     let timeSinceLastTick = timeStamp - this._lastTimeStamp;
     this._lastTimeStamp = timeStamp;
@@ -102,7 +104,7 @@ export class Runner {
 
     this._rootChip.tick(tickInfo);
 
-    requestAnimationFrame((timeStamp) => this._onTick(timeStamp));
+    requestAnimationFrame(() => this._onTick());
   }
 
   private _enableHotReloading() {
