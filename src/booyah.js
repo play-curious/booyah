@@ -53,6 +53,8 @@ const DEFAULT_DIRECTIVES = {
     skip: "booyah/images/button-skip.png",
     play: "booyah/images/button-play.png",
   },
+
+  hideFullscreenButton: false,
 };
 
 const GRAPHICAL_ASSETS = [
@@ -253,7 +255,7 @@ export class MenuEntity extends entity.ParallelEntity {
       }
     }
 
-    if (util.supportsFullscreen(document.getElementById("game-parent"))) {
+    if (!this.config.directives.hideFullscreenButton && util.supportsFullscreen(document.getElementById("game-parent"))) {
       this.fullScreenButton = new entity.ToggleSwitch({
         onTexture: this.config.app.loader.resources[
           "booyah/images/fullscreen-on.png"
