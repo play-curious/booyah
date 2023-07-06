@@ -255,7 +255,10 @@ export class MenuEntity extends entity.ParallelEntity {
       }
     }
 
-    if (!this.config.directives.hideFullscreenButton && util.supportsFullscreen(document.getElementById("game-parent"))) {
+    if (
+      !this.config.directives.hideFullscreenButton &&
+      util.supportsFullscreen(document.getElementById("game-parent"))
+    ) {
       this.fullScreenButton = new entity.ToggleSwitch({
         onTexture:
           this.config.app.loader.resources["booyah/images/fullscreen-on.png"]
@@ -521,7 +524,9 @@ export class MenuEntity extends entity.ParallelEntity {
     this.menuLayer.visible = false;
     this.resetConfirmLayer.visible = false;
 
-    this.emit("reset");
+    // todo: IS A HACK, SHOULD BE DONE IN A BETTER WAY
+    // this.emit("reset");
+    this.config.gameStateMachine._changeState(0, "index", {});
   }
 
   _showCredits() {
