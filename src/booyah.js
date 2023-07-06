@@ -255,12 +255,12 @@ export class MenuEntity extends entity.ParallelEntity {
 
     if (util.supportsFullscreen(document.getElementById("game-parent"))) {
       this.fullScreenButton = new entity.ToggleSwitch({
-        onTexture: this.config.app.loader.resources[
-          "booyah/images/fullscreen-on.png"
-        ].texture,
-        offTexture: this.config.app.loader.resources[
-          "booyah/images/fullscreen-off.png"
-        ].texture,
+        onTexture:
+          this.config.app.loader.resources["booyah/images/fullscreen-on.png"]
+            .texture,
+        offTexture:
+          this.config.app.loader.resources["booyah/images/fullscreen-off.png"]
+            .texture,
         isOn: false,
         position: new PIXI.Point(405, 130),
       });
@@ -280,11 +280,10 @@ export class MenuEntity extends entity.ParallelEntity {
     }
 
     this.musicButton = new entity.ToggleSwitch({
-      onTexture: this.config.app.loader.resources["booyah/images/music-on.png"]
-        .texture,
-      offTexture: this.config.app.loader.resources[
-        "booyah/images/music-off.png"
-      ].texture,
+      onTexture:
+        this.config.app.loader.resources["booyah/images/music-on.png"].texture,
+      offTexture:
+        this.config.app.loader.resources["booyah/images/music-off.png"].texture,
       isOn: this.config.playOptions.options.musicOn,
       position: new PIXI.Point(405, 230),
     });
@@ -295,11 +294,11 @@ export class MenuEntity extends entity.ParallelEntity {
     // TODO prevent being able to turn both subtitles and sound off
 
     this.fxButton = new entity.ToggleSwitch({
-      onTexture: this.config.app.loader.resources["booyah/images/voices-on.png"]
-        .texture,
-      offTexture: this.config.app.loader.resources[
-        "booyah/images/voices-off.png"
-      ].texture,
+      onTexture:
+        this.config.app.loader.resources["booyah/images/voices-on.png"].texture,
+      offTexture:
+        this.config.app.loader.resources["booyah/images/voices-off.png"]
+          .texture,
       isOn: this.config.playOptions.options.fxOn,
       position: new PIXI.Point(630, 230),
     });
@@ -308,12 +307,12 @@ export class MenuEntity extends entity.ParallelEntity {
     this.addEntity(this.fxButton);
 
     this.subtitlesButton = new entity.ToggleSwitch({
-      onTexture: this.config.app.loader.resources[
-        "booyah/images/subtitles-on.png"
-      ].texture,
-      offTexture: this.config.app.loader.resources[
-        "booyah/images/subtitles-off.png"
-      ].texture,
+      onTexture:
+        this.config.app.loader.resources["booyah/images/subtitles-on.png"]
+          .texture,
+      offTexture:
+        this.config.app.loader.resources["booyah/images/subtitles-off.png"]
+          .texture,
       isOn: this.config.playOptions.options.showSubtitles,
       position: new PIXI.Point(630, 130),
     });
@@ -403,11 +402,11 @@ export class MenuEntity extends entity.ParallelEntity {
       this.switchLanguageConfirmLayer.addChild(cancelSwitchLanguageButton);
     }
 
-    // Restart button
+    // Reset button
     {
       this.resetButton = new PIXI.Sprite(
         this.config.app.loader.resources[
-          "booyah/images/button-replay.png"
+          "booyah/images/button-back.png"
         ].texture
       );
       this.resetButton.scale.set(0.58); // From 102 to 60 px
@@ -529,9 +528,10 @@ export class MenuEntity extends entity.ParallelEntity {
   }
 
   _onSwitchLanguage(language) {
-    this.confirmLanguageButton.texture = this.config.app.loader.resources[
-      `booyah/images/lang-${language}-on.png`
-    ].texture;
+    this.confirmLanguageButton.texture =
+      this.config.app.loader.resources[
+        `booyah/images/lang-${language}-on.png`
+      ].texture;
     this._on(this.confirmLanguageButton, "pointertap", () =>
       this._onConfirmSwitchLanguage(language)
     );
