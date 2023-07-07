@@ -526,7 +526,8 @@ export class MenuEntity extends entity.ParallelEntity {
 
     // todo: IS A HACK, SHOULD BE DONE IN A BETTER WAY
     // this.emit("reset");
-    this.config.gameStateMachine._changeState(0, "index", {});
+    //this.config.gameStateMachine._changeState(0, "index", {});
+    this.config.gameStateMachine.terminateGameplay = true;
   }
 
   _showCredits() {
