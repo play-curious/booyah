@@ -528,6 +528,7 @@ export class MenuEntity extends entity.ParallelEntity {
     // this.emit("reset");
     //this.config.gameStateMachine._changeState(0, "index", {});
     this.config.gameStateMachine.terminateGameplay = true;
+    this.emit("play");
   }
 
   _showCredits() {
