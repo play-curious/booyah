@@ -407,7 +407,7 @@ export class MenuEntity extends entity.ParallelEntity {
       this.switchLanguageConfirmLayer.addChild(cancelSwitchLanguageButton);
     }
 
-    // Reset button
+    // Back button
     {
       this.resetButton = new PIXI.Sprite(
         this.config.app.loader.resources[
@@ -440,7 +440,7 @@ export class MenuEntity extends entity.ParallelEntity {
 
       this.confirmResetButton = new PIXI.Sprite(
         this.config.app.loader.resources[
-          "booyah/images/button-replay.png"
+          "booyah/images/button-back.png"
         ].texture
       );
       this.confirmResetButton.anchor.set(0.5);
