@@ -289,7 +289,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
 
   public terminate(outputSignal?: Signal): void {
     if (this._state !== "active" && this._state !== "paused")
-      throw new Error(`tick() called from state ${this._state}`);
+      throw new Error(`terminate() called from state ${this._state}`);
 
     this._outputSignal = outputSignal ?? makeSignal();
     this._onTerminate();
