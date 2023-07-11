@@ -291,7 +291,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     if (this._state !== "active" && this._state !== "paused")
       throw new Error(`terminate() called from state ${this._state}`);
 
-    this._outputSignal = outputSignal ?? makeSignal();
+    this._outputSignal = outputSignal;
     this._onTerminate();
 
     this._unsubscribe(); // Remove all event listeners
@@ -577,14 +577,26 @@ export abstract class Composite extends ChipBase {
   }
 
   public terminate(outputSignal: Signal = makeSignal()): void {
+    // Can't just call super.terminate() here, the order is slightly different
+
+    if (this._state !== "active" && this._state !== "paused")
+      throw new Error(`terminate() called from state ${this._state}`);
+
     if (this._methodCallInProgress) {
       this._deferredOutputSignal = outputSignal;
       return;
     }
 
+    this._state = "inactive";
+
+    this._unsubscribe(); // Remove all event listeners
+
     this._terminateAllChildChips();
 
-    super.terminate(outputSignal);
+    this._outputSignal = outputSignal;
+    this._onTerminate();
+
+    this.emit("terminated", this._outputSignal);
   }
 
   public pause(tickInfo: TickInfo): void {
@@ -1500,27 +1512,21 @@ export class Alternative extends Composite {
   }
 
   _onActivate() {
-    for (const chipActivationInfo of this._chipActivationInfos) {
+    for (let i = 0; i < this._chipActivationInfos.length; i++) {
+      const chipActivationInfo = this._chipActivationInfos[i];
+
+      this._subscribe(chipActivationInfo.chip, "terminated", () =>
+        this._onChildTerminated(i)
+      );
       this._activateChildChip(chipActivationInfo.chip, {
         context: chipActivationInfo.context,
       });
     }
-
-    this._checkForSignal();
   }
 
-  _onTick() {
-    this._checkForSignal();
-  }
-
-  private _checkForSignal(): void {
-    for (let i = 0; i < this._chipActivationInfos.length; i++) {
-      if (this._childChips[i].outputSignal) {
-        const terminateWith =
-          this._chipActivationInfos[i].signal ?? makeSignal(i.toString());
-        this.terminate(terminateWith);
-        break;
-      }
-    }
+  private _onChildTerminated(index: number) {
+    const terminateWith =
+      this._chipActivationInfos[index].signal ?? makeSignal(index.toString());
+    this.terminate(terminateWith);
   }
 }

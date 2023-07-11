@@ -811,6 +811,46 @@ describe("StateMachine", () => {
   });
 });
 
+describe("Alternative", () => {
+  test("picks the first chip that terminates", () => {
+    const children = [new MockChip(), new MockChip()];
+
+    const alternative = new chip.Alternative(children);
+
+    // Run once
+    alternative.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    alternative.tick(makeFrameInfo());
+
+    // Terminate second child
+    children[1].terminate();
+
+    // Alternative should terminate as well, with an output signal of the index of the child
+    expect(alternative.state).toBe("inactive");
+    expect(alternative.outputSignal.name).toBe("1");
+  });
+
+  test("can provide custom signal", () => {
+    const children = [
+      { chip: new MockChip(), signal: chip.makeSignal("hello") },
+      new MockChip(),
+    ];
+
+    const alternative = new chip.Alternative(children);
+
+    // Run once
+    alternative.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    alternative.tick(makeFrameInfo());
+
+    // Terminate first child
+    // @ts-ignore
+    children[0].chip.terminate();
+
+    // Alternative should terminate as well, with an output signal of the index of the child
+    expect(alternative.state).toBe("inactive");
+    expect(alternative.outputSignal.name).toBe("hello");
+  });
+});
+
 //// Test hot reload features
 
 class ReloadingChip extends chip.ChipBase {

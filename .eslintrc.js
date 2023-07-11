@@ -20,6 +20,7 @@ module.exports = {
   rules: {
     "no-console": "off",
     "no-unused-vars": ["error", { args: "none" }],
+    "@typescript-eslint/no-non-null-assertion": "off",
   },
   ignorePatterns: [".eslintrc.js"],
 };
