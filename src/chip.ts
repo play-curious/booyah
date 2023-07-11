@@ -287,7 +287,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this._onTick();
   }
 
-  public terminate(outputSignal?: Signal): void {
+  public terminate(outputSignal: Signal = makeSignal()): void {
     if (this._state !== "active" && this._state !== "paused")
       throw new Error(`terminate() called from state ${this._state}`);
 
@@ -576,7 +576,7 @@ export abstract class Composite extends ChipBase {
     this._onAfterTick();
   }
 
-  public terminate(outputSignal?: Signal): void {
+  public terminate(outputSignal: Signal = makeSignal()): void {
     if (this._methodCallInProgress) {
       this._deferredOutputSignal = outputSignal;
       return;

@@ -130,6 +130,14 @@ describe("Chip", () => {
       e.resume(makeFrameInfo());
     }).toThrow();
   });
+
+  test("creates default output signal", () => {
+    e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    expect(e.outputSignal).not.toBeDefined();
+
+    e.terminate();
+    expect(e.outputSignal).toBeDefined();
+  });
 });
 
 describe("Events", () => {
@@ -410,6 +418,14 @@ describe("Composite", () => {
     // @ts-ignore
     children = [new chip.Lambda(() => parent.terminate())];
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+  });
+
+  test("creates default output signal", () => {
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    expect(parent.outputSignal).not.toBeDefined();
+
+    parent.terminate();
+    expect(parent.outputSignal).toBeDefined();
   });
 });
 
