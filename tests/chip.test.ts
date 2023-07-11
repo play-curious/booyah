@@ -671,6 +671,34 @@ describe("Sequence", () => {
     parent.tick(makeFrameInfo());
     expect(counter).toBe(3);
   });
+
+  test("can be used as a queue", () => {
+    const children = [new MockChip()];
+    const parent = new chip.Sequence(children, {
+      terminateOnCompletion: false,
+    });
+
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    // Run 1st child, then terminate it
+    parent.tick(makeFrameInfo());
+    children[0].terminate();
+
+    parent.tick(makeFrameInfo());
+
+    // Add another child
+    children.push(new MockChip());
+    parent.addChildChip(children.at(-1)!);
+    parent.tick(makeFrameInfo());
+
+    // Both children should be ticked once
+    expect(children[0]._onActivate).toBeCalledTimes(1);
+    expect(children[0]._onTick).toBeCalledTimes(1);
+    expect(children[0]._onTerminate).toBeCalledTimes(1);
+    expect(children[1]._onActivate).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(1);
+    expect(children[1]._onTerminate).toBeCalledTimes(0);
+  });
 });
 
 describe("StateMachine", () => {

@@ -1005,6 +1005,11 @@ export class Sequence extends Composite {
     } else {
       this._chipActivationInfos.push(chip);
     }
+
+    if (this._state !== "inactive" && !this._currentChip) {
+      // Pick up with the next chip
+      this._switchChip();
+    }
   }
 
   /** Skips to the next chip */
