@@ -105,14 +105,16 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
   }
 
   _onTick() {
-    if (this._timePassed >= this.options.duration) {
-      this._outputSignal = chip.makeSignal();
+    this._timePassed += this._lastTickInfo.timeSinceLastTick;
 
+    if (this._timePassed >= this.options.duration) {
       // Snap to end
       this._value = this.options.to;
       this._updateValue();
+
+      this.terminate(chip.makeSignal());
     } else {
-      this._timePassed += this._lastTickInfo.timeSinceLastTick;
+      // Ease and interpolate value
       const easedProgress = this.options.easing(
         this._timePassed / this.options.duration
       );
@@ -140,6 +142,10 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
     if (this._currentObj) this._currentObj[this.options.property] = this._value;
 
     this.emit("updatedValue", this._value);
+  }
+
+  get value(): Value {
+    return this._value;
   }
 }
 
