@@ -1018,7 +1018,7 @@ export class Sequence extends Composite {
     this._advance(makeSignal("skip"));
   }
 
-  private _switchChip() {
+  private _switchChip(signal?: Signal) {
     // Stop current chip
     if (this._currentChip) {
       // The current chip may have already been terminated, if it terminated before
@@ -1028,17 +1028,20 @@ export class Sequence extends Composite {
     }
 
     if (this._currentChipIndex < this._chipActivationInfos.length) {
-      const info = this._chipActivationInfos[this._currentChipIndex];
+      // Copy chip activation info and optionally extend it
+      const info = Object.assign(
+        {},
+        this._chipActivationInfos[this._currentChipIndex]
+      );
+
+      if (signal) info.inputSignal = signal;
 
       // If no attribute or ID given, make a default one
-      const infoWithId =
-        info.attribute || info.id
-          ? info
-          : _.extend({}, info, {
-              id: (this._chipActivationInfos.length - 1).toString(),
-            });
+      if (!info.attribute && !info.id) {
+        info.id = (this._chipActivationInfos.length - 1).toString();
+      }
 
-      this._currentChip = this._activateChildChip(info.chip, infoWithId);
+      this._currentChip = this._activateChildChip(info.chip, info);
     }
   }
 
@@ -1075,7 +1078,7 @@ export class Sequence extends Composite {
 
   private _advance(signal: Signal) {
     this._currentChipIndex++;
-    this._switchChip();
+    this._switchChip(signal);
 
     // If we've reached the end of the Sequence...
     if (this._currentChipIndex >= this._chipActivationInfos.length) {
