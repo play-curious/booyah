@@ -563,6 +563,7 @@ export abstract class Composite extends ChipBase {
       throw new Error(`tick() called from state ${this._state}`);
 
     if (this._deferredOutputSignal) {
+      delete this._deferredOutputSignal;
       this.terminate(this._deferredOutputSignal);
       return;
     }
