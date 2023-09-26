@@ -85,6 +85,9 @@ export interface IEventListener {
   subscriptionHandler: SubscriptionHandler;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SignalParams = Record<string, any>;
+
 /**
  * A `Signal` represents a immutable message that is provided to a chip when it activates,
  * as well as when it terminates.
@@ -95,11 +98,13 @@ export interface IEventListener {
  */
 export interface Signal {
   readonly name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly params: Record<string, any>;
+  readonly params: SignalParams;
 }
 
-export function makeSignal(name = "default", params = {}): Signal {
+export function makeSignal(
+  name = "default",
+  params: SignalParams = {}
+): Signal {
   return { name, params };
 }
 
