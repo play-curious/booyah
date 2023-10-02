@@ -394,7 +394,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
    * unsubscribe only to those.
    */
   protected _unsubscribe(
-    emitter?: NodeEventSource,
+    emitter?: object,
     event?: string,
     cb?: (...args: unknown[]) => void
   ): void {
