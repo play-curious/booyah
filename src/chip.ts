@@ -108,6 +108,11 @@ export function makeSignal(
   return { name, params };
 }
 
+export function resolveSignal(value: Signal | string): Signal {
+  if (typeof value === "string") return makeSignal(value);
+  return value;
+}
+
 /**
  * A ChipContext is a immutable map of strings to data.
  * It is provided to chips by their parents.
@@ -979,6 +984,7 @@ export class ContextProvider extends Composite {
 export class SequenceOptions {
   loop = false;
   terminateOnCompletion = true;
+  cancellingSignal?: string | ((signal: Signal) => boolean);
 }
 
 /**
@@ -1068,7 +1074,22 @@ export class Sequence extends Composite {
     if (!this._currentChip) return;
 
     const signal = this._currentChip.outputSignal;
-    if (signal) this._advance(signal);
+    if (signal) {
+      // Is this a cancelling signal?
+      if (this._options.cancellingSignal) {
+        let shouldCancel: boolean;
+        if (typeof this._options.cancellingSignal === "function") {
+          shouldCancel = this._options.cancellingSignal(signal);
+        } else {
+          shouldCancel = this._options.cancellingSignal === signal.name;
+        }
+
+        if (shouldCancel) this.terminate(signal);
+        return;
+      }
+
+      this._advance(signal);
+    }
   }
 
   _onTerminate() {
@@ -1110,7 +1131,10 @@ export type StateTableDescriptor = {
   [n: string]: ChipActivationInfo | ChipResolvable;
 };
 
-export type SignalFunction = (context: ChipContext, signal: Signal) => Signal;
+export type SignalFunction = (
+  context: ChipContext,
+  signal: Signal
+) => Signal | string;
 export type SignalDescriptor = Signal | SignalFunction;
 export type SignalTable = { [name: string]: SignalDescriptor };
 
@@ -1195,7 +1219,7 @@ export class StateMachine extends Composite {
       const startingState = _.isFunction(this._startingState)
         ? this._startingState(chipContext, makeSignal())
         : this._startingState;
-      this._changeState(startingState);
+      this._changeState(resolveSignal(startingState));
     }
   }
 
@@ -1219,7 +1243,9 @@ export class StateMachine extends Composite {
         const signalDescriptor: SignalDescriptor =
           this._signals[this._lastSignal.name];
         if (_.isFunction(signalDescriptor)) {
-          nextStateDescriptor = signalDescriptor(this._chipContext, signal);
+          nextStateDescriptor = resolveSignal(
+            signalDescriptor(this._chipContext, signal)
+          );
         } else {
           nextStateDescriptor = signalDescriptor;
         }
@@ -1328,7 +1354,7 @@ export function makeSignalTable(table: {
     if (signal.name in table) {
       const signalResolvable = table[signal.name];
       if (_.isFunction(signalResolvable)) {
-        return signalResolvable(context, signal);
+        return resolveSignal(signalResolvable(context, signal));
       } else {
         return makeSignal(signalResolvable);
       }
