@@ -641,8 +641,31 @@ export abstract class Composite extends ChipBase {
   protected _activateChildChip(
     chipResolvable: ChipResolvable,
     options?: Partial<ActivateChildChipOptions>
+  ): Chip;
+  /**
+   * Activate a child chip
+   * @param options The chip and its options
+   * @returns The activated chip
+   */
+  protected _activateChildChip(
+    options: Partial<ChipActivationInfo> & { chip: ChipResolvable }
+  ): Chip;
+  protected _activateChildChip(
+    chipOrOptions:
+      | ChipResolvable
+      | (Partial<ChipActivationInfo> & { chip: ChipResolvable }),
+    options?: Partial<ActivateChildChipOptions>
   ): Chip {
     if (this.state === "inactive") throw new Error("Composite is inactive");
+
+    // Unpack arguments
+    let chipResolvable: ChipResolvable;
+    if (typeof chipOrOptions === "function" || isChip(chipOrOptions)) {
+      chipResolvable = chipOrOptions;
+    } else {
+      chipResolvable = chipOrOptions.chip;
+      options = chipOrOptions;
+    }
 
     options = fillInOptions(options, new ActivateChildChipOptions());
 
