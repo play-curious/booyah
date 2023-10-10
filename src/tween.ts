@@ -77,10 +77,6 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
       // @ts-ignore
       this.options.interpolate = interpolation.scalar;
     }
-
-    if (this.options.onUpdate) {
-      this._subscribe(this, "updatedValue", this.options.onUpdate);
-    }
   }
 
   _onActivate() {
@@ -101,6 +97,10 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
 
     if (this.options.onSetup) {
       this.options.onSetup();
+    }
+
+    if (this.options.onUpdate) {
+      this._subscribe(this, "updatedValue", this.options.onUpdate);
     }
   }
 
@@ -131,6 +131,8 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
     if (this.options.onTeardown) {
       this.options.onTeardown();
     }
+
+    delete this._currentObj;
   }
 
   _getValue(): any {
