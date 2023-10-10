@@ -82,6 +82,7 @@ export interface IEventListener {
   emitter: object;
   event: string;
   cb: () => void;
+  boundCb: () => void;
   subscriptionHandler: SubscriptionHandler;
 }
 
@@ -355,11 +356,17 @@ export abstract class ChipBase extends EventEmitter implements Chip {
       }
     }
 
-    // Make sure the callback uses the correct `this`
-    cb = cb.bind(this);
+    // Store the event listener callback "unbound" for future removal, but bind it for calling with the correct "this"
+    const boundCb = cb.bind(this);
+    this._eventListeners.push({
+      emitter,
+      event,
+      cb,
+      boundCb,
+      subscriptionHandler,
+    });
 
-    this._eventListeners.push({ emitter, event, cb, subscriptionHandler });
-    subscriptionHandler.subscribe(emitter, event, cb);
+    subscriptionHandler.subscribe(emitter, event, boundCb);
   }
 
   /**
@@ -388,10 +395,16 @@ export abstract class ChipBase extends EventEmitter implements Chip {
       }
     }
 
-    cb = cb.bind(this);
-
-    this._eventListeners.push({ emitter, event, cb, subscriptionHandler });
-    subscriptionHandler.subscribeOnce(emitter, event, cb);
+    // Store the event listener callback "unbound" for future removal, but bind it for calling with the correct "this"
+    const boundCb = cb.bind(this);
+    this._eventListeners.push({
+      emitter,
+      event,
+      cb,
+      boundCb,
+      subscriptionHandler,
+    });
+    subscriptionHandler.subscribeOnce(emitter, event, boundCb);
   }
 
   /** Unsubscribe to a set of events.
@@ -421,7 +434,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
       listener.subscriptionHandler.unsubscribe(
         listener.emitter,
         listener.event,
-        listener.cb
+        listener.boundCb
       );
 
     this._eventListeners = listenersToKeep;
