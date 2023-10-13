@@ -30,6 +30,8 @@ export function make(
   return new chip.Parallel(tweens);
 }
 
+type EasingFunctionName = keyof typeof easing;
+
 /**
  * Tween takes the following options:
  * @obj - an actual object, a function that returns an object, or null (in which case the value is internal only)
@@ -47,7 +49,7 @@ export class TweenOptions<Value, Obj extends object = undefined> {
   from?: Value;
   to: Value;
   duration = 1000;
-  easing: easing.EasingFunction = easing.linear;
+  easing: easing.EasingFunction | EasingFunctionName = "linear";
   interpolate: (from: Value, to: Value, easeProgress: number) => Value;
   onSetup?: () => unknown;
   onUpdate?: (value: Value) => unknown;
@@ -67,6 +69,7 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
   private _startValue: Value;
   private _value: Value;
   private _timePassed: number;
+  private _easing: easing.EasingFunction;
 
   constructor(options?: Partial<TweenOptions<Value, Obj>>) {
     super();
@@ -76,6 +79,13 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
     if (!this.options.interpolate) {
       // @ts-ignore
       this.options.interpolate = interpolation.scalar;
+    }
+
+    // If easing is a name, look it up. Otherwise use the function directly
+    if (typeof this.options.easing === "string") {
+      this._easing = easing[this.options.easing];
+    } else {
+      this._easing = this.options.easing;
     }
   }
 
@@ -115,7 +125,7 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
       this.terminate(chip.makeSignal());
     } else {
       // Ease and interpolate value
-      const easedProgress = this.options.easing(
+      const easedProgress = this._easing(
         this._timePassed / this.options.duration
       );
       this._value = this.options.interpolate(
