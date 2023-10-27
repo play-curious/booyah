@@ -701,7 +701,9 @@ export abstract class Composite extends ChipBase {
           }`
         );
 
-      this._terminateChildChip(thisAsAny[options.attribute] as Chip);
+      const existingChip = thisAsAny[options.attribute] as Chip;
+      if (existingChip.state !== "inactive")
+        this._terminateChildChip(thisAsAny[options.attribute] as Chip);
     }
 
     let providedId = options.id ?? options.attribute;
