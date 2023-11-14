@@ -34,7 +34,7 @@
 <ul class="tsd-hierarchy">
 <li><span class="target">Tween</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L63">src/tween.ts:63</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L65">src/tween.ts:65</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -48,6 +48,7 @@
 <h3 class="tsd-index-heading">Properties</h3>
 <div class="tsd-index-list"><a href="tween.Tween.html#_chipContext" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="#FF984D" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="12" id="icon-1024-path"></rect><path d="M9.354 16V7.24H12.174C12.99 7.24 13.638 7.476 14.118 7.948C14.606 8.412 14.85 9.036 14.85 9.82C14.85 10.604 14.606 11.232 14.118 11.704C13.638 12.168 12.99 12.4 12.174 12.4H10.434V16H9.354ZM10.434 11.428H12.174C12.646 11.428 13.022 11.284 13.302 10.996C13.59 10.7 13.734 10.308 13.734 9.82C13.734 9.324 13.59 8.932 13.302 8.644C13.022 8.356 12.646 8.212 12.174 8.212H10.434V11.428Z" fill="var(--color-text)" id="icon-1024-text"></path></svg><span>_chip<wbr/>Context</span></a>
 <a href="tween.Tween.html#_currentObj" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_current<wbr/>Obj</span></a>
+<a href="tween.Tween.html#_easing" class="tsd-index-link tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_easing</span></a>
 <a href="tween.Tween.html#_eventListeners" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_event<wbr/>Listeners</span></a>
 <a href="tween.Tween.html#_inputSignal" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_input<wbr/>Signal</span></a>
 <a href="tween.Tween.html#_lastTickInfo" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_last<wbr/>Tick<wbr/>Info</span></a>
@@ -120,7 +121,7 @@
 <h4 class="tsd-returns-title">Returns <a href="tween.Tween.html" class="tsd-signature-type tsd-kind-class">Tween</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">Value</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type tsd-kind-type-parameter">Obj</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#constructor">constructor</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L71">src/tween.ts:71</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L74">src/tween.ts:74</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Properties</h2>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_chipContext" class="tsd-anchor"></a>
@@ -128,68 +129,73 @@
 <div class="tsd-signature"><span class="tsd-kind-property">_chip<wbr/>Context</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type ">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_chipContext">_chipContext</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L245">src/chip.ts:245</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L256">src/chip.ts:256</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="_currentObj" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_current<wbr/>Obj</span><a href="#_currentObj" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_current<wbr/>Obj</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type tsd-kind-type-parameter">Obj</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L66">src/tween.ts:66</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L68">src/tween.ts:68</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-private"><a id="_easing" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_easing</span><a href="#_easing" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_easing</span><span class="tsd-signature-symbol">:</span> <a href="../types/easing.EasingFunction.html" class="tsd-signature-type tsd-kind-type-alias">EasingFunction</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L72">src/tween.ts:72</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_eventListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_event<wbr/>Listeners</span><a href="#_eventListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_event<wbr/>Listeners</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.IEventListener.html" class="tsd-signature-type tsd-kind-interface">IEventListener</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_eventListeners">_eventListeners</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L249">src/chip.ts:249</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L260">src/chip.ts:260</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_inputSignal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_input<wbr/>Signal</span><a href="#_inputSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_input<wbr/>Signal</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_inputSignal">_inputSignal</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L247">src/chip.ts:247</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L258">src/chip.ts:258</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_lastTickInfo" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_last<wbr/>Tick<wbr/>Info</span><a href="#_lastTickInfo" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_last<wbr/>Tick<wbr/>Info</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.TickInfo.html" class="tsd-signature-type tsd-kind-interface">TickInfo</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_lastTickInfo">_lastTickInfo</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L246">src/chip.ts:246</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L257">src/chip.ts:257</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_outputSignal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_output<wbr/>Signal</span><a href="#_outputSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_output<wbr/>Signal</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_outputSignal">_outputSignal</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L250">src/chip.ts:250</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L261">src/chip.ts:261</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_reloadMemento" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <code class="tsd-tag ts-flagOptional">Optional</code> <span>_reload<wbr/>Memento</span><a href="#_reloadMemento" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_reload<wbr/>Memento</span><span class="tsd-signature-symbol">?:</span> <a href="../types/chip.ReloadMemento.html" class="tsd-signature-type tsd-kind-type-alias">ReloadMemento</a></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_reloadMemento">_reloadMemento</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L248">src/chip.ts:248</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L259">src/chip.ts:259</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="_startValue" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_start<wbr/>Value</span><a href="#_startValue" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_start<wbr/>Value</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type tsd-kind-type-parameter">Value</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L67">src/tween.ts:67</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L69">src/tween.ts:69</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_state" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_state</span><a href="#_state" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_state</span><span class="tsd-signature-symbol">:</span> <a href="../types/chip.ChipState.html" class="tsd-signature-type tsd-kind-type-alias">ChipState</a><span class="tsd-signature-symbol"> = &quot;inactive&quot;</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_state">_state</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L251">src/chip.ts:251</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L262">src/chip.ts:262</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="_timePassed" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_time<wbr/>Passed</span><a href="#_timePassed" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_time<wbr/>Passed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L69">src/tween.ts:69</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L71">src/tween.ts:71</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-private"><a id="_value" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagPrivate">Private</code> <span>_value</span><a href="#_value" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">_value</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type tsd-kind-type-parameter">Value</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L68">src/tween.ts:68</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L70">src/tween.ts:70</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="options" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagReadonly">Readonly</code> <span>options</span><a href="#options" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">options</span><span class="tsd-signature-symbol">:</span> <a href="tween.TweenOptions.html" class="tsd-signature-type tsd-kind-class">TweenOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">Value</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type tsd-kind-type-parameter">Obj</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L64">src/tween.ts:64</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L66">src/tween.ts:66</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="prefixed" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>prefixed</span><a href="#prefixed" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">prefixed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
@@ -208,7 +214,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><a href="../interfaces/chip.Chip.html" class="tsd-signature-type tsd-kind-interface">Chip</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from chip.ChipBase.children</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L420">src/chip.ts:420</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L443">src/chip.ts:443</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="chipContext" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>chip<wbr/>Context</span><a href="#chipContext" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -217,7 +223,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type ">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from chip.ChipBase.chipContext</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L253">src/chip.ts:253</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L264">src/chip.ts:264</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="outputSignal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>output<wbr/>Signal</span><a href="#outputSignal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -228,7 +234,7 @@
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/chip.Signal.html" class="tsd-signature-type tsd-kind-interface">Signal</a></h4><aside class="tsd-sources">
 <p>Inherited from chip.ChipBase.outputSignal</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L424">src/chip.ts:424</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L447">src/chip.ts:447</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="state" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>state</span><a href="#state" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -239,7 +245,7 @@
 <h4 class="tsd-returns-title">Returns <a href="../types/chip.ChipState.html" class="tsd-signature-type tsd-kind-type-alias">ChipState</a></h4><aside class="tsd-sources">
 <p>Inherited from chip.ChipBase.state</p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L428">src/chip.ts:428</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L451">src/chip.ts:451</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="value" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>value</span><a href="#value" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -247,7 +253,7 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type tsd-kind-type-parameter">Value</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L147">src/tween.ts:147</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L159">src/tween.ts:159</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Methods</h2>
 <section class="tsd-panel tsd-member"><a id="_getValue" class="tsd-anchor"></a>
@@ -257,7 +263,7 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L136">src/tween.ts:136</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L148">src/tween.ts:148</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_makeReloadMementoData" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_make<wbr/>Reload<wbr/>Memento<wbr/>Data</span><a href="#_makeReloadMementoData" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -268,7 +274,7 @@
 <h4 class="tsd-returns-title">Returns <a href="../types/chip.ReloadMementoData.html" class="tsd-signature-type tsd-kind-type-alias">ReloadMementoData</a></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_makeReloadMementoData">_makeReloadMementoData</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L484">src/chip.ts:484</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L507">src/chip.ts:507</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="_onActivate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_on<wbr/>Activate</span><a href="#_onActivate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -279,7 +285,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_onActivate">_onActivate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L86">src/tween.ts:86</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L92">src/tween.ts:92</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_onPause" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_on<wbr/>Pause</span><a href="#_onPause" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -290,7 +296,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_onPause">_onPause</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L472">src/chip.ts:472</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L495">src/chip.ts:495</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_onResume" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_on<wbr/>Resume</span><a href="#_onResume" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -301,7 +307,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_onResume">_onResume</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L479">src/chip.ts:479</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L502">src/chip.ts:502</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="_onTerminate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_on<wbr/>Terminate</span><a href="#_onTerminate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -312,7 +318,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_onTerminate">_onTerminate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L130">src/tween.ts:130</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L140">src/tween.ts:140</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="_onTick" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_on<wbr/>Tick</span><a href="#_onTick" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -323,7 +329,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_onTick">_onTick</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L107">src/tween.ts:107</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L117">src/tween.ts:117</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_subscribe" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_subscribe</span><a href="#_subscribe" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -360,7 +366,7 @@ If you are interfacing with a different event system, you can provide a
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_subscribe">_subscribe</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L329">src/chip.ts:329</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L340">src/chip.ts:340</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_subscribeOnce" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_subscribe<wbr/>Once</span><a href="#_subscribeOnce" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -397,7 +403,7 @@ If you are interfacing with a different event system, you can provide a
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_subscribeOnce">_subscribeOnce</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L362">src/chip.ts:362</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L379">src/chip.ts:379</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited"><a id="_unsubscribe" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_unsubscribe</span><a href="#_unsubscribe" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
@@ -411,7 +417,7 @@ unsubscribe only to those.</p>
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
-<h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">emitter</span>: <a href="../interfaces/chip.NodeEventSource.html" class="tsd-signature-type tsd-kind-interface">NodeEventSource</a></h5></li>
+<h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">emitter</span>: <span class="tsd-signature-type">object</span></h5></li>
 <li>
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">event</span>: <span class="tsd-signature-type">string</span></h5></li>
 <li>
@@ -430,7 +436,7 @@ unsubscribe only to those.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#_unsubscribe">_unsubscribe</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L391">src/chip.ts:391</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L414">src/chip.ts:414</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member"><a id="_updateValue" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_update<wbr/>Value</span><a href="#_updateValue" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -438,7 +444,7 @@ unsubscribe only to those.</p>
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/tween.ts#L140">src/tween.ts:140</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/tween.ts#L152">src/tween.ts:152</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="activate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>activate</span><a href="#activate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -461,7 +467,7 @@ Should only be called from an inactive state</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#activate">activate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L257">src/chip.ts:257</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L268">src/chip.ts:268</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="addListener" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>add<wbr/>Listener</span><a href="#addListener" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -576,7 +582,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <a href="../types/chip.ReloadMemento.html" class="tsd-signature-type tsd-kind-type-alias">ReloadMemento</a></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#makeReloadMemento">makeReloadMemento</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L432">src/chip.ts:432</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L455">src/chip.ts:455</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="off" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>off</span><a href="#off" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -700,7 +706,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#pause">pause</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L304">src/chip.ts:304</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L315">src/chip.ts:315</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external"><a id="removeAllListeners" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>remove<wbr/>All<wbr/>Listeners</span><a href="#removeAllListeners" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited tsd-is-external">
@@ -770,7 +776,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#resume">resume</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L313">src/chip.ts:313</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L324">src/chip.ts:324</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="terminate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>terminate</span><a href="#terminate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -786,7 +792,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#terminate">terminate</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L290">src/chip.ts:290</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L301">src/chip.ts:301</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited"><a id="tick" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>tick</span><a href="#tick" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -802,7 +808,7 @@ listeners.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="chip.ChipBase.html">ChipBase</a>.<a href="chip.ChipBase.html#tick">tick</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/play-curious/booyah/blob/93c5309/src/chip.ts#L281">src/chip.ts:281</a></li></ul></aside></li></ul></section></section></div>
+<li>Defined in <a href="https://github.com/play-curious/booyah/blob/bc2327b/src/chip.ts#L292">src/chip.ts:292</a></li></ul></aside></li></ul></section></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -825,6 +831,7 @@ listeners.</p>
 <li><a href="#constructor" class=""><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-512-path"></use><use href="#icon-512-text"></use></svg><span>constructor</span></a></li>
 <li><a href="#_chipContext" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_chip<wbr/>Context</span></a></li>
 <li><a href="#_currentObj" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_current<wbr/>Obj</span></a></li>
+<li><a href="#_easing" class="tsd-is-private"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_easing</span></a></li>
 <li><a href="#_eventListeners" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_event<wbr/>Listeners</span></a></li>
 <li><a href="#_inputSignal" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_input<wbr/>Signal</span></a></li>
 <li><a href="#_lastTickInfo" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-1024-path"></use><use href="#icon-1024-text"></use></svg><span>_last<wbr/>Tick<wbr/>Info</span></a></li>
@@ -912,6 +919,7 @@ listeners.</p>
 <li><a href="../types/chip.ReloadMementoData.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Reload<wbr/>Memento<wbr/>Data</span></a></li>
 <li><a href="../types/chip.SignalDescriptor.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Signal<wbr/>Descriptor</span></a></li>
 <li><a href="../types/chip.SignalFunction.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Signal<wbr/>Function</span></a></li>
+<li><a href="../types/chip.SignalParams.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Signal<wbr/>Params</span></a></li>
 <li><a href="../types/chip.SignalTable.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>Signal<wbr/>Table</span></a></li>
 <li><a href="../types/chip.StateTable.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>State<wbr/>Table</span></a></li>
 <li><a href="../types/chip.StateTableDescriptor.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg><span>State<wbr/>Table<wbr/>Descriptor</span></a></li>
@@ -924,7 +932,8 @@ listeners.</p>
 <li><a href="../functions/chip.isNodeEventSource.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>is<wbr/>Node<wbr/>Event<wbr/>Source</span></a></li>
 <li><a href="../functions/chip.makeSignal.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>make<wbr/>Signal</span></a></li>
 <li><a href="../functions/chip.makeSignalTable.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>make<wbr/>Signal<wbr/>Table</span></a></li>
-<li><a href="../functions/chip.processChipContext.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>process<wbr/>Chip<wbr/>Context</span></a></li></ul></div></details></li>
+<li><a href="../functions/chip.processChipContext.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>process<wbr/>Chip<wbr/>Context</span></a></li>
+<li><a href="../functions/chip.resolveSignal.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-64-path"></use><use href="#icon-64-text"></use></svg><span>resolve<wbr/>Signal</span></a></li></ul></div></details></li>
 <li>
 <details class="tsd-index-accordion" data-key="easing"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.93896 8.531L12 15.591L19.061 8.531L16.939 6.409L12 11.349L7.06098 6.409L4.93896 8.531Z" fill="var(--color-text)"></path></svg><a href="../modules/easing.html"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4-path"></use><use href="#icon-4-text"></use></svg><span>easing</span></a></summary>
 <div class="tsd-accordion-details">
