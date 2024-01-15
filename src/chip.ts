@@ -613,9 +613,9 @@ export abstract class Composite extends ChipBase {
 
     this._state = "inactive";
 
-    this._unsubscribe(); // Remove all event listeners
-
+    // Must terminate children before unsubscribing from event listeners
     this._terminateAllChildChips();
+    this._unsubscribe();
 
     this._outputSignal = outputSignal;
     this._onTerminate();
@@ -626,7 +626,6 @@ export abstract class Composite extends ChipBase {
   public pause(tickInfo: TickInfo): void {
     super.pause(tickInfo);
 
-    this._removeTerminatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.pause(tickInfo);
     }
@@ -635,7 +634,6 @@ export abstract class Composite extends ChipBase {
   public resume(tickInfo: TickInfo): void {
     super.resume(tickInfo);
 
-    this._removeTerminatedChildChips();
     for (const child of Object.values(this._childChips)) {
       child.resume(tickInfo);
     }
@@ -745,6 +743,14 @@ export abstract class Composite extends ChipBase {
       providedId ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childChips[childId] = chip;
 
+    // When the chip is terminated, remove it from the set of children
+    this._subscribeOnce(chip, "terminated", (signal: Signal) => {
+      delete this._childChips[childId];
+      console.assert(!(childId in this._childChips));
+
+      this.emit("terminatedChildChip", chip);
+    });
+
     if (options.attribute) {
       let attributeName = options.attribute;
       // If the attribute name has an array syntax, add to the array
@@ -802,24 +808,13 @@ export abstract class Composite extends ChipBase {
     return chip;
   }
 
+  /** An alias for calling terminate() on the child chip */
   protected _terminateChildChip(chip: Chip, outputSignal?: Signal): void {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
-    // Try to find value
-    let childId: string;
-    for (const id in this._childChips) {
-      if (this._childChips[id] === chip) {
-        childId = id;
-        break;
-      }
-    }
-    if (!childId) throw new Error("Cannot find chip to terminate");
+    if (!this._getChildChipId(chip)) throw new Error("Chip is not a child");
 
-    chip.terminate(outputSignal);
-
-    delete this._childChips[childId];
-
-    this.emit("terminatedChildChip", chip);
+    chip.terminate();
   }
 
   /**
@@ -830,8 +825,6 @@ export abstract class Composite extends ChipBase {
     for (const childChip of Object.values(this._childChips)) {
       if (childChip.state !== "inactive") childChip.tick(this._lastTickInfo);
     }
-
-    this._removeTerminatedChildChips();
   }
 
   /** Terminate all the children, with the provided signal */
@@ -840,23 +833,22 @@ export abstract class Composite extends ChipBase {
       if (childChip.state === "active" || childChip.state === "paused") {
         childChip.terminate(outputSignal);
       }
-
-      this.emit("terminatedChildChip", childChip);
     }
-
-    this._childChips = {};
   }
 
-  /** Remove any child chips */
-  protected _removeTerminatedChildChips(): void {
+  /** Returns the ID of the child chip, or undefined if the chip is not an active child */
+  protected _getChildChipId(chip: Chip): string | undefined {
+    let childId: string;
     for (const id in this._childChips) {
-      const childChip = this._childChips[id];
-
-      if (childChip.state === "inactive") {
-        delete this._childChips[id];
-        this.emit("terminatedChildChip", childChip);
+      if (this._childChips[id] === chip) {
+        return id;
       }
     }
+    return;
+  }
+
+  hasChildChip(chip: Chip) {
+    return !!this._getChildChipId(chip);
   }
 
   /**
@@ -1571,6 +1563,8 @@ export interface AlternativeChipActivationInfo extends ChipActivationInfo {
 export class Alternative extends Composite {
   private readonly _chipActivationInfos: AlternativeChipActivationInfo[];
 
+  private _aChildTerminated: boolean;
+
   // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
   constructor(
     chipActivationInfos: Array<ChipResolvable | AlternativeChipActivationInfo>
@@ -1590,6 +1584,8 @@ export class Alternative extends Composite {
   }
 
   _onActivate() {
+    this._aChildTerminated = false;
+
     for (let i = 0; i < this._chipActivationInfos.length; i++) {
       const chipActivationInfo = this._chipActivationInfos[i];
 
@@ -1603,6 +1599,10 @@ export class Alternative extends Composite {
   }
 
   private _onChildTerminated(index: number) {
+    if (this._aChildTerminated) return;
+
+    this._aChildTerminated = true;
+
     const terminateWith =
       this._chipActivationInfos[index].signal ?? makeSignal(index.toString());
     this.terminate(terminateWith);

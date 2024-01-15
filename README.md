@@ -57,7 +57,7 @@ In addition to what Prettier enforces, there are a few standards that we enforce
 - Private or protected methods & attributes should start with an underscore.
 - Use a single blank line to separate functions and methods. Prettier will remove multiple blank lines.
 - Documentation: Document classes and methods using multiline comments like `/** ... */`.
-- For functions or methods that take more than 1 arguments, consider using an object to contain all the optional attributes. Naming the arguments avoids errors and having to decide the correct order or the arguments. The function `chip.fillInOptions()` can make this process easier by filling in default values.  
+- For functions or methods that take more than 1 arguments, consider using an object to contain all the optional attributes. Naming the arguments avoids errors and having to decide the correct order or the arguments. The function `chip.fillInOptions()` can make this process easier by filling in default values.
 
 ### Coding Chips
 
@@ -65,7 +65,7 @@ Specifically for chips, here are general rules for making them resusable:
 
 - Attributes should generally be private. Otherwise the values could be modified by any other code at any time. If external code needs access to them, provide getters and (potentially) setters.
 - Most attributes should be initialized in the `_onActivate()` method, not in the constructor. The exception are "options" provided in the constructor that describe how the chip should work.
-- Parent chips should generally call methods directly on their child chips. Inversely, however, child chips should _not_ call parent methods. Instead, child chips can emit events that parents subscribe and react to. The exception is "services" chips that are available more or less globally, such as an audio player or a metrics service, which should be created so that any code can call them.  
+- Parent chips should generally call methods directly on their child chips. Inversely, however, child chips should _not_ call parent methods. Instead, child chips can emit events that parents subscribe and react to. The exception is "services" chips that are available more or less globally, such as an audio player or a metrics service, which should be created so that any code can call them.
 
 ## Tests
 
@@ -78,6 +78,16 @@ To debug the unit tests, check out the [Jest docs](https://jestjs.io/docs/en/tro
 1. Put a `debugger` statement in the test you want to inspect
 2. Run the Node process that an external debugger can connect to. For example, on Mac, run: `node --inspect-brk node_modules/.bin/jest --runInBand`.
 3. Connect either with Chrome DevTools by going to `chrome://inspect` and selecting the Node process, or with an IDE by configuring it [as described](https://jestjs.io/docs/troubleshooting).
+
+To pick a specific test, you can add `-t '<name-of-test>'` to the command-line options.
+
+## Deployment
+
+Before deploying, don't forget to:
+
+1. Run the test with `yarn test`
+2. Generate the docs with `yarn docs`
+3. Run a build with `yarn build`
 
 ## Copyright
 

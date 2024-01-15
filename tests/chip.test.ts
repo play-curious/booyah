@@ -332,6 +332,9 @@ describe("Composite", () => {
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
 
+    // Just two children should be active
+    expect(Object.keys(parent.children).length).toBe(2);
+
     expect(children[1]._onActivate).toBeCalledTimes(1);
     expect(children[1]._onTerminate).toBeCalledTimes(1);
     expect(children[1]._onTick).toBeCalledTimes(1);
@@ -841,6 +844,8 @@ describe("StateMachine", () => {
 
 describe("Alternative", () => {
   test("picks the first chip that terminates", () => {
+    debugger;
+
     const children = [new MockChip(), new MockChip()];
 
     const alternative = new chip.Alternative(children);
