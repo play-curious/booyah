@@ -86,7 +86,7 @@ To pick a specific test, you can add `-t '<name-of-test>'` to the command-line o
 Before deploying, don't forget to:
 
 1. Run the test with `yarn test`
-2. Generate the docs with `yarn docs`
+2. Generate the docs with `yarn docs`, and commit the changes.
 3. Run a build with `yarn build`
 
 ## Copyright
