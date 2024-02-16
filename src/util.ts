@@ -50,7 +50,7 @@ export function randomArrayElement<T>(array: T[]): T {
 export function lerpColor(
   start: number,
   end: number,
-  fraction: number
+  fraction: number,
 ): number {
   const r = ((end & 0xff0000) >> 16) - ((start & 0xff0000) >> 16);
   const g = ((end & 0x00ff00) >> 8) - ((start & 0x00ff00) >> 8);
@@ -61,7 +61,7 @@ export function lerpColor(
 export function cyclicLerpColor(
   start: number,
   end: number,
-  fraction: number
+  fraction: number,
 ): number {
   return fraction < 0.5
     ? lerpColor(start, end, fraction / 0.5)
@@ -137,7 +137,7 @@ export function makeVideoElement(): HTMLVideoElement {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fillInOptions<T extends Record<string, any>>(
   options: Partial<T>,
-  defaults: T
+  defaults: T,
 ): T {
   if (options) return { ...defaults, ...options };
   else return defaults;
@@ -220,7 +220,7 @@ export function setPropertyInTree(root: Root, name: string, value: any): void {
  */
 export function determineLanguage(
   validLanguages = ["en"],
-  defaultLanguage = "en"
+  defaultLanguage = "en",
 ): string {
   // Try URL
   {
@@ -254,7 +254,7 @@ export function reverseString(s: string): string {
 export function subarray<T>(
   a: Array<T>,
   startAt: number,
-  length: number
+  length: number,
 ): Array<T> {
   const result: Array<T> = [];
   if (length > 0) {

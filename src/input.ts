@@ -119,7 +119,7 @@ export class Gamepad extends chip.ChipBase {
       this.axes.push(
         Math.abs(this.lastData.axes[i]) >= GAMEPAD_DEAD_ZONE
           ? this.lastData.axes[i]
-          : 0
+          : 0,
       );
     }
 

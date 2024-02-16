@@ -38,7 +38,7 @@ export class Runner {
    */
   constructor(
     private readonly _rootChipResolvable: chip.ChipResolvable,
-    options?: Partial<RunnerOptions>
+    options?: Partial<RunnerOptions>,
   ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
 
@@ -64,7 +64,7 @@ export class Runner {
     this._rootChip.activate(
       tickInfo,
       this._rootContext,
-      this._options.inputSignal
+      this._options.inputSignal,
     );
 
     requestAnimationFrame(() => this._onTick());
@@ -94,7 +94,7 @@ export class Runner {
     if (this._options.minFps >= 0) {
       timeSinceLastTick = Math.min(
         timeSinceLastTick,
-        1000 / this._options.minFps
+        1000 / this._options.minFps,
       );
     }
 
@@ -135,7 +135,7 @@ export class Runner {
         tickInfo,
         this._rootContext,
         chip.makeSignal("afterReload"),
-        reloadMemento
+        reloadMemento,
       );
     });
   }
