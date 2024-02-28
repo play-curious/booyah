@@ -9,7 +9,7 @@ import * as _ from "underscore";
 // @es-li
 export function fillInOptions<T>(
   options: Partial<T> | unknown,
-  defaults: T,
+  defaults: T
 ): T {
   if (options) return { ...defaults, ...(options as object) };
   else return defaults;
@@ -41,7 +41,7 @@ export function isEventTarget(emitter: object): emitter is EventTarget {
 export type UnsubscribeFunction = (
   emitter: object,
   event: string,
-  cb: () => void,
+  cb: () => void
 ) => void;
 
 export interface SubscriptionHandler {
@@ -104,7 +104,7 @@ export interface Signal {
 
 export function makeSignal(
   name = "default",
-  params: SignalParams = {},
+  params: SignalParams = {}
 ): Signal {
   return { name, params };
 }
@@ -159,7 +159,7 @@ export interface TickInfo {
  */
 export type ChipFactory = (
   context: ChipContext,
-  signal: Signal,
+  signal: Signal
 ) => Chip | undefined;
 
 export type ChipResolvable = Chip | ChipFactory;
@@ -180,7 +180,7 @@ export function isChip(e: any): e is Chip {
 }
 
 export function isChipResolvable(
-  e: ChipResolvable | ChipActivationInfo,
+  e: ChipResolvable | ChipActivationInfo
 ): e is ChipResolvable {
   return typeof e === "function" || isChip(e);
 }
@@ -220,7 +220,7 @@ export interface Chip extends NodeEventSource {
     tickInfo: TickInfo,
     chipContext: ChipContext,
     inputSignal: Signal,
-    reloadMemento?: ReloadMemento,
+    reloadMemento?: ReloadMemento
   ): void;
 
   /** Update the chip, provided a new time */
@@ -269,7 +269,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     tickInfo: TickInfo,
     chipContext: ChipContext,
     inputSignal: Signal,
-    reloadMemento?: ReloadMemento,
+    reloadMemento?: ReloadMemento
   ): void {
     if (this._state !== "inactive")
       throw new Error(`activate() called from state ${this._state}`);
@@ -342,7 +342,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     event: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cb: (...args: any[]) => void,
-    subscriptionHandler?: SubscriptionHandler,
+    subscriptionHandler?: SubscriptionHandler
   ): void {
     if (!subscriptionHandler) {
       if (isNodeEventSource(emitter)) {
@@ -351,7 +351,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
         subscriptionHandler = new EventTargetSubscriptionHandler();
       } else {
         throw new Error(
-          `Emitter is of unknown type "${typeof emitter}", requires custom SubscriptionHandler`,
+          `Emitter is of unknown type "${typeof emitter}", requires custom SubscriptionHandler`
         );
       }
     }
@@ -381,7 +381,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     event: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cb: (...args: any[]) => void,
-    subscriptionHandler?: SubscriptionHandler,
+    subscriptionHandler?: SubscriptionHandler
   ): void {
     if (!subscriptionHandler) {
       if (isNodeEventSource(emitter)) {
@@ -390,7 +390,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
         subscriptionHandler = new EventTargetSubscriptionHandler();
       } else {
         throw new Error(
-          `Emitter is of unknown type "${typeof emitter}", requires custom SubscriptionHandler`,
+          `Emitter is of unknown type "${typeof emitter}", requires custom SubscriptionHandler`
         );
       }
     }
@@ -414,7 +414,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   protected _unsubscribe(
     emitter?: object,
     event?: string,
-    cb?: (...args: unknown[]) => void,
+    cb?: (...args: unknown[]) => void
   ): void {
     // props should only contain defined arguments
     const props = _.pick(
@@ -423,18 +423,18 @@ export abstract class ChipBase extends EventEmitter implements Chip {
         event,
         cb,
       },
-      (v) => !!v,
+      (v) => !!v
     );
 
     const [listenersToRemove, listenersToKeep] = _.partition(
       this._eventListeners,
-      props,
+      props
     );
     for (const listener of listenersToRemove)
       listener.subscriptionHandler.unsubscribe(
         listener.emitter,
         listener.event,
-        listener.boundCb,
+        listener.boundCb
       );
 
     this._eventListeners = listenersToKeep;
@@ -566,7 +566,7 @@ export abstract class Composite extends ChipBase {
     tickInfo: TickInfo,
     chipContext: ChipContext,
     inputSignal: Signal,
-    reloadMemento?: ReloadMemento,
+    reloadMemento?: ReloadMemento
   ): void {
     this._childChips = {};
     this._childChipContext = {};
@@ -651,7 +651,7 @@ export abstract class Composite extends ChipBase {
    */
   protected _activateChildChip(
     chipResolvable: ChipResolvable,
-    options?: Partial<ActivateChildChipOptions>,
+    options?: Partial<ActivateChildChipOptions>
   ): Chip;
   /**
    * Activate a child chip
@@ -659,13 +659,13 @@ export abstract class Composite extends ChipBase {
    * @returns The activated chip
    */
   protected _activateChildChip(
-    options: Partial<ChipActivationInfo> & { chip: ChipResolvable },
+    options: Partial<ChipActivationInfo> & { chip: ChipResolvable }
   ): Chip;
   protected _activateChildChip(
     chipOrOptions:
       | ChipResolvable
       | (Partial<ChipActivationInfo> & { chip: ChipResolvable }),
-    options?: Partial<ActivateChildChipOptions>,
+    options?: Partial<ActivateChildChipOptions>
   ): Chip {
     if (this.state === "inactive") throw new Error("Composite is inactive");
 
@@ -698,7 +698,7 @@ export abstract class Composite extends ChipBase {
             options.attribute
           } would replace a non-chip. Current attribute value = ${
             thisAsAny[options.attribute]
-          }`,
+          }`
         );
 
       const existingChip = thisAsAny[options.attribute] as Chip;
@@ -721,7 +721,7 @@ export abstract class Composite extends ChipBase {
       this._chipContext,
       this._childChipContext,
       this.defaultChildChipContext,
-      options.context,
+      options.context
     );
 
     let chip: Chip;
@@ -793,7 +793,7 @@ export abstract class Composite extends ChipBase {
     if (options.includeInChildContext) {
       if (!providedId)
         throw new Error(
-          "To include a child chip in the context, provide an attribute name or ID",
+          "To include a child chip in the context, provide an attribute name or ID"
         );
 
       this._childChipContext[providedId] = chip;
@@ -884,7 +884,7 @@ export class Parallel extends Composite {
 
   constructor(
     chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
-    options?: Partial<ParallelOptions>,
+    options?: Partial<ParallelOptions>
   ) {
     super();
 
@@ -990,7 +990,7 @@ export class Parallel extends Composite {
 export class ContextProvider extends Composite {
   constructor(
     private readonly _context: Record<string, ChipResolvable>,
-    private readonly _child: ChipResolvable,
+    private readonly _child: ChipResolvable
   ) {
     super();
   }
@@ -1033,7 +1033,7 @@ export class Sequence extends Composite {
 
   constructor(
     chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
-    options?: Partial<SequenceOptions>,
+    options?: Partial<SequenceOptions>
   ) {
     super();
 
@@ -1074,7 +1074,7 @@ export class Sequence extends Composite {
       // Copy chip activation info and optionally extend it
       const info = Object.assign(
         {},
-        this._chipActivationInfos[this._currentChipIndex],
+        this._chipActivationInfos[this._currentChipIndex]
       );
 
       if (signal) info.inputSignal = signal;
@@ -1165,7 +1165,7 @@ export type StateTableDescriptor = {
 
 export type SignalFunction = (
   context: ChipContext,
-  signal: Signal,
+  signal: Signal
 ) => Signal | string;
 export type SignalDescriptor = Signal | SignalFunction;
 export type SignalTable = { [name: string]: SignalDescriptor };
@@ -1203,7 +1203,7 @@ export class StateMachine extends Composite {
 
   constructor(
     states: StateTableDescriptor,
-    options?: Partial<StateMachineOptions>,
+    options?: Partial<StateMachineOptions>
   ) {
     super();
 
@@ -1238,7 +1238,7 @@ export class StateMachine extends Composite {
     tickInfo: TickInfo,
     chipContext: ChipContext,
     inputSignal?: Signal,
-    reloadMemento?: ReloadMemento,
+    reloadMemento?: ReloadMemento
   ) {
     super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
 
@@ -1276,7 +1276,7 @@ export class StateMachine extends Composite {
           this._signals[this._lastSignal.name];
         if (_.isFunction(signalDescriptor)) {
           nextStateDescriptor = resolveSignal(
-            signalDescriptor(this._chipContext, signal),
+            signalDescriptor(this._chipContext, signal)
           );
         } else {
           nextStateDescriptor = signalDescriptor;
@@ -1480,16 +1480,16 @@ export class Functional extends Composite {
   Optionally takes a @that parameter, which is set as _this_ during the call. 
 */
 export class Lambda extends ChipBase {
-  constructor(
-    public f: (arg: unknown) => unknown,
-    public that?: unknown,
-  ) {
+  constructor(public f: (arg: unknown) => unknown, public that?: unknown) {
     super();
     this.that = that || this;
   }
 
   _onActivate() {
     const result = this.f.call(this.that);
+
+    // It is possible that the chip has been terminated in the meantime, so check for that
+    if (this._state === "inactive") return;
 
     if (typeof result === "string") this.terminate(makeSignal(result));
     else if (typeof result === "object") this.terminate(result);
@@ -1536,7 +1536,7 @@ export class WaitForEvent extends ChipBase {
   constructor(
     public emitter: NodeEventSource,
     public eventName: string,
-    public handler: (...args: unknown[]) => Signal | boolean = _.constant(true),
+    public handler: (...args: unknown[]) => Signal | boolean = _.constant(true)
   ) {
     super();
   }
@@ -1572,7 +1572,7 @@ export class Alternative extends Composite {
 
   // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
   constructor(
-    chipActivationInfos: Array<ChipResolvable | AlternativeChipActivationInfo>,
+    chipActivationInfos: Array<ChipResolvable | AlternativeChipActivationInfo>
   ) {
     super();
 
@@ -1595,7 +1595,7 @@ export class Alternative extends Composite {
       const chipActivationInfo = this._chipActivationInfos[i];
 
       this._subscribe(chipActivationInfo.chip, "terminated", () =>
-        this._onChildTerminated(i),
+        this._onChildTerminated(i)
       );
       this._activateChildChip(chipActivationInfo.chip, {
         context: chipActivationInfo.context,
