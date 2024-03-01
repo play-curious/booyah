@@ -855,7 +855,7 @@ describe("Alternative", () => {
     alternative.tick(makeFrameInfo());
 
     // Terminate second child
-    children[1].terminate();
+    children[1].terminate(chip.makeSignal("1"));
 
     // Alternative should terminate as well, with an output signal of the index of the child
     expect(alternative.state).toBe("inactive");

@@ -1576,7 +1576,6 @@ export class Alternative extends Composite {
   ) {
     super();
 
-    // Set default signal as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
     this._chipActivationInfos = chipActivationInfos.map((info, key) => {
       if (isChip(info) || typeof info === "function") {
         return {
@@ -1594,8 +1593,8 @@ export class Alternative extends Composite {
     for (let i = 0; i < this._chipActivationInfos.length; i++) {
       const chipActivationInfo = this._chipActivationInfos[i];
 
-      this._subscribe(chipActivationInfo.chip, "terminated", () =>
-        this._onChildTerminated(i)
+      this._subscribe(chipActivationInfo.chip, "terminated", (outputSignal) =>
+        this._onChildTerminated(i, outputSignal)
       );
       this._activateChildChip(chipActivationInfo.chip, {
         context: chipActivationInfo.context,
@@ -1603,13 +1602,13 @@ export class Alternative extends Composite {
     }
   }
 
-  private _onChildTerminated(index: number) {
+  private _onChildTerminated(index: number, outputSignal: Signal) {
     if (this._aChildTerminated) return;
 
     this._aChildTerminated = true;
 
     const terminateWith =
-      this._chipActivationInfos[index].signal ?? makeSignal(index.toString());
+      this._chipActivationInfos[index].signal ?? outputSignal;
     this.terminate(terminateWith);
   }
 }
