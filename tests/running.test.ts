@@ -20,7 +20,7 @@ describe("Running", () => {
     const rootChip = new chip.Lambda(() => ranCount++);
     const runner = new running.Runner(rootChip);
 
-    expect(runner.isRunning).toBe(false);
+    expect(runner.runningStatus).toBe("stopped");
 
     runner.start();
 
@@ -28,7 +28,7 @@ describe("Running", () => {
     await wait(frameTime * 5);
 
     expect(ranCount).toBe(1);
-    expect(runner.isRunning).toBe(false);
+    expect(runner.runningStatus).toBe("stopped");
   });
 
   test("runs a chip multiple times", async () => {
@@ -47,7 +47,7 @@ describe("Running", () => {
 
     expect(ranCount).toBe(3);
     expect(rootChip.state === "inactive");
-    expect(runner.isRunning).toBe(false);
+    expect(runner.runningStatus).toBe("stopped");
   });
 
   test("stops on demand", async () => {
@@ -63,12 +63,12 @@ describe("Running", () => {
     // Short wait
     await wait(frameTime * 5);
 
-    expect(runner.isRunning).toBe(true);
+    expect(runner.runningStatus).toBe("running");
 
     runner.stop();
 
     expect(ranCount).toBeGreaterThan(0);
     expect(rootChip.state === "inactive");
-    expect(runner.isRunning).toBe(false);
+    expect(runner.runningStatus).toBe("stopped");
   });
 });
