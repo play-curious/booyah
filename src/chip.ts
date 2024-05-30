@@ -168,7 +168,13 @@ export interface ChipActivationInfo extends ActivateChildChipOptions {
   chip: ChipResolvable;
 }
 
-export type ChipState = "inactive" | "active" | "paused";
+export type ChipState =
+  | "inactive"
+  | "activating"
+  | "active"
+  | "paused"
+  | "requestedTermination"
+  | "terminating";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isChip(e: any): e is Chip {
@@ -205,7 +211,7 @@ export type ReloadMemento = {
  **/
 export interface Chip extends NodeEventSource {
   /** Current state of the chip */
-  readonly state: ChipState;
+  readonly chipState: ChipState;
 
   /** Once the chip is terminated, contains the signal */
   readonly outputSignal: Signal;
@@ -214,8 +220,9 @@ export interface Chip extends NodeEventSource {
   readonly children: Record<string, Chip>;
 
   /** Activate the chip, with a provided context and input signal.
-   * Should only be called from an inactive state
-   * */
+   * Should only be called from an inactive state.
+   * Should only be called by the parent in the chip hierarchy, or a Runner
+   **/
   activate(
     tickInfo: TickInfo,
     chipContext: ChipContext,
@@ -226,8 +233,10 @@ export interface Chip extends NodeEventSource {
   /** Update the chip, provided a new time */
   tick(tickInfo: TickInfo): void;
 
-  /** Terminate the chip. Should only be called from an active or paused state */
-  terminate(outputSignal?: Signal): void;
+  /** Terminate the chip. Should only be called from an active or paused state
+   * Should only be called by the parent in the chip hierarchy, or a Runner
+   */
+  terminate(tickInfo: TickInfo, outputSignal?: Signal): void;
 
   /** Pause the chip, informing it that it won't receive ticks for a while */
   pause(tickInfo: TickInfo): void;
@@ -259,7 +268,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   protected _reloadMemento?: ReloadMemento;
   protected _eventListeners: IEventListener[] = [];
   protected _outputSignal: Signal;
-  protected _state: ChipState = "inactive";
+  protected _chipState: ChipState = "inactive";
 
   get chipContext(): ChipContext {
     return this._chipContext;
@@ -271,13 +280,13 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     inputSignal: Signal,
     reloadMemento?: ReloadMemento
   ): void {
-    if (this._state !== "inactive")
-      throw new Error(`activate() called from state ${this._state}`);
+    if (this._chipState !== "inactive")
+      throw new Error(`activate() called from state ${this._chipState}`);
 
     this._chipContext = chipContext;
     this._lastTickInfo = tickInfo;
     this._inputSignal = inputSignal;
-    this._state = "active";
+    this._chipState = "active";
     delete this._outputSignal;
 
     if (reloadMemento && reloadMemento.className === this.constructor.name)
@@ -290,42 +299,61 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   }
 
   public tick(tickInfo: TickInfo): void {
-    if (this._state === "paused") return;
-    if (this._state !== "active")
-      throw new Error(`tick() called from state ${this._state}`);
+    if (this.isInChipState("paused", "requestedTermination")) return;
+    if (!this.isInChipState("active"))
+      throw new Error(`tick() called from state ${this._chipState}`);
 
     this._lastTickInfo = tickInfo;
     this._onTick();
   }
 
-  public terminate(outputSignal: Signal = makeSignal()): void {
-    if (this._state !== "active" && this._state !== "paused")
-      throw new Error(`terminate() called from state ${this._state}`);
+  public terminate(
+    tickInfo: TickInfo,
+    outputSignal: Signal = makeSignal()
+  ): void {
+    if (!this.isInChipState("active", "paused", "requestedTermination"))
+      throw new Error(`terminate() called from state ${this._chipState}`);
 
-    this._outputSignal = outputSignal;
+    this._lastTickInfo = tickInfo;
+    if (!this._outputSignal) {
+      this._outputSignal = outputSignal;
+    }
+    this._chipState = "terminating";
+
     this._onTerminate();
 
     this._unsubscribe(); // Remove all event listeners
 
-    this._state = "inactive";
-
+    this._chipState = "inactive";
     this.emit("terminated", this._outputSignal);
   }
 
-  public pause(tickInfo: TickInfo): void {
-    if (this._state !== "active")
-      throw new Error(`pause() called from state ${this._state}`);
+  protected _terminateSelf(signal: Signal = makeSignal()) {
+    if (this._chipState !== "active" && this._chipState !== "paused") {
+      console.warn(
+        `_terminateSelf() called from state ${this._chipState}. Ignoring...`
+      );
+      return;
+    }
 
-    this._state = "paused";
+    this._outputSignal = signal;
+    this._chipState = "requestedTermination";
+  }
+
+  public pause(tickInfo: TickInfo): void {
+    if (this._chipState !== "active")
+      throw new Error(`pause() called from state ${this._chipState}`);
+
+    this._chipState = "paused";
 
     this._onPause();
   }
 
   public resume(tickInfo: TickInfo): void {
-    if (this._state !== "paused")
-      throw new Error(`resume() called from state ${this._state}`);
+    if (this._chipState !== "paused")
+      throw new Error(`resume() called from state ${this._chipState}`);
 
-    this._state = "active";
+    this._chipState = "active";
 
     this._onResume();
   }
@@ -448,13 +476,15 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     return this._outputSignal;
   }
 
-  public get state(): ChipState {
-    return this._state;
+  public get chipState(): ChipState {
+    return this._chipState;
   }
 
   public makeReloadMemento(): ReloadMemento {
-    if (this._state !== "active" && this._state !== "paused")
-      throw new Error(`makeReloadMemento() called from state ${this._state}`);
+    if (this._chipState !== "active" && this._chipState !== "paused")
+      throw new Error(
+        `makeReloadMemento() called from state ${this._chipState}`
+      );
 
     const childMementos: Record<string, ReloadMemento> = {};
     for (const childId in this.children) {
@@ -507,6 +537,11 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   protected _makeReloadMementoData(): ReloadMementoData {
     return undefined;
   }
+
+  /** Shortcut for checking if the state of the chip is correct */
+  isInChipState(...states: ChipState[]): boolean {
+    return states.includes(this._chipState);
+  }
 }
 
 /** Empty chip that does nothing and never terminates  */
@@ -519,7 +554,7 @@ export class Transitory extends ChipBase {
   }
 
   _onActivate() {
-    this.terminate(this.terminateSignal);
+    this._terminateSelf(this.terminateSignal);
   }
 }
 
@@ -558,9 +593,6 @@ export class ActivateChildChipOptions {
 export abstract class Composite extends ChipBase {
   protected _childChips: Record<string, Chip>;
   private _childChipContext: Record<string, unknown>;
-  private _deferredOutputSignal: Signal;
-  // Are the activate() or tick() methods currently being run?
-  private _methodCallInProgress: boolean;
 
   public activate(
     tickInfo: TickInfo,
@@ -571,9 +603,7 @@ export abstract class Composite extends ChipBase {
     this._childChips = {};
     this._childChipContext = {};
 
-    this._methodCallInProgress = true;
     super.activate(tickInfo, chipContext, inputSignal, reloadMemento);
-    this._methodCallInProgress = false;
   }
 
   /**
@@ -581,37 +611,23 @@ export abstract class Composite extends ChipBase {
    * Overload this method in subclasses to change the behavior
    */
   public tick(tickInfo: TickInfo): void {
-    if (this._state === "paused") return;
-    if (this._state !== "active")
-      throw new Error(`tick() called from state ${this._state}`);
+    super.tick(tickInfo);
 
-    if (this._deferredOutputSignal) {
-      this.terminate(this._deferredOutputSignal);
-      delete this._deferredOutputSignal;
-      return;
-    }
-
-    this._lastTickInfo = tickInfo;
-
-    this._onTick();
-    this._methodCallInProgress = true;
     this._tickChildChips();
-    this._methodCallInProgress = false;
     this._onAfterTick();
   }
 
-  public terminate(outputSignal: Signal = makeSignal()): void {
+  public terminate(tickInfo: TickInfo, outputSignal?: Signal): void {
     // Can't just call super.terminate() here, the order is slightly different
 
-    if (this._state !== "active" && this._state !== "paused")
-      throw new Error(`terminate() called from state ${this._state}`);
+    if (!this.isInChipState("active", "paused", "requestedTermination"))
+      throw new Error(`terminate() called from state ${this._chipState}`);
 
-    if (this._methodCallInProgress) {
-      this._deferredOutputSignal = outputSignal;
-      return;
+    if (!this._outputSignal) {
+      this._outputSignal = outputSignal;
     }
 
-    this._state = "inactive";
+    this._chipState = "terminating";
 
     // Must terminate children before unsubscribing from event listeners
     this._terminateAllChildChips();
@@ -620,6 +636,7 @@ export abstract class Composite extends ChipBase {
     this._outputSignal = outputSignal;
     this._onTerminate();
 
+    this._chipState = "inactive";
     this.emit("terminated", this._outputSignal);
   }
 
@@ -667,7 +684,7 @@ export abstract class Composite extends ChipBase {
       | (Partial<ChipActivationInfo> & { chip: ChipResolvable }),
     options?: Partial<ActivateChildChipOptions>
   ): Chip {
-    if (this.state === "inactive") throw new Error("Composite is inactive");
+    if (this.chipState !== "active") throw new Error("Composite is not active");
 
     // Unpack arguments
     let chipResolvable: ChipResolvable;
@@ -700,7 +717,7 @@ export abstract class Composite extends ChipBase {
         );
 
       const existingChip = thisAsAny[options.attribute] as Chip;
-      if (existingChip.state !== "inactive")
+      if (existingChip.chipState !== "inactive")
         this._terminateChildChip(thisAsAny[options.attribute] as Chip);
     }
 
@@ -743,13 +760,13 @@ export abstract class Composite extends ChipBase {
       providedId ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childChips[childId] = chip;
 
-    // When the chip is terminated, remove it from the set of children
-    this._subscribeOnce(chip, "terminated", (signal: Signal) => {
-      delete this._childChips[childId];
-      console.assert(!(childId in this._childChips));
+    // // When the chip is terminated, remove it from the set of children
+    // this._subscribeOnce(chip, "terminated", (signal: Signal) => {
+    //   delete this._childChips[childId];
+    //   console.assert(!(childId in this._childChips));
 
-      this.emit("terminatedChildChip", chip);
-    });
+    //   this.emit("terminatedChildChip", chip);
+    // });
 
     if (options.attribute) {
       let attributeName = options.attribute;
@@ -797,6 +814,7 @@ export abstract class Composite extends ChipBase {
       this._childChipContext[providedId] = chip;
 
       // When the chip is terminated, remove from the context
+      // TODO: move this to _tickChildChips() ?
       this._subscribeOnce(chip, "terminated", (signal: Signal) => {
         // @ts-ignore
         delete this._childChipContext[providedId];
@@ -808,30 +826,43 @@ export abstract class Composite extends ChipBase {
     return chip;
   }
 
-  /** An alias for calling terminate() on the child chip */
-  protected _terminateChildChip(chip: Chip, outputSignal?: Signal): void {
-    if (this.state === "inactive") throw new Error("Composite is inactive");
+  /** Terminate the child with the given signal */
+  protected _terminateChildChip(
+    chip: Chip,
+    outputSignal: Signal = makeSignal()
+  ): void {
+    if (this.chipState === "inactive") throw new Error("Composite is inactive");
 
     if (!this._getChildChipId(chip)) throw new Error("Chip is not a child");
 
-    chip.terminate();
+    // TODO: rather than terminate right away, maybe store this for later?
+    chip.terminate(this._lastTickInfo, outputSignal);
   }
 
   /**
    * Check if child chips are still active, and remove them if not
-   * Sends tick to all .
+   * Sends tick to all.
    */
   protected _tickChildChips(): void {
-    for (const childChip of Object.values(this._childChips)) {
-      if (childChip.state !== "inactive") childChip.tick(this._lastTickInfo);
+    for (const [childId, childChip] of Object.entries(this._childChips)) {
+      if (childChip.chipState === "requestedTermination") {
+        childChip.terminate(this._lastTickInfo);
+        delete this._childChips[childId];
+        this.emit("terminatedChildChip", childChip);
+      } else if (childChip.chipState === "active") {
+        childChip.tick(this._lastTickInfo);
+      }
     }
   }
 
   /** Terminate all the children, with the provided signal */
   protected _terminateAllChildChips(outputSignal?: Signal) {
     for (const childChip of Object.values(this._childChips)) {
-      if (childChip.state === "active" || childChip.state === "paused") {
-        childChip.terminate(outputSignal);
+      if (
+        childChip.chipState === "active" ||
+        childChip.chipState === "paused"
+      ) {
+        this._terminateChildChip(childChip, outputSignal);
       }
     }
   }
@@ -897,7 +928,7 @@ export class Parallel extends Composite {
     const info = isChipResolvable(e) ? { chip: e } : e;
     this._chipActivationInfos.push(info);
 
-    if (this.state !== "inactive") {
+    if (this.chipState !== "inactive") {
       // If no attribute or ID given, make a default one
       const infoWithId =
         info.attribute || info.id
@@ -916,7 +947,8 @@ export class Parallel extends Composite {
   _onActivate() {
     if (this._chipActivationInfos.length === 0) {
       // Empty set, stop immediately
-      if (this._options.terminateOnCompletion) this.terminate(makeSignal());
+      if (this._options.terminateOnCompletion)
+        this._terminateSelf(makeSignal());
       return;
     }
 
@@ -943,7 +975,7 @@ export class Parallel extends Composite {
       Object.keys(this._childChips).length === 0 &&
       this._options.terminateOnCompletion
     )
-      this.terminate(makeSignal());
+      this._terminateSelf(makeSignal());
   }
 
   /**
@@ -965,14 +997,14 @@ export class Parallel extends Composite {
     const activationInfo = this._chipActivationInfos[index];
     this._chipActivationInfos.splice(index, 1);
 
-    if (this.state !== "inactive") {
+    if (this.chipState !== "inactive") {
       const chip = this._infoToChip.get(activationInfo);
 
       // Remove chip  _infoToChip
       this._infoToChip.delete(activationInfo);
 
       // Terminate chip
-      chip.terminate();
+      this._terminateChildChip(chip);
     }
   }
 
@@ -1048,7 +1080,7 @@ export class Sequence extends Composite {
       this._chipActivationInfos.push(chip);
     }
 
-    if (this._state !== "inactive" && !this._currentChip) {
+    if (this._chipState !== "inactive" && !this._currentChip) {
       // Pick up with the next chip
       this._switchChip();
     }
@@ -1093,7 +1125,8 @@ export class Sequence extends Composite {
 
     if (this._chipActivationInfos.length === 0) {
       // Empty Sequence, stop immediately
-      if (this._options.terminateOnCompletion) this.terminate(makeSignal());
+      if (this._options.terminateOnCompletion)
+        this._terminateSelf(makeSignal());
     } else {
       // Start the Sequence
       this._switchChip();
@@ -1114,7 +1147,7 @@ export class Sequence extends Composite {
           shouldCancel = this._options.cancellingSignal === signal.name;
         }
 
-        if (shouldCancel) this.terminate(signal);
+        if (shouldCancel) this._terminateSelf(signal);
         return;
       }
 
@@ -1144,7 +1177,7 @@ export class Sequence extends Composite {
         this._switchChip();
       } else if (this._options.terminateOnCompletion) {
         // otherwise terminate
-        this.terminate(signal);
+        this._terminateSelf(signal);
       }
     }
   }
@@ -1332,7 +1365,7 @@ export class StateMachine extends Composite {
       this._visitedStates.push(nextState);
 
       // Terminate with signal
-      this.terminate(nextState);
+      this._terminateSelf(nextState);
       return;
     }
 
@@ -1461,12 +1494,12 @@ export class Functional extends Composite {
     const result = this.functions.shouldTerminate(this);
     if (result) {
       if (_.isString(result)) {
-        this.terminate(makeSignal(result));
+        this._terminateSelf(makeSignal(result));
       } else if (_.isObject(result)) {
-        this.terminate(result);
+        this._terminateSelf(result);
       } else {
         // result is true
-        this.terminate(makeSignal());
+        this._terminateSelf(makeSignal());
       }
     }
   }
@@ -1486,9 +1519,9 @@ export class Lambda extends ChipBase {
   _onActivate() {
     const result = this.f.call(this.that);
 
-    if (typeof result === "string") this.terminate(makeSignal(result));
-    else if (typeof result === "object") this.terminate(result);
-    else this.terminate(makeSignal());
+    if (typeof result === "string") this._terminateSelf(makeSignal(result));
+    else if (typeof result === "object") this._terminateSelf(result);
+    else this._terminateSelf(makeSignal());
   }
 }
 
@@ -1509,7 +1542,7 @@ export class Wait extends ChipBase {
     this._accumulatedTime += this._lastTickInfo.timeSinceLastTick;
 
     if (this._accumulatedTime >= this.wait) {
-      this.terminate();
+      this._terminateSelf();
     }
   }
 }
@@ -1519,7 +1552,7 @@ export class Wait extends ChipBase {
  */
 export class Block extends ChipBase {
   done(signal = makeSignal()) {
-    this.terminate(signal);
+    this._terminateSelf(signal);
   }
 }
 
@@ -1545,10 +1578,10 @@ export class WaitForEvent extends ChipBase {
     if (!result) return;
 
     if (_.isObject(result)) {
-      this.terminate(result);
+      this._terminateSelf(result);
     } else {
       // result is true
-      this.terminate();
+      this._terminateSelf();
     }
   }
 }
@@ -1605,6 +1638,6 @@ export class Alternative extends Composite {
 
     const terminateWith =
       this._chipActivationInfos[index].signal ?? makeSignal(index.toString());
-    this.terminate(terminateWith);
+    this._terminateSelf(terminateWith);
   }
 }

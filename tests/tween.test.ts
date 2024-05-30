@@ -37,7 +37,9 @@ describe("Tween", () => {
       t.tick(makeFrameInfo());
       expect(t.value).toBeCloseTo(i + 1, 0.1);
     }
+    expect(t.chipState).toBe("requestedTermination");
 
-    expect(t.state).toBe("inactive");
+    t.terminate(makeFrameInfo());
+    expect(t.chipState).toBe("inactive");
   });
 });

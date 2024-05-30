@@ -122,7 +122,7 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
       this._value = this.options.to;
       this._updateValue();
 
-      this.terminate(chip.makeSignal());
+      this._terminateSelf(chip.makeSignal());
     } else {
       // Ease and interpolate value
       const easedProgress = this._easing(

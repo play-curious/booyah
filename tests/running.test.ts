@@ -46,7 +46,7 @@ describe("Running", () => {
     await wait(frameTime * 5);
 
     expect(ranCount).toBe(3);
-    expect(rootChip.state === "inactive");
+    expect(rootChip.chipState === "inactive");
     expect(runner.isRunning).toBe(false);
   });
 
@@ -68,7 +68,7 @@ describe("Running", () => {
     runner.stop();
 
     expect(ranCount).toBeGreaterThan(0);
-    expect(rootChip.state === "inactive");
+    expect(rootChip.chipState === "inactive");
     expect(runner.isRunning).toBe(false);
   });
 });

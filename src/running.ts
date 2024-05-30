@@ -56,8 +56,6 @@ export class Runner {
       ? this._rootChipResolvable(this._rootContext, chip.makeSignal())
       : this._rootChipResolvable;
 
-    this._rootChip.once("terminated", () => (this._isRunning = false));
-
     const tickInfo: chip.TickInfo = {
       timeSinceLastTick: 0,
     };
@@ -76,7 +74,17 @@ export class Runner {
     if (!this._isRunning) throw new Error("Already stopped");
 
     this._isRunning = false;
-    this._rootChip.terminate(chip.makeSignal("stop"));
+
+    const timeStamp = performance.now();
+    const timeSinceLastTick = this._clampTimeSinceLastTick(
+      timeStamp - this._lastTimeStamp
+    );
+
+    const tickInfo: chip.TickInfo = {
+      timeSinceLastTick,
+    };
+
+    this._rootChip.terminate(tickInfo, chip.makeSignal("stop"));
   }
 
   private _onTick() {
@@ -90,21 +98,19 @@ export class Runner {
     // If no time elapsed, don't update
     if (timeSinceLastTick <= 0) return;
 
-    // Optionally clamp time since last frame
-    if (this._options.minFps >= 0) {
-      timeSinceLastTick = Math.min(
-        timeSinceLastTick,
-        1000 / this._options.minFps
-      );
-    }
+    timeSinceLastTick = this._clampTimeSinceLastTick(timeSinceLastTick);
 
     const tickInfo: chip.TickInfo = {
       timeSinceLastTick,
     };
 
-    this._rootChip.tick(tickInfo);
-
-    requestAnimationFrame(() => this._onTick());
+    if (this._rootChip.chipState === "requestedTermination") {
+      this._rootChip.terminate(tickInfo);
+      this._isRunning = false;
+    } else {
+      this._rootChip.tick(tickInfo);
+      requestAnimationFrame(() => this._onTick());
+    }
   }
 
   private _enableHotReloading() {
@@ -130,7 +136,7 @@ export class Runner {
       const tickInfo: chip.TickInfo = {
         timeSinceLastTick: 0,
       };
-      this._rootChip.terminate(chip.makeSignal("beforeReload"));
+      this._rootChip.terminate(tickInfo, chip.makeSignal("beforeReload"));
       this._rootChip.activate(
         tickInfo,
         this._rootContext,
@@ -142,5 +148,12 @@ export class Runner {
 
   get isRunning(): boolean {
     return this._isRunning;
+  }
+
+  private _clampTimeSinceLastTick(timeSinceLastTick: number) {
+    if (this._options.minFps <= 0) return;
+
+    // Optionally clamp time since last frame
+    return Math.min(timeSinceLastTick, 1000 / this._options.minFps);
   }
 }
