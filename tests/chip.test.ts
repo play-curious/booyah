@@ -44,6 +44,10 @@ class MockChip extends chip.ChipBase {
   public _onResume() {
     /* no op */
   }
+
+  public requestTermination(signal?: chip.Signal) {
+    this._terminateSelf(signal);
+  }
 }
 
 class MockComposite extends chip.Composite {
@@ -55,6 +59,10 @@ class MockComposite extends chip.Composite {
 
   set defaultChildChipContext(value: chip.ChipContext) {
     this._defaultChildChipContext = value;
+  }
+
+  public requestTermination(signal?: chip.Signal) {
+    this._terminateSelf(signal);
   }
 }
 
@@ -71,7 +79,7 @@ describe("Chip", () => {
       e.tick(makeFrameInfo());
       e.pause(makeFrameInfo());
       e.resume(makeFrameInfo());
-      e.terminate();
+      e.terminate(makeFrameInfo());
     }
 
     expect(e._onActivate).toBeCalledTimes(5);
@@ -96,7 +104,7 @@ describe("Chip", () => {
 
   test("throws on terminate before activate", () => {
     expect(() => {
-      e.terminate();
+      e.terminate(makeFrameInfo());
     }).toThrow();
   });
 
@@ -135,7 +143,7 @@ describe("Chip", () => {
     e.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(e.outputSignal).not.toBeDefined();
 
-    e.terminate();
+    e.terminate(makeFrameInfo());
     expect(e.outputSignal).toBeDefined();
   });
 });
@@ -175,7 +183,7 @@ describe("Events", () => {
     expect(receiver.receiveB).toBeCalledWith(1, 2, 3);
 
     // Teardown the receiver and send more events that should not be received
-    receiver.terminate();
+    receiver.terminate(makeFrameInfo());
     sender.emit("a");
     sender.emit("b");
 
@@ -222,7 +230,7 @@ describe("Events", () => {
     expect(spyB.mock.calls?.[0][0].value).toBe(2);
 
     // Teardown the receiver and send more events that should not be received
-    receiver.terminate();
+    receiver.terminate(makeFrameInfo());
     sender.dispatchEvent(new CustomEvent("a", 1));
     sender.dispatchEvent(new CustomEvent("b", 2));
 
@@ -273,7 +281,7 @@ describe("Events", () => {
     expect(subscriptionHandlerB.subscribeOnce.mock.calls[0][1]).toBe("b");
 
     // Teardown the receiver and check that unsubscribe() was called
-    receiver.terminate();
+    receiver.terminate(makeFrameInfo());
 
     // @ts-ignore
     expect(subscriptionHandlerA.unsubscribe.mock.calls[0][0]).toBe(sender);
@@ -308,7 +316,7 @@ describe("Composite", () => {
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
-      parent.terminate();
+      parent.terminate(makeFrameInfo());
     }
 
     for (const child of children) {
@@ -326,7 +334,7 @@ describe("Composite", () => {
     parent.tick(makeFrameInfo());
 
     // Deactivate middle child
-    children[1].terminate();
+    children[1].requestTermination();
 
     // Run two more times
     parent.tick(makeFrameInfo());
@@ -352,7 +360,7 @@ describe("Composite", () => {
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
     // Terminate child
-    children[1].terminate();
+    children[1].requestTermination();
 
     // Run again
     parent.tick(makeFrameInfo());
@@ -360,7 +368,7 @@ describe("Composite", () => {
     expect(terminatedCallback).toBeCalledTimes(1);
 
     // Teardown and activate again
-    parent.terminate();
+    parent.terminate(makeFrameInfo());
 
     expect(terminatedCallback).toBeCalledTimes(3);
 
@@ -392,7 +400,9 @@ describe("Composite", () => {
     // @ts-ignore
     expect(parent.attr).toBe(childChip);
 
-    childChip.terminate();
+    // Terminate the child chip
+    childChip.requestTermination();
+    parent.tick(makeFrameInfo());
 
     // @ts-ignore
     expect(parent.attr).toBeUndefined();
@@ -419,7 +429,7 @@ describe("Composite", () => {
 
   test("defers termination during tick", () => {
     // @ts-ignore
-    children = [new chip.Lambda(() => parent.terminate())];
+    children = [new chip.Lambda(() => parent.requestTermination())];
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
   });
 
@@ -427,7 +437,7 @@ describe("Composite", () => {
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     expect(parent.outputSignal).not.toBeDefined();
 
-    parent.terminate();
+    parent.terminate(makeFrameInfo());
     expect(parent.outputSignal).toBeDefined();
   });
 });
@@ -442,7 +452,7 @@ describe("Parallel", () => {
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
-      parent.terminate();
+      parent.terminate(makeFrameInfo());
     }
 
     for (const child of children) {
@@ -493,15 +503,15 @@ describe("Parallel", () => {
     parent.tick(makeFrameInfo());
 
     // Terminate one child
-    children[0].terminate();
+    children[0].requestTermination();
     parent.tick(makeFrameInfo());
-    expect(parent.state === "active");
+    expect(parent.chipState === "active");
 
     // Terminate second child
-    children[1].terminate();
+    children[1].requestTermination();
     parent.tick(makeFrameInfo());
 
-    expect(parent.state === "inactive");
+    expect(parent.chipState === "inactive");
   });
 
   test("can remove children", () => {
@@ -516,7 +526,7 @@ describe("Parallel", () => {
     parent.removeChildChip(children[1]);
     parent.tick(makeFrameInfo());
 
-    expect(children[1].state).toBe("inactive");
+    expect(children[1].chipState).toBe("inactive");
     // @ts-ignore
     expect(parent._chipActivationInfos.length).toBe(2);
     // @ts-ignore
@@ -541,7 +551,7 @@ describe("Sequence", () => {
       parent.tick(makeFrameInfo());
       parent.pause(makeFrameInfo());
       parent.resume(makeFrameInfo());
-      parent.terminate();
+      parent.terminate(makeFrameInfo());
     }
 
     // First child should be called
@@ -570,19 +580,19 @@ describe("Sequence", () => {
     // Run 1st child twice, then terminate it
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[0].terminate();
+    children[0].requestTermination();
     parent.tick(makeFrameInfo());
 
     // Run 2nd child twice, then terminate it
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[1].terminate();
+    children[1].requestTermination();
     parent.tick(makeFrameInfo());
 
     // Run 3rd child twice, then terminate
     parent.tick(makeFrameInfo());
     parent.tick(makeFrameInfo());
-    children[2].terminate(chip.makeSignal("third"));
+    children[2].requestTermination(chip.makeSignal("third"));
     parent.tick(makeFrameInfo());
 
     // Each child should be updated 2 times
@@ -604,12 +614,12 @@ describe("Sequence", () => {
 
     // Run 1st child, then terminate
     parent.tick(makeFrameInfo());
-    children[0].terminate();
+    children[0].requestTermination();
     parent.tick(makeFrameInfo());
 
     // Run 2nd child, then terminate
     parent.tick(makeFrameInfo());
-    children[1].terminate();
+    children[1].requestTermination();
     parent.tick(makeFrameInfo());
 
     // Run 1st child again
@@ -660,7 +670,7 @@ describe("Sequence", () => {
     class TerminatingCounter extends chip.ChipBase {
       protected _onActivate(): void {
         counter++;
-        this.terminate();
+        this._terminateSelf();
       }
     }
 
@@ -685,7 +695,7 @@ describe("Sequence", () => {
 
     // Run 1st child, then terminate it
     parent.tick(makeFrameInfo());
-    children[0].terminate();
+    children[0].requestTermination();
 
     parent.tick(makeFrameInfo());
 
@@ -714,7 +724,7 @@ describe("StateMachine", () => {
       stateMachine.tick(makeFrameInfo());
       stateMachine.pause(makeFrameInfo());
       stateMachine.resume(makeFrameInfo());
-      stateMachine.terminate();
+      stateMachine.terminate(makeFrameInfo());
     }
 
     // First child should be called 5 times
@@ -732,7 +742,7 @@ describe("StateMachine", () => {
     // Run once, then terminate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.start.terminate(chip.makeSignal("end"));
+    states.start.requestTermination(chip.makeSignal("end"));
     stateMachine.tick(makeFrameInfo());
 
     expect(states.start._onActivate).toBeCalledTimes(1);
@@ -752,7 +762,7 @@ describe("StateMachine", () => {
     // Run once, then terminate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.terminate(chip.makeSignal("b"));
+    states.a.requestTermination(chip.makeSignal("b"));
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(1);
@@ -775,11 +785,11 @@ describe("StateMachine", () => {
     // Run once, then terminate
     stateMachine.activate(makeFrameInfo(), makeChipContext(), makeSignal());
     stateMachine.tick(makeFrameInfo());
-    states.a.terminate();
+    states.a.requestTermination();
     stateMachine.tick(makeFrameInfo());
 
     // Signal back again
-    states.b.terminate();
+    states.b.requestTermination();
     stateMachine.tick(makeFrameInfo());
 
     expect(states.a._onActivate).toBeCalledTimes(2);
@@ -824,7 +834,7 @@ describe("StateMachine", () => {
     stateMachine.tick(makeFrameInfo());
 
     const signal = chip.makeSignal("done", { x: "y" });
-    states.a.terminate(signal);
+    states.a.requestTermination(signal);
 
     stateMachine.tick(makeFrameInfo());
 
@@ -844,8 +854,6 @@ describe("StateMachine", () => {
 
 describe("Alternative", () => {
   test("picks the first chip that terminates", () => {
-    debugger;
-
     const children = [new MockChip(), new MockChip()];
 
     const alternative = new chip.Alternative(children);
@@ -855,10 +863,11 @@ describe("Alternative", () => {
     alternative.tick(makeFrameInfo());
 
     // Terminate second child
-    children[1].terminate();
+    children[1].requestTermination();
+    alternative.tick(makeFrameInfo());
 
-    // Alternative should terminate as well, with an output signal of the index of the child
-    expect(alternative.state).toBe("inactive");
+    // Alternative should request termination as well, with an output signal of the index of the child
+    expect(alternative.chipState).toBe("requestedTermination");
     expect(alternative.outputSignal.name).toBe("1");
   });
 
@@ -876,10 +885,11 @@ describe("Alternative", () => {
 
     // Terminate first child
     // @ts-ignore
-    children[0].chip.terminate();
+    children[0].chip.requestTermination();
+    alternative.tick(makeFrameInfo());
 
-    // Alternative should terminate as well, with an output signal of the index of the child
-    expect(alternative.state).toBe("inactive");
+    // Alternative should request termination as well, with an output signal of the index of the child
+    expect(alternative.chipState).toBe("requestedTermination");
     expect(alternative.outputSignal.name).toBe("hello");
   });
 });
@@ -1061,7 +1071,7 @@ describe("Hot reloading", () => {
     );
 
     // The 2nd child should be active and have the correct value
-    expect(child2V3.state).toBe("active");
+    expect(child2V3.chipState).toBe("active");
     expect(child2V3.value).toBe(77);
   });
 
@@ -1099,9 +1109,9 @@ describe("Hot reloading", () => {
     );
 
     // Only 2nd child should be activate and have the new value
-    expect(child1V1.state).toBe("inactive");
+    expect(child1V1.chipState).toBe("inactive");
 
-    expect(child2V2.state).toBe("active");
+    expect(child2V2.chipState).toBe("active");
     expect(child2V2.value).toBe(22);
   });
 });

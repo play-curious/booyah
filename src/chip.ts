@@ -318,6 +318,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     if (!this._outputSignal) {
       this._outputSignal = outputSignal;
     }
+
     this._chipState = "terminating";
 
     this._onTerminate();
@@ -617,7 +618,10 @@ export abstract class Composite extends ChipBase {
     this._onAfterTick();
   }
 
-  public terminate(tickInfo: TickInfo, outputSignal?: Signal): void {
+  public terminate(
+    tickInfo: TickInfo,
+    outputSignal: Signal = makeSignal()
+  ): void {
     // Can't just call super.terminate() here, the order is slightly different
 
     if (!this.isInChipState("active", "paused", "requestedTermination"))
@@ -760,14 +764,6 @@ export abstract class Composite extends ChipBase {
       providedId ?? `unknown_${_.random(Number.MAX_SAFE_INTEGER)}`;
     this._childChips[childId] = chip;
 
-    // // When the chip is terminated, remove it from the set of children
-    // this._subscribeOnce(chip, "terminated", (signal: Signal) => {
-    //   delete this._childChips[childId];
-    //   console.assert(!(childId in this._childChips));
-
-    //   this.emit("terminatedChildChip", chip);
-    // });
-
     if (options.attribute) {
       let attributeName = options.attribute;
       // If the attribute name has an array syntax, add to the array
@@ -833,10 +829,13 @@ export abstract class Composite extends ChipBase {
   ): void {
     if (this.chipState === "inactive") throw new Error("Composite is inactive");
 
-    if (!this._getChildChipId(chip)) throw new Error("Chip is not a child");
+    const childChipId = this._getChildChipId(chip);
+    if (!childChipId) throw new Error("Chip is not a child");
 
     // TODO: rather than terminate right away, maybe store this for later?
     chip.terminate(this._lastTickInfo, outputSignal);
+    delete this._childChips[childChipId];
+    this.emit("terminatedChildChip", chip);
   }
 
   /**
@@ -846,9 +845,7 @@ export abstract class Composite extends ChipBase {
   protected _tickChildChips(): void {
     for (const [childId, childChip] of Object.entries(this._childChips)) {
       if (childChip.chipState === "requestedTermination") {
-        childChip.terminate(this._lastTickInfo);
-        delete this._childChips[childId];
-        this.emit("terminatedChildChip", childChip);
+        this._terminateChildChip(childChip);
       } else if (childChip.chipState === "active") {
         childChip.tick(this._lastTickInfo);
       }
@@ -1622,11 +1619,11 @@ export class Alternative extends Composite {
     for (let i = 0; i < this._chipActivationInfos.length; i++) {
       const chipActivationInfo = this._chipActivationInfos[i];
 
-      this._subscribe(chipActivationInfo.chip, "terminated", () =>
-        this._onChildTerminated(i)
-      );
-      this._activateChildChip(chipActivationInfo.chip, {
-        context: chipActivationInfo.context,
+      const childChip = this._activateChildChip(chipActivationInfo);
+      this._subscribe(this, "terminatedChildChip", (chip) => {
+        if (childChip !== chip) return;
+
+        this._onChildTerminated(i);
       });
     }
   }
