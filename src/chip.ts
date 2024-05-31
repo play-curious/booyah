@@ -1243,7 +1243,7 @@ export type SignalTable = { [name: string]: SignalDescriptor };
 
 export class StateMachineOptions {
   startingState: Signal | string = "start";
-  signals: { [n: string]: SignalDescriptor | string };
+  transitions: { [n: string]: SignalDescriptor | string };
   endingStates: string[] = ["end"];
 }
 
@@ -1266,7 +1266,7 @@ export class StateMachine extends Composite {
   public readonly options: StateMachineOptions;
 
   private _states: StateTable = {};
-  private _signals: SignalTable = {};
+  private _transitions: SignalTable = {};
   private _startingState: SignalDescriptor;
   private _visitedStates: Signal[];
   private _activeChildChip: Chip;
@@ -1295,12 +1295,12 @@ export class StateMachine extends Composite {
       this._startingState = makeSignal(this.options.startingState);
     else this._startingState = this.options.startingState;
 
-    for (const key in this.options.signals) {
-      const value = this.options.signals[key];
+    for (const key in this.options.transitions) {
+      const value = this.options.transitions[key];
       if (typeof value === "string") {
-        this._signals[key] = makeSignal(value);
+        this._transitions[key] = makeSignal(value);
       } else {
-        this._signals[key] = value;
+        this._transitions[key] = value;
       }
     }
   }
@@ -1333,7 +1333,7 @@ export class StateMachine extends Composite {
     if (signal) {
       let nextStateDescriptor: Signal;
       // The signal could directly be the name of another state, or ending state
-      if (!(this._lastSignal.name in this._signals)) {
+      if (!(this._lastSignal.name in this._transitions)) {
         if (
           signal.name in this._states ||
           _.contains(this.options.endingStates, signal.name)
@@ -1344,7 +1344,7 @@ export class StateMachine extends Composite {
         }
       } else {
         const signalDescriptor: SignalDescriptor =
-          this._signals[this._lastSignal.name];
+          this._transitions[this._lastSignal.name];
         if (_.isFunction(signalDescriptor)) {
           nextStateDescriptor = resolveSignal(
             signalDescriptor(this._chipContext, signal)
@@ -1440,17 +1440,17 @@ export class StateMachine extends Composite {
 }
 
 /** 
-  Creates a signal table for use with StateMachine.
+  Creates a transition table for use with StateMachine.
   Example: 
     const signals = {
-      start: chip.makeSignalTable({ 
+      start: chip.makeTransitionTable({ 
         win: "end",
         lose: "start",
       }),
     };
     `
 */
-export function makeSignalTable(table: {
+export function makeTransitionTable(table: {
   [key: string]: string | SignalFunction;
 }): SignalFunction {
   const f = function (context: ChipContext, signal: Signal): Signal {

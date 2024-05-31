@@ -778,7 +778,7 @@ describe("StateMachine", () => {
     const states = { a: new MockChip(), b: new MockChip() };
     const stateMachine = new chip.StateMachine(states, {
       startingState: chip.makeSignal("a"),
-      signals: {
+      transitions: {
         a: "b",
         b: "a",
       },
@@ -826,7 +826,7 @@ describe("StateMachine", () => {
     const states = { a: new MockChip(), b: new MockChip() };
     const stateMachine = new chip.StateMachine(states, {
       startingState: chip.makeSignal("a"),
-      signals: {
+      transitions: {
         a: jest.fn(() => chip.makeSignal("b")),
       },
     });
@@ -846,8 +846,8 @@ describe("StateMachine", () => {
 
     expect(states.b._onActivate).toBeCalledTimes(1);
 
-    expect(stateMachine.options.signals.a).toBeCalledTimes(1);
-    expect(stateMachine.options.signals.a).toBeCalledWith(
+    expect(stateMachine.options.transitions.a).toBeCalledTimes(1);
+    expect(stateMachine.options.transitions.a).toBeCalledWith(
       stateMachine.chipContext,
       signal
     );
