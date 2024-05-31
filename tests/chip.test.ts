@@ -427,10 +427,12 @@ describe("Composite", () => {
     expect(childChipB.chipContext.attr).toBe(childChipA);
   });
 
-  test("defers termination during tick", () => {
+  test("doesn't crash when child terminates parent", () => {
     // @ts-ignore
     children = [new chip.Lambda(() => parent.requestTermination())];
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    expect(parent.chipState).toBe("requestedTermination");
   });
 
   test("creates default output signal", () => {

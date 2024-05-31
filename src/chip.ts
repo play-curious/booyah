@@ -102,6 +102,12 @@ export interface Signal {
   readonly params: SignalParams;
 }
 
+export function isSignal(value: object): value is Signal {
+  return typeof value === "object" && "name" in value;
+}
+
+export type SignalResolvable = Signal | SignalParams | string;
+
 export function makeSignal(
   name = "default",
   params: SignalParams = {}
@@ -109,9 +115,13 @@ export function makeSignal(
   return { name, params };
 }
 
-export function resolveSignal(value: Signal | string): Signal {
-  if (typeof value === "string") return makeSignal(value);
-  return value;
+export function resolveSignal(value?: SignalResolvable): Signal {
+  if (typeof value === "undefined" || typeof value === "string")
+    return makeSignal(value);
+  if (isSignal(value)) return value;
+
+  // interpret value as params
+  return makeSignal("default", value);
 }
 
 /**
@@ -329,7 +339,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
     this.emit("terminated", this._outputSignal);
   }
 
-  protected _terminateSelf(signal: Signal = makeSignal()) {
+  protected _terminateSelf(signal?: SignalResolvable) {
     if (this._chipState !== "active" && this._chipState !== "paused") {
       console.warn(
         `_terminateSelf() called from state ${this._chipState}. Ignoring...`
@@ -337,7 +347,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
       return;
     }
 
-    this._outputSignal = signal;
+    this._outputSignal = resolveSignal(signal);
     this._chipState = "requestedTermination";
   }
 
@@ -618,18 +628,11 @@ export abstract class Composite extends ChipBase {
     this._onAfterTick();
   }
 
-  public terminate(
-    tickInfo: TickInfo,
-    outputSignal: Signal = makeSignal()
-  ): void {
+  public terminate(tickInfo: TickInfo, outputSignal?: SignalResolvable): void {
     // Can't just call super.terminate() here, the order is slightly different
 
     if (!this.isInChipState("active", "paused", "requestedTermination"))
       throw new Error(`terminate() called from state ${this._chipState}`);
-
-    if (!this._outputSignal) {
-      this._outputSignal = outputSignal;
-    }
 
     this._chipState = "terminating";
 
@@ -637,7 +640,9 @@ export abstract class Composite extends ChipBase {
     this._terminateAllChildChips();
     this._unsubscribe();
 
-    this._outputSignal = outputSignal;
+    if (!this._outputSignal) {
+      this._outputSignal = resolveSignal(outputSignal);
+    }
     this._onTerminate();
 
     this._chipState = "inactive";
@@ -825,7 +830,7 @@ export abstract class Composite extends ChipBase {
   /** Terminate the child with the given signal */
   protected _terminateChildChip(
     chip: Chip,
-    outputSignal: Signal = makeSignal()
+    outputSignal?: SignalResolvable
   ): void {
     if (this.chipState === "inactive") throw new Error("Composite is inactive");
 
@@ -833,7 +838,7 @@ export abstract class Composite extends ChipBase {
     if (!childChipId) throw new Error("Chip is not a child");
 
     // TODO: rather than terminate right away, maybe store this for later?
-    chip.terminate(this._lastTickInfo, outputSignal);
+    chip.terminate(this._lastTickInfo, resolveSignal(outputSignal));
     delete this._childChips[childChipId];
     this.emit("terminatedChildChip", chip);
   }
@@ -944,8 +949,7 @@ export class Parallel extends Composite {
   _onActivate() {
     if (this._chipActivationInfos.length === 0) {
       // Empty set, stop immediately
-      if (this._options.terminateOnCompletion)
-        this._terminateSelf(makeSignal());
+      if (this._options.terminateOnCompletion) this._terminateSelf();
       return;
     }
 
@@ -972,7 +976,7 @@ export class Parallel extends Composite {
       Object.keys(this._childChips).length === 0 &&
       this._options.terminateOnCompletion
     )
-      this._terminateSelf(makeSignal());
+      this._terminateSelf();
   }
 
   /**
@@ -1122,8 +1126,7 @@ export class Sequence extends Composite {
 
     if (this._chipActivationInfos.length === 0) {
       // Empty Sequence, stop immediately
-      if (this._options.terminateOnCompletion)
-        this._terminateSelf(makeSignal());
+      if (this._options.terminateOnCompletion) this._terminateSelf();
     } else {
       // Start the Sequence
       this._switchChip();
@@ -1490,13 +1493,10 @@ export class Functional extends Composite {
 
     const result = this.functions.shouldTerminate(this);
     if (result) {
-      if (_.isString(result)) {
-        this._terminateSelf(makeSignal(result));
-      } else if (_.isObject(result)) {
-        this._terminateSelf(result);
+      if (typeof result === "boolean") {
+        this._terminateSelf();
       } else {
-        // result is true
-        this._terminateSelf(makeSignal());
+        this._terminateSelf(result);
       }
     }
   }
@@ -1518,7 +1518,7 @@ export class Lambda extends ChipBase {
 
     if (typeof result === "string") this._terminateSelf(makeSignal(result));
     else if (typeof result === "object") this._terminateSelf(result);
-    else this._terminateSelf(makeSignal());
+    else this._terminateSelf();
   }
 }
 
