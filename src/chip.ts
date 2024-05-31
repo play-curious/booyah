@@ -798,31 +798,9 @@ export abstract class Composite extends ChipBase {
           // @ts-ignore
           this[attributeName] = attributeAsArray;
         }
-
-        // When the chip is terminated, remove the attribute
-        // TODO: do this in _terminateChildChip()
-        this._subscribeOnce(
-          childChipInfo.chip,
-          "terminated",
-          (signal: Signal) => {
-            // @ts-ignore
-            const attributeAsArray = this[attributeName] as Array<Chip>;
-            const index = attributeAsArray.indexOf(childChipInfo.chip);
-            attributeAsArray.splice(index, 1);
-          }
-        );
       } else {
         // @ts-ignore
         this[attributeName] = childChipInfo.chip;
-
-        // When the chip is terminated, delete the attribute
-        this._subscribeOnce(
-          childChipInfo.chip,
-          "terminated",
-          (signal: Signal) => {
-            delete this[attributeName as keyof this];
-          }
-        );
       }
     }
 
@@ -834,17 +812,6 @@ export abstract class Composite extends ChipBase {
         );
 
       this._childChipContext[providedId] = childChipInfo.chip;
-
-      // When the chip is terminated, remove from the context
-      // TODO: move this to _tickChildChips() ?
-      this._subscribeOnce(
-        childChipInfo.chip,
-        "terminated",
-        (signal: Signal) => {
-          // @ts-ignore
-          delete this._childChipContext[providedId];
-        }
-      );
     }
 
     this._childChipInfos[childChipInfo.id] = childChipInfo;
@@ -868,20 +835,41 @@ export abstract class Composite extends ChipBase {
   ): void {
     if (this.chipState === "inactive") throw new Error("Composite is inactive");
 
-    let chipInfo: CompositeChildChipInfo;
+    let childChipInfo: CompositeChildChipInfo;
     if (typeof chipOrId === "string") {
-      chipInfo = this.getChildChipInfo(chipOrId);
+      childChipInfo = this.getChildChipInfo(chipOrId);
     } else {
       const childChipId = this.getChildChipId(chipOrId);
-      chipInfo = this.getChildChipInfo(childChipId);
+      childChipInfo = this.getChildChipInfo(childChipId);
     }
 
-    if (!chipInfo) throw new Error(`Chip is not a child: "${chipOrId}"`);
+    if (!childChipInfo) throw new Error(`Chip is not a child: "${chipOrId}"`);
 
-    // TODO: rather than terminate right away, maybe store this for later?
-    chipInfo.chip.terminate(this._lastTickInfo, resolveSignal(outputSignal));
-    delete this._childChipInfos[chipInfo.id];
-    this.emit("terminatedChildChip", chipInfo);
+    childChipInfo.chip.terminate(
+      this._lastTickInfo,
+      resolveSignal(outputSignal)
+    );
+    delete this._childChipInfos[childChipInfo.id];
+
+    // Remove the attribute, if it exists
+    if (childChipInfo.attribute) {
+      if (childChipInfo.attribute.endsWith("[]")) {
+        const attributeAsArray = this[
+          childChipInfo.attribute as keyof this
+        ] as Array<Chip>;
+        const index = attributeAsArray.indexOf(childChipInfo.chip);
+        attributeAsArray.splice(index, 1);
+      } else {
+        delete this[childChipInfo.attribute as keyof this];
+      }
+    }
+
+    // Remove from the child chip context, if asked for
+    if (childChipInfo.includeInChildContext) {
+      delete this._childChipContext[childChipInfo.id];
+    }
+
+    this.emit("terminatedChildChip", childChipInfo);
   }
 
   /**
