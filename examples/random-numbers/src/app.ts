@@ -22,7 +22,7 @@ class RandomNumberGenerator extends chip.ChipBase {
     element.innerText = number.toString();
 
     // Terminate yourself
-    this.terminate();
+    this._terminateSelf();
   }
 }
 

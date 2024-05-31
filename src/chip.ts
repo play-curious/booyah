@@ -606,7 +606,7 @@ export class CompositeChildChipInfo {
  *
  * Events:
  * - activatedChildChip(chip: CompositeChildChipInfo)
- * - terminatedChildChip(chip: CompositeChildChipInfo)
+ * - terminatedChildChip(chip: CompositeChildChipInfo, outputSignal: Signal)
  */
 export abstract class Composite extends ChipBase {
   protected _childChipInfos: Record<string, CompositeChildChipInfo>;
@@ -869,7 +869,11 @@ export abstract class Composite extends ChipBase {
       delete this._childChipContext[childChipInfo.id];
     }
 
-    this.emit("terminatedChildChip", childChipInfo);
+    this.emit(
+      "terminatedChildChip",
+      childChipInfo,
+      childChipInfo.chip.outputSignal
+    );
   }
 
   /**
@@ -1621,18 +1625,19 @@ export class WaitForEvent extends ChipBase {
 
 export interface AlternativeActivateChildChipOptions
   extends ActivateChildChipOptions {
-  signal?: Signal;
+  outputSignal?: Signal;
 }
 
 /**
- *  Chip that requests a signal as soon as one of it's children requests one
+ *  Chip that requests a signal as soon as one of it's children requests one.
+ *  If an `outputSignal` is specified for that child, it will be output.
+ *  Otherwise the output signal of the chip will be used
  */
 export class Alternative extends Composite {
   private readonly _childChipOptions: AlternativeActivateChildChipOptions[];
 
   private _aChildTerminated: boolean;
 
-  // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
   constructor(
     childChipOptions: Array<
       ChipResolvable | AlternativeActivateChildChipOptions
@@ -1640,8 +1645,7 @@ export class Alternative extends Composite {
   ) {
     super();
 
-    // Set default signal as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-    this._childChipOptions = childChipOptions.map((info, key) => {
+    this._childChipOptions = childChipOptions.map((info) => {
       if (isChip(info) || typeof info === "function") {
         return {
           chip: info,
@@ -1662,22 +1666,22 @@ export class Alternative extends Composite {
       this._subscribe(
         this,
         "terminatedChildChip",
-        (chipInfo: CompositeChildChipInfo) => {
+        (chipInfo: CompositeChildChipInfo, outputSignal) => {
           if (childChipInfo !== chipInfo) return;
 
-          this._onChildTerminated(i);
+          this._onChildTerminated(i, outputSignal);
         }
       );
     }
   }
 
-  private _onChildTerminated(index: number) {
+  private _onChildTerminated(index: number, outputSignal: Signal) {
     if (this._aChildTerminated) return;
 
     this._aChildTerminated = true;
 
     const terminateWith =
-      this._childChipOptions[index].signal ?? makeSignal(index.toString());
+      this._childChipOptions[index].outputSignal ?? outputSignal;
     this._terminateSelf(terminateWith);
   }
 }

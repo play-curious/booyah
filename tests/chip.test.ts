@@ -871,12 +871,12 @@ describe("Alternative", () => {
 
     // Alternative should request termination as well, with an output signal of the index of the child
     expect(alternative.chipState).toBe("requestedTermination");
-    expect(alternative.outputSignal.name).toBe("1");
+    expect(alternative.outputSignal.name).toBe("default");
   });
 
   test("can provide custom signal", () => {
     const children = [
-      { chip: new MockChip(), signal: chip.makeSignal("hello") },
+      { chip: new MockChip(), outputSignal: chip.makeSignal("hello") },
       new MockChip(),
     ];
 
