@@ -174,10 +174,6 @@ export type ChipFactory = (
 
 export type ChipResolvable = Chip | ChipFactory;
 
-export interface ChipActivationInfo extends ActivateChildChipOptions {
-  chip: ChipResolvable;
-}
-
 export type ChipState =
   | "inactive"
   | "activating"
@@ -195,9 +191,7 @@ export function isChip(e: any): e is Chip {
   );
 }
 
-export function isChipResolvable(
-  e: ChipResolvable | ChipActivationInfo
-): e is ChipResolvable {
+export function isChipResolvable(e: any): e is ChipResolvable {
   return typeof e === "function" || isChip(e);
 }
 
@@ -571,6 +565,8 @@ export class Transitory extends ChipBase {
 
 /** Options that can be passed to Composite._activateChildChip() */
 export class ActivateChildChipOptions {
+  chip: ChipResolvable;
+
   /** Additional context or function to return a context */
   context?: ChipContextResolvable;
 
@@ -677,21 +673,17 @@ export abstract class Composite extends ChipBase {
    */
   protected _activateChildChip(
     chipResolvable: ChipResolvable,
-    options?: Partial<ActivateChildChipOptions>
+    options?: Omit<ActivateChildChipOptions, "chip">
   ): Chip;
   /**
    * Activate a child chip
    * @param options The chip and its options
    * @returns The activated chip
    */
+  protected _activateChildChip(options: ActivateChildChipOptions): Chip;
   protected _activateChildChip(
-    options: Partial<ChipActivationInfo> & { chip: ChipResolvable }
-  ): Chip;
-  protected _activateChildChip(
-    chipOrOptions:
-      | ChipResolvable
-      | (Partial<ChipActivationInfo> & { chip: ChipResolvable }),
-    options?: Partial<ActivateChildChipOptions>
+    chipOrOptions: ChipResolvable | ActivateChildChipOptions,
+    options?: Omit<ActivateChildChipOptions, "chip">
   ): Chip {
     if (this.chipState !== "active") throw new Error("Composite is not active");
 
@@ -909,12 +901,12 @@ export class ParallelOptions {
 export class Parallel extends Composite {
   private readonly _options: ParallelOptions;
 
-  private _chipActivationInfos: ChipActivationInfo[] = [];
-  private _infoToChip = new Map<ChipActivationInfo, Chip>();
+  private _childChipOptions: ActivateChildChipOptions[] = [];
+  private _infoToChip = new Map<ActivateChildChipOptions, Chip>();
   private _activatedChipCount = 0;
 
   constructor(
-    chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
+    childChipOptions: Array<ActivateChildChipOptions | ChipResolvable>,
     options?: Partial<ParallelOptions>
   ) {
     super();
@@ -922,13 +914,13 @@ export class Parallel extends Composite {
     this._options = fillInOptions(options, new ParallelOptions());
     this._infoToChip = new Map();
 
-    for (const e of chipActivationInfos) this.addChildChip(e);
+    for (const e of childChipOptions) this.addChildChip(e);
   }
 
   /** Add a new chip. If the chip is running, activate it */
-  addChildChip(e: ChipActivationInfo | ChipResolvable) {
+  addChildChip(e: ActivateChildChipOptions | ChipResolvable) {
     const info = isChipResolvable(e) ? { chip: e } : e;
-    this._chipActivationInfos.push(info);
+    this._childChipOptions.push(info);
 
     if (this.chipState !== "inactive") {
       // If no attribute or ID given, make a default one
@@ -947,15 +939,15 @@ export class Parallel extends Composite {
   }
 
   _onActivate() {
-    if (this._chipActivationInfos.length === 0) {
+    if (this._childChipOptions.length === 0) {
       // Empty set, stop immediately
       if (this._options.terminateOnCompletion) this._terminateSelf();
       return;
     }
 
     // Activate all provided chips
-    for (let i = 0; i < this._chipActivationInfos.length; i++) {
-      const info = this._chipActivationInfos[i];
+    for (let i = 0; i < this._childChipOptions.length; i++) {
+      const info = this._childChipOptions[i];
       // If no attribute or ID given, make a default one
       const infoWithId =
         info.attribute || info.id
@@ -983,20 +975,20 @@ export class Parallel extends Composite {
    * Remove the child chip, by value or index.
    * If the chip is running, terminate it
    */
-  removeChildChip(e: ChipActivationInfo | ChipResolvable | number): void {
+  removeChildChip(e: ActivateChildChipOptions | ChipResolvable | number): void {
     let index: number;
     if (typeof e === "number") {
       index = e;
-      if (index < 0 || index >= this._chipActivationInfos.length)
+      if (index < 0 || index >= this._childChipOptions.length)
         throw new Error("Invalid index of chip to remove");
     } else {
       index = this.indexOfChipActivationInfo(e);
       if (index === -1) throw new Error("Cannot find chip to remove");
     }
 
-    // Remove chip from _chipActivationInfos
-    const activationInfo = this._chipActivationInfos[index];
-    this._chipActivationInfos.splice(index, 1);
+    // Remove chip from _childChipOptions
+    const activationInfo = this._childChipOptions[index];
+    this._childChipOptions.splice(index, 1);
 
     if (this.chipState !== "inactive") {
       const chip = this._infoToChip.get(activationInfo);
@@ -1009,11 +1001,13 @@ export class Parallel extends Composite {
     }
   }
 
-  indexOfChipActivationInfo(chip: ChipActivationInfo | ChipResolvable): number {
+  indexOfChipActivationInfo(
+    chip: ActivateChildChipOptions | ChipResolvable
+  ): number {
     if (isChipResolvable(chip)) {
-      return this._chipActivationInfos.findIndex((x) => x.chip === chip);
+      return this._childChipOptions.findIndex((x) => x.chip === chip);
     } else {
-      return this._chipActivationInfos.indexOf(chip);
+      return this._childChipOptions.indexOf(chip);
     }
   }
 }
@@ -1058,27 +1052,27 @@ export class SequenceOptions {
 export class Sequence extends Composite {
   private readonly _options: SequenceOptions;
 
-  private _chipActivationInfos: ChipActivationInfo[] = [];
+  private _childChipOptions: ActivateChildChipOptions[] = [];
   private _currentChipIndex = 0;
   private _currentChip: Chip;
 
   constructor(
-    chipActivationInfos: Array<ChipActivationInfo | ChipResolvable>,
+    childChipOptions: Array<ActivateChildChipOptions | ChipResolvable>,
     options?: Partial<SequenceOptions>
   ) {
     super();
 
     this._options = fillInOptions(options, new SequenceOptions());
 
-    for (const e of chipActivationInfos) this.addChildChip(e);
+    for (const e of childChipOptions) this.addChildChip(e);
   }
 
   /** Add a new chip to the sequence */
-  addChildChip(chip: ChipActivationInfo | ChipResolvable) {
+  addChildChip(chip: ActivateChildChipOptions | ChipResolvable) {
     if (isChipResolvable(chip)) {
-      this._chipActivationInfos.push({ chip: chip });
+      this._childChipOptions.push({ chip: chip });
     } else {
-      this._chipActivationInfos.push(chip);
+      this._childChipOptions.push(chip);
     }
 
     if (this._chipState !== "inactive" && !this._currentChip) {
@@ -1101,18 +1095,18 @@ export class Sequence extends Composite {
       delete this._currentChip;
     }
 
-    if (this._currentChipIndex < this._chipActivationInfos.length) {
+    if (this._currentChipIndex < this._childChipOptions.length) {
       // Copy chip activation info and optionally extend it
       const info = Object.assign(
         {},
-        this._chipActivationInfos[this._currentChipIndex]
+        this._childChipOptions[this._currentChipIndex]
       );
 
       if (signal) info.inputSignal = signal;
 
       // If no attribute or ID given, make a default one
       if (!info.attribute && !info.id) {
-        info.id = (this._chipActivationInfos.length - 1).toString();
+        info.id = (this._childChipOptions.length - 1).toString();
       }
 
       this._currentChip = this._activateChildChip(info.chip, info);
@@ -1124,7 +1118,7 @@ export class Sequence extends Composite {
       (this._reloadMemento?.data.currentChipIndex as number) ?? 0;
     delete this._currentChip;
 
-    if (this._chipActivationInfos.length === 0) {
+    if (this._childChipOptions.length === 0) {
       // Empty Sequence, stop immediately
       if (this._options.terminateOnCompletion) this._terminateSelf();
     } else {
@@ -1170,7 +1164,7 @@ export class Sequence extends Composite {
     this._switchChip(signal);
 
     // If we've reached the end of the Sequence...
-    if (this._currentChipIndex >= this._chipActivationInfos.length) {
+    if (this._currentChipIndex >= this._childChipOptions.length) {
       if (this._options.loop) {
         // ... and we loop, go back to start
         this._currentChipIndex = 0;
@@ -1189,9 +1183,9 @@ export class Sequence extends Composite {
   }
 }
 
-export type StateTable = { [n: string]: ChipActivationInfo };
+export type StateTable = { [n: string]: ActivateChildChipOptions };
 export type StateTableDescriptor = {
-  [n: string]: ChipActivationInfo | ChipResolvable;
+  [n: string]: ActivateChildChipOptions | ChipResolvable;
 };
 
 export type SignalFunction = (
@@ -1583,7 +1577,8 @@ export class WaitForEvent extends ChipBase {
   }
 }
 
-export interface AlternativeChipActivationInfo extends ChipActivationInfo {
+export interface AlternativeActivateChildChipOptions
+  extends ActivateChildChipOptions {
   signal?: Signal;
 }
 
@@ -1591,18 +1586,20 @@ export interface AlternativeChipActivationInfo extends ChipActivationInfo {
  *  Chip that requests a signal as soon as one of it's children requests one
  */
 export class Alternative extends Composite {
-  private readonly _chipActivationInfos: AlternativeChipActivationInfo[];
+  private readonly _childChipOptions: AlternativeActivateChildChipOptions[];
 
   private _aChildTerminated: boolean;
 
   // signal defaults to the string version of the index in the array (to avoid problem of 0 being considered as falsy)
   constructor(
-    chipActivationInfos: Array<ChipResolvable | AlternativeChipActivationInfo>
+    childChipOptions: Array<
+      ChipResolvable | AlternativeActivateChildChipOptions
+    >
   ) {
     super();
 
     // Set default signal as the string version of the index in the array (to avoid problem of 0 being considered as falsy)
-    this._chipActivationInfos = chipActivationInfos.map((info, key) => {
+    this._childChipOptions = childChipOptions.map((info, key) => {
       if (isChip(info) || typeof info === "function") {
         return {
           chip: info,
@@ -1616,10 +1613,10 @@ export class Alternative extends Composite {
   _onActivate() {
     this._aChildTerminated = false;
 
-    for (let i = 0; i < this._chipActivationInfos.length; i++) {
-      const chipActivationInfo = this._chipActivationInfos[i];
+    for (let i = 0; i < this._childChipOptions.length; i++) {
+      const childChipOption = this._childChipOptions[i];
 
-      const childChip = this._activateChildChip(chipActivationInfo);
+      const childChip = this._activateChildChip(childChipOption);
       this._subscribe(this, "terminatedChildChip", (chip) => {
         if (childChip !== chip) return;
 
@@ -1634,7 +1631,7 @@ export class Alternative extends Composite {
     this._aChildTerminated = true;
 
     const terminateWith =
-      this._chipActivationInfos[index].signal ?? makeSignal(index.toString());
+      this._childChipOptions[index].signal ?? makeSignal(index.toString());
     this._terminateSelf(terminateWith);
   }
 }

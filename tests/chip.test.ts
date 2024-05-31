@@ -530,7 +530,7 @@ describe("Parallel", () => {
 
     expect(children[1].chipState).toBe("inactive");
     // @ts-ignore
-    expect(parent._chipActivationInfos.length).toBe(2);
+    expect(parent._childChipOptions.length).toBe(2);
     // @ts-ignore
     expect(parent._infoToChip.size).toBe(2);
 
