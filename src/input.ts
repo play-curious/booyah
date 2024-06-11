@@ -8,9 +8,6 @@ export class Keyboard extends chip.ChipBase {
   public keysJustUp: { [key: string]: boolean } = {};
 
   private _lastKeysDown: { [key: string]: number } = {};
-  // private _onKeyDownWrapper = this._onKeyDown.bind(this);
-  // private _onKeyUpWrapper = this._onKeyUp.bind(this);
-  // private _onFocusOutWrapper = this._onFocusOut.bind(this);
 
   private _elapsedTime: number;
 
