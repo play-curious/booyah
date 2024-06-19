@@ -43,7 +43,7 @@ export function cloneData<T>(o: T): T {
 }
 
 /** Picks a random element from the array */
-export function randomArrayElement<T>(array: T[]): T {
+export function randomArrayElement<T>(array: readonly T[]): T {
   return array[_.random(0, array.length - 1)];
 }
 
