@@ -1562,6 +1562,30 @@ export class Lambda extends ChipBase {
   }
 }
 
+/**
+ * Measures the time passed in play.
+ * Resets on each activation.
+ */
+export class MeasureTime extends ChipBase {
+  private _timePassed: number;
+
+  _onActivate() {
+    this._timePassed = 0;
+  }
+
+  _onTick() {
+    this._timePassed += this._lastTickInfo.timeSinceLastTick;
+  }
+
+  get timePassed() {
+    return this._timePassed;
+  }
+
+  reset() {
+    this._timePassed = 0;
+  }
+}
+
 /** Waits until time is up, then requests signal */
 export class Wait extends ChipBase {
   private _accumulatedTime: number;
