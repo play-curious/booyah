@@ -45,20 +45,30 @@ class MockChip extends chip.ChipBase {
     /* no op */
   }
 
+  private _contextModification: chip.ChipContext;
+
+  get contextModification(): chip.ChipContext {
+    return this._contextModification;
+  }
+
+  set contextModification(value: chip.ChipContext) {
+    this._contextModification = value;
+  }
+
   public requestTermination(signal?: chip.Signal) {
     this._terminateSelf(signal);
   }
 }
 
 class MockComposite extends chip.Composite {
-  private _defaultChildChipContext: chip.ChipContext;
+  private _contextModification: chip.ChipContext;
 
-  get defaultChildChipContext(): chip.ChipContext {
-    return this._defaultChildChipContext;
+  get contextModification(): chip.ChipContext {
+    return this._contextModification;
   }
 
-  set defaultChildChipContext(value: chip.ChipContext) {
-    this._defaultChildChipContext = value;
+  set contextModification(value: chip.ChipContext) {
+    this._contextModification = value;
   }
 
   public requestTermination(signal?: chip.Signal) {
@@ -380,8 +390,8 @@ describe("Composite", () => {
     expect(activatedCallback).toBeCalledTimes(3);
   });
 
-  test("merges default context", () => {
-    parent.defaultChildChipContext = { defaultValue: 2 };
+  test("merges context modification", () => {
+    parent.contextModification = { defaultValue: 2 };
 
     parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
 
@@ -406,6 +416,46 @@ describe("Composite", () => {
 
     // @ts-ignore
     expect(parent.attr).toBeUndefined();
+  });
+
+  test("adds children to the context", () => {
+    // Activate parent
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    const childChipA = new MockChip();
+    // @ts-ignore
+    parent._activateChildChip(childChipA, {
+      // @ts-ignore
+      attribute: "attr",
+      includeInChildContext: true,
+    });
+
+    const childChipB = new MockChip();
+    // @ts-ignore
+    parent._activateChildChip(childChipB);
+    // @ts-ignore
+    expect(childChipB.chipContext.attr).toBe(childChipA);
+  });
+
+  test("extends child context", () => {
+    // Activate parent
+    parent.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+
+    const childChipA = new MockChip();
+    childChipA.contextModification = {
+      a: 1,
+    };
+
+    // @ts-ignore
+    parent._activateChildChip(childChipA, {
+      extendChildContext: true,
+    });
+
+    const childChipB = new MockChip();
+    // @ts-ignore
+    parent._activateChildChip(childChipB);
+    // @ts-ignore
+    expect(childChipB.chipContext.a).toBe(1);
   });
 
   test("adds children to the context", () => {

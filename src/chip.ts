@@ -223,6 +223,9 @@ export interface Chip extends NodeEventSource {
   /** Children of this chip, if any */
   readonly children: Record<string, Chip>;
 
+  /** Modifications to the context */
+  readonly contextModification: ChipContextResolvable | undefined;
+
   /** Activate the chip, with a provided context and input signal.
    * Should only be called from an inactive state.
    * Should only be called by the parent in the chip hierarchy, or a Runner
@@ -547,6 +550,14 @@ export abstract class ChipBase extends EventEmitter implements Chip {
   isInChipState(...states: ChipState[]): boolean {
     return states.includes(this._chipState);
   }
+
+  /**
+   * Template getter for the chip context provided to children.
+   * Overload to add extra attributes to the context.
+   */
+  get contextModification(): ChipContextResolvable {
+    return undefined;
+  }
 }
 
 /** Empty chip that does nothing and never terminates  */
@@ -581,10 +592,16 @@ export class ActivateChildChipOptions {
   attribute?: string;
 
   /**
-   * If true, adds the child chip to the context provided to children, using the
-   * provided `attribute` or `id`.
+   * If true, adds the child chip to the context provided to children,
+   * using the provided `attribute` or `id`.
    */
   includeInChildContext?: boolean;
+
+  /**
+   * If true, adds the child chip's `contextModification` to the context
+   * provided to children.
+   */
+  extendChildContext?: boolean;
 
   id?: string;
   reloadMemento?: ReloadMemento;
@@ -597,6 +614,7 @@ export class CompositeChildChipInfo {
   inputSignal: Signal;
   attribute?: string;
   includeInChildContext: boolean;
+  extendChildContext: boolean;
   id: string;
   reloadMemento?: ReloadMemento;
 }
@@ -752,12 +770,20 @@ export abstract class Composite extends ChipBase {
 
     childChipInfo.inputSignal = resolveSignal(options.inputSignal);
 
-    childChipInfo.context = processChipContext(
-      this._chipContext,
-      this._childChipContext,
-      this.defaultChildChipContext,
-      options.context
-    );
+    {
+      const childContextExtensions = Object.values(this._childChipInfos).map(
+        (childChipInfo) =>
+          childChipInfo.extendChildContext &&
+          childChipInfo.chip.contextModification
+      );
+      childChipInfo.context = processChipContext(
+        this._chipContext,
+        this._childChipContext,
+        ...childContextExtensions,
+        this.contextModification,
+        options.context
+      );
+    }
 
     if (_.isFunction(chipResolvable)) {
       childChipInfo.chip = chipResolvable(
@@ -813,6 +839,8 @@ export abstract class Composite extends ChipBase {
 
       this._childChipContext[providedId] = childChipInfo.chip;
     }
+
+    childChipInfo.extendChildContext = !!options.extendChildContext;
 
     this._childChipInfos[childChipInfo.id] = childChipInfo;
 
@@ -920,14 +948,6 @@ export abstract class Composite extends ChipBase {
 
   hasChildChip(chip: Chip) {
     return !!this.getChildChipId(chip);
-  }
-
-  /**
-   * Template getter for the chip context provided to children.
-   * Overload to add extra attributes to the context.
-   */
-  get defaultChildChipContext(): ChipContextResolvable {
-    return undefined;
   }
 
   /** Template method called after children are ticked */
