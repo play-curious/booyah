@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import * as util from "./util";
-import * as geom from "./geom";
+import * as _ from "underscore";
+
 import * as chip from "./chip";
 import * as easing from "./easing";
-import * as _ from "underscore";
+import * as geom from "./geom";
+import * as util from "./util";
 
 /**
  * Creates a Parallel that carries out multiple tweens on the same object.
@@ -16,14 +17,14 @@ import * as _ from "underscore";
 export function make(
   obj: any,
   props: { [prop: string]: Partial<TweenOptions<any, any>> },
-  options: TweenOptions<any, any>
+  options: TweenOptions<any, any>,
 ): chip.Parallel {
   const tweens: any[] = [];
   for (const key in props) {
     const tweenOptions = _.defaults(
       { obj, property: key },
       props[key],
-      options
+      options,
     );
     tweens.push(new Tween(tweenOptions));
   }
@@ -126,12 +127,12 @@ export class Tween<Value, Obj extends object> extends chip.ChipBase {
     } else {
       // Ease and interpolate value
       const easedProgress = this._easing(
-        this._timePassed / this.options.duration
+        this._timePassed / this.options.duration,
       );
       this._value = this.options.interpolate(
         this._startValue,
         this.options.to,
-        easedProgress
+        easedProgress,
       );
       this._updateValue();
     }

@@ -2,60 +2,133 @@ import _ from "underscore";
 
 import * as chip from "./chip";
 
+export class KeyboardOptions {
+  emitter: EventTarget = window;
+
+  /** Should `event.preventDefault()` to be called on `keydown` and `keyup` events */
+  preventDefault = true;
+
+  /** The property of the KeyboardEvent that is stored in `keysDown`, `keysUp`, etc.
+   * [`code`, the default, is based on the physical position on keyboard, independant of the layout](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code)
+   * [`key` depends on the player's keyboard](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key).
+   */
+  eventAttribute: "code" | "key" = "code";
+
+  /** If true, will console log `eventAttribute` on each key down or up  */
+  logEvent = false;
+}
+
+export type KeyToNumber = { [key: string]: number };
+export type KeyToBoolean = { [key: string]: boolean };
+
 export class Keyboard extends chip.ChipBase {
-  public keysDown: { [key: string]: number } = {};
-  public keysJustDown: { [key: string]: boolean } = {};
-  public keysJustUp: { [key: string]: boolean } = {};
+  private readonly _options: KeyboardOptions;
 
-  private _lastKeysDown: { [key: string]: number } = {};
-
+  private _keysDown: KeyToNumber;
+  private _keysJustDown: KeyToBoolean;
+  private _keysJustUp: KeyToBoolean;
+  private _lastKeysDown: KeyToNumber;
   private _elapsedTime: number;
+  private _focusJustLost: boolean;
 
-  constructor(public readonly emitter: EventTarget) {
+  constructor(options?: Partial<KeyboardOptions>) {
     super();
+
+    this._options = chip.fillInOptions(options, new KeyboardOptions());
   }
 
   _onActivate() {
     this._elapsedTime = 0;
+    this._focusJustLost = false;
+    this._clearKeyTables();
 
-    this._subscribe(this.emitter, "keydown", this._onKeyDown);
-    this._subscribe(this.emitter, "keyup", this._onKeyUp);
-    this._subscribe(this.emitter, "focusout", this._onFocusOut);
+    this._subscribe(this._options.emitter, "keydown", this._onKeyDown);
+    this._subscribe(this._options.emitter, "keyup", this._onKeyUp);
+    this._subscribe(this._options.emitter, "focusout", this._onFocusOut);
   }
 
   _onTick() {
     this._elapsedTime += this._lastTickInfo.timeSinceLastTick;
 
-    const keyDownSet = _.keys(this.keysDown);
+    // If focus was lost on previous tick, assume all keys were released
+    if (this._focusJustLost) {
+      this._focusJustLost = false;
+      this._keysDown = {};
+    }
+
+    this._calculateKeyTables();
+  }
+
+  private _onKeyDown(event: KeyboardEvent) {
+    if (this._options.preventDefault) event.preventDefault();
+
+    const keyValue = event[this._options.eventAttribute];
+    this._keysDown[keyValue] = this._elapsedTime;
+
+    if (this._options.logEvent) console.log("key down", keyValue);
+  }
+
+  private _onKeyUp(event: KeyboardEvent) {
+    if (this._options.preventDefault) event.preventDefault();
+
+    const keyValue = event[this._options.eventAttribute];
+    delete this._keysDown[keyValue];
+
+    if (this._options.logEvent) console.log("key up", keyValue);
+  }
+
+  private _onFocusOut() {
+    this._focusJustLost = true;
+  }
+
+  private _clearKeyTables() {
+    this._keysDown = {};
+    this._keysJustDown = {};
+    this._keysJustUp = {};
+    this._lastKeysDown = {};
+  }
+
+  private _calculateKeyTables() {
+    const keyDownSet = _.keys(this._keysDown);
     const lastKeyDownSet = _.keys(this._lastKeysDown);
 
-    this.keysJustDown = {};
+    this._keysJustDown = {};
     for (const key of _.difference(keyDownSet, lastKeyDownSet))
-      this.keysJustDown[key] = true;
+      this._keysJustDown[key] = true;
 
-    this.keysJustUp = {};
+    this._keysJustUp = {};
     for (const key of _.difference(lastKeyDownSet, keyDownSet))
-      this.keysJustUp[key] = true;
+      this._keysJustUp[key] = true;
 
-    this._lastKeysDown = _.clone(this.keysDown);
+    this._lastKeysDown = _.clone(this._keysDown);
   }
 
-  _onKeyDown(event: KeyboardEvent) {
-    event.preventDefault();
-
-    // console.log("key down", event.code);
-    this.keysDown[event.code] = this._elapsedTime;
+  get keysDown(): Readonly<KeyToNumber> {
+    return this._keysDown;
   }
 
-  _onKeyUp(event: KeyboardEvent) {
-    event.preventDefault();
-
-    // console.log("key up", event.code);
-    delete this.keysDown[event.code];
+  get keysJustDown(): Readonly<KeyToBoolean> {
+    return this._keysJustDown;
   }
 
-  _onFocusOut() {
-    this.keysDown = {};
+  get keysJustUp(): Readonly<KeyToBoolean> {
+    return this._keysJustUp;
+  }
+
+  isKeyDown(key: string): boolean {
+    return key in this._keysDown;
+  }
+
+  getKeyDownTime(key: string): number | undefined {
+    return this._keysDown[key];
+  }
+
+  isKeyJustDown(key: string) {
+    return key in this._keysJustDown;
+  }
+
+  isKeyJustUp(key: string) {
+    return key in this._keysJustUp;
   }
 }
 
@@ -116,7 +189,7 @@ export class Gamepad extends chip.ChipBase {
       this.axes.push(
         Math.abs(this.lastData.axes[i]) >= GAMEPAD_DEAD_ZONE
           ? this.lastData.axes[i]
-          : 0
+          : 0,
       );
     }
 

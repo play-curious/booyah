@@ -38,7 +38,7 @@ export class Runner {
    */
   constructor(
     private readonly _rootChipResolvable: chip.ChipResolvable,
-    options?: Partial<RunnerOptions>
+    options?: Partial<RunnerOptions>,
   ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
 
@@ -62,7 +62,7 @@ export class Runner {
     this._rootChip.activate(
       tickInfo,
       this._rootContext,
-      this._options.inputSignal
+      this._options.inputSignal,
     );
 
     requestAnimationFrame(() => this._onTick());
@@ -77,7 +77,7 @@ export class Runner {
 
     const timeStamp = performance.now();
     const timeSinceLastTick = this._clampTimeSinceLastTick(
-      timeStamp - this._lastTimeStamp
+      timeStamp - this._lastTimeStamp,
     );
 
     const tickInfo: chip.TickInfo = {
@@ -141,7 +141,7 @@ export class Runner {
         tickInfo,
         this._rootContext,
         chip.makeSignal("afterReload"),
-        reloadMemento
+        reloadMemento,
       );
     });
   }
