@@ -916,7 +916,6 @@ describe("Alternative", () => {
 
     // Terminate second child
     children[1].requestTermination();
-    debugger;
     alternative.tick(makeFrameInfo());
 
     // Alternative should request termination as well, with an output signal of the index of the child

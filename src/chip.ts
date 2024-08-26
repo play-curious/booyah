@@ -191,7 +191,9 @@ export function isChip(e: any): e is Chip {
   );
 }
 
-export function isChipResolvable(e: any): e is ChipResolvable {
+export function isChipResolvable(
+  e: ChipResolvable | ActivateChildChipOptions,
+): e is ChipResolvable {
   return typeof e === "function" || isChip(e);
 }
 
@@ -722,11 +724,13 @@ export abstract class Composite extends ChipBase {
 
     // Unpack arguments
     let chipResolvable: ChipResolvable;
-    if (typeof chipOrOptions === "function" || isChip(chipOrOptions)) {
-      chipResolvable = chipOrOptions;
-    } else {
-      chipResolvable = chipOrOptions.chip;
-      options = chipOrOptions;
+    if (typeof chipOrOptions !== "undefined") {
+      if (typeof chipOrOptions === "function" || isChip(chipOrOptions)) {
+        chipResolvable = chipOrOptions;
+      } else {
+        chipResolvable = chipOrOptions.chip;
+        options = chipOrOptions;
+      }
     }
 
     options = fillInOptions(options, new ActivateChildChipOptions());

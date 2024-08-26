@@ -26,10 +26,11 @@ export class RunnerOptions {
  */
 export class Runner {
   private _options: RunnerOptions;
-  private _isRunning = false;
+  private _runningStatus: "stopped" | "running" | "paused" = "stopped";
   private _lastTimeStamp: number;
   private _rootContext: chip.ChipContext;
   private _rootChip: chip.Chip;
+  private _visibilityChangeHandler: () => void;
 
   /**
    *
@@ -38,17 +39,39 @@ export class Runner {
    */
   constructor(
     private readonly _rootChipResolvable: chip.ChipResolvable,
-    options?: Partial<RunnerOptions>,
+    options?: Partial<RunnerOptions>
   ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
-
-    this._isRunning = false;
   }
 
   start() {
-    if (this._isRunning) throw new Error("Already started");
+    if (this._runningStatus !== "stopped") throw new Error("Already started");
 
-    this._isRunning = true;
+    this._visibilityChangeHandler = () => {
+      if (document.visibilityState === "hidden") {
+        if (this._runningStatus !== "running") return;
+
+        console.log("Runner: pausing");
+        this._runningStatus = "paused";
+
+        this._rootChip.pause(this._makeTickInfo());
+      } else {
+        if (this._runningStatus !== "paused") return;
+
+        console.log("Runner: resuming");
+
+        this._runningStatus = "running";
+        this._rootChip.resume(this._makeTickInfo());
+
+        requestAnimationFrame(() => this._onTick());
+      }
+    };
+    document.addEventListener(
+      "visibilitychange",
+      this._visibilityChangeHandler
+    );
+
+    this._runningStatus = "running";
     this._lastTimeStamp = 0;
 
     this._rootContext = chip.processChipContext(this._options.rootContext, {});
@@ -62,7 +85,7 @@ export class Runner {
     this._rootChip.activate(
       tickInfo,
       this._rootContext,
-      this._options.inputSignal,
+      this._options.inputSignal
     );
 
     requestAnimationFrame(() => this._onTick());
@@ -71,13 +94,11 @@ export class Runner {
   }
 
   stop() {
-    if (!this._isRunning) throw new Error("Already stopped");
-
-    this._isRunning = false;
+    if (this._runningStatus === "stopped") throw new Error("Already stopped");
 
     const timeStamp = performance.now();
     const timeSinceLastTick = this._clampTimeSinceLastTick(
-      timeStamp - this._lastTimeStamp,
+      timeStamp - this._lastTimeStamp
     );
 
     const tickInfo: chip.TickInfo = {
@@ -85,29 +106,28 @@ export class Runner {
     };
 
     this._rootChip.terminate(tickInfo, chip.makeSignal("stop"));
+    this._runningStatus = "stopped";
+
+    document.removeEventListener(
+      "visibilitychange",
+      this._visibilityChangeHandler
+    );
+    delete this._visibilityChangeHandler;
   }
 
   private _onTick() {
-    if (!this._isRunning) return;
+    if (this._runningStatus !== "running") return;
 
-    const timeStamp = performance.now();
-
-    let timeSinceLastTick = timeStamp - this._lastTimeStamp;
-    this._lastTimeStamp = timeStamp;
-
-    // If no time elapsed, don't update
-    if (timeSinceLastTick <= 0) return;
-
-    timeSinceLastTick = this._clampTimeSinceLastTick(timeSinceLastTick);
-
-    const tickInfo: chip.TickInfo = {
-      timeSinceLastTick,
-    };
+    // If no time elapsed, stop early
+    const tickInfo = this._makeTickInfo();
+    if (tickInfo.timeSinceLastTick === 0) return;
 
     if (this._rootChip.chipState === "requestedTermination") {
+      // If the chip is done, stop the runner too
       this._rootChip.terminate(tickInfo);
-      this._isRunning = false;
+      this._runningStatus = "stopped";
     } else {
+      // Call `tick()` and start the update loop again
       this._rootChip.tick(tickInfo);
       requestAnimationFrame(() => this._onTick());
     }
@@ -141,13 +161,33 @@ export class Runner {
         tickInfo,
         this._rootContext,
         chip.makeSignal("afterReload"),
-        reloadMemento,
+        reloadMemento
       );
     });
   }
 
-  get isRunning(): boolean {
-    return this._isRunning;
+  get runningStatus() {
+    return this._runningStatus;
+  }
+
+  private _makeTickInfo(): chip.TickInfo {
+    const timeStamp = performance.now();
+
+    // Force time to be >= 0
+    let timeSinceLastTick = Math.max(0, timeStamp - this._lastTimeStamp);
+    this._lastTimeStamp = timeStamp;
+
+    // Optionally clamp time since last frame
+    if (this._options.minFps >= 0) {
+      timeSinceLastTick = Math.min(
+        timeSinceLastTick,
+        1000 / this._options.minFps
+      );
+    }
+
+    return {
+      timeSinceLastTick,
+    };
   }
 
   private _clampTimeSinceLastTick(timeSinceLastTick: number) {

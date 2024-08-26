@@ -34,6 +34,7 @@ In addition to TypeScript, we also rely heavily on the following libraries:
 Of course, you'll probably want to use libraries for rendering and audio, among other things. To keep Booyah independent of a particular game tools, those integrations are provided in separate libraries:
 
 - [booyah-pixi](https://github.com/play-curious/booyah-pixi) integrates into [PixiJS](https://pixijs.com/) and [PixiJS Sound](https://github.com/pixijs/sound).
+- [booyah-maquette](https://github.com/play-curious/booyah-maquette) integrates into the [Maquette](https://maquettejs.org/) virtual DOM library.
 - More to come...
 
 ## Development
