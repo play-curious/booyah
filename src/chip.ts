@@ -681,6 +681,16 @@ export abstract class Composite extends ChipBase {
   public pause(tickInfo: TickInfo): void {
     super.pause(tickInfo);
 
+    // Terminate any child chips that requested it
+    for (const [childId, childChipInfo] of Object.entries(
+      this._childChipInfos,
+    )) {
+      if (childChipInfo.chip.chipState === "requestedTermination") {
+        this._terminateChildChip(childId);
+      }
+    }
+
+    // Tell child chips to pause
     for (const childChipInfo of Object.values(this._childChipInfos)) {
       childChipInfo.chip.pause(tickInfo);
     }

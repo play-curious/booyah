@@ -2,8 +2,8 @@
  * @jest-environment jsdom
  */
 
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import * as _ from "underscore";
-import { jest, describe, expect, test, beforeEach } from "@jest/globals";
 
 import * as chip from "../src/chip";
 import * as running from "../src/running";
@@ -69,6 +69,59 @@ describe("Running", () => {
 
     expect(ranCount).toBeGreaterThan(0);
     expect(rootChip.chipState === "inactive");
+    expect(runner.runningStatus).toBe("stopped");
+  });
+
+  test("pauses and resumes based on visibility", async () => {
+    // Override the visibilityState property to test it
+    type VisibilityValue = "hidden" | "visible";
+    let visibility: VisibilityValue = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibility,
+    });
+    const changeVisibility = (value: VisibilityValue) => {
+      visibility = value;
+      document.dispatchEvent(new Event("visibilitychange"));
+    };
+
+    let ranCount = 0;
+    const rootChip = new chip.Functional({
+      tick: () => ranCount++,
+    });
+
+    const runner = new running.Runner(rootChip);
+
+    runner.start();
+
+    // Short wait
+    await wait(frameTime * 5);
+
+    expect(ranCount).toBeGreaterThan(0);
+    expect(runner.runningStatus).toBe("running");
+    expect(rootChip.chipState).toBe("active");
+
+    changeVisibility("hidden");
+    ranCount = 0;
+
+    // Short wait
+    await wait(frameTime * 5);
+
+    expect(ranCount).toBe(0);
+    expect(runner.runningStatus).toBe("paused");
+    expect(rootChip.chipState).toBe("paused");
+
+    changeVisibility("visible");
+
+    // Short wait
+    await wait(frameTime * 5);
+
+    expect(ranCount).toBeGreaterThan(0);
+    expect(runner.runningStatus).toBe("running");
+
+    runner.stop();
+
+    expect(rootChip.chipState).toBe("inactive");
     expect(runner.runningStatus).toBe("stopped");
   });
 });

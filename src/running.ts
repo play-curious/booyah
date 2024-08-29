@@ -39,7 +39,7 @@ export class Runner {
    */
   constructor(
     private readonly _rootChipResolvable: chip.ChipResolvable,
-    options?: Partial<RunnerOptions>
+    options?: Partial<RunnerOptions>,
   ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
   }
@@ -51,14 +51,14 @@ export class Runner {
       if (document.visibilityState === "hidden") {
         if (this._runningStatus !== "running") return;
 
-        console.log("Runner: pausing");
+        console.debug("Booyah Runner: pausing");
         this._runningStatus = "paused";
 
         this._rootChip.pause(this._makeTickInfo());
       } else {
         if (this._runningStatus !== "paused") return;
 
-        console.log("Runner: resuming");
+        console.debug("Booyah Runner: resuming");
 
         this._runningStatus = "running";
         this._rootChip.resume(this._makeTickInfo());
@@ -68,7 +68,7 @@ export class Runner {
     };
     document.addEventListener(
       "visibilitychange",
-      this._visibilityChangeHandler
+      this._visibilityChangeHandler,
     );
 
     this._runningStatus = "running";
@@ -85,7 +85,7 @@ export class Runner {
     this._rootChip.activate(
       tickInfo,
       this._rootContext,
-      this._options.inputSignal
+      this._options.inputSignal,
     );
 
     requestAnimationFrame(() => this._onTick());
@@ -98,7 +98,7 @@ export class Runner {
 
     const timeStamp = performance.now();
     const timeSinceLastTick = this._clampTimeSinceLastTick(
-      timeStamp - this._lastTimeStamp
+      timeStamp - this._lastTimeStamp,
     );
 
     const tickInfo: chip.TickInfo = {
@@ -110,7 +110,7 @@ export class Runner {
 
     document.removeEventListener(
       "visibilitychange",
-      this._visibilityChangeHandler
+      this._visibilityChangeHandler,
     );
     delete this._visibilityChangeHandler;
   }
@@ -161,7 +161,7 @@ export class Runner {
         tickInfo,
         this._rootContext,
         chip.makeSignal("afterReload"),
-        reloadMemento
+        reloadMemento,
       );
     });
   }
@@ -181,7 +181,7 @@ export class Runner {
     if (this._options.minFps >= 0) {
       timeSinceLastTick = Math.min(
         timeSinceLastTick,
-        1000 / this._options.minFps
+        1000 / this._options.minFps,
       );
     }
 

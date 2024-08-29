@@ -2,8 +2,8 @@
  * @jest-environment jsdom
  */
 
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import * as _ from "underscore";
-import { jest, describe, expect, test, beforeEach } from "@jest/globals";
 
 import * as chip from "../src/chip";
 import * as tween from "../src/tween";
@@ -15,7 +15,7 @@ function makeChipContext(): chip.ChipContext {
   return { rootValue: 1 };
 }
 
-function makeFrameInfo(): chip.TickInfo {
+function makeTickInfo(): chip.TickInfo {
   return {
     timeSinceLastTick: frameTime,
   };
@@ -29,17 +29,17 @@ describe("Tween", () => {
   test("updates and waits for the right amount of time", async () => {
     const t = new tween.Tween({ from: 0, to: 10, duration: frameTime * 10 });
 
-    t.activate(makeFrameInfo(), makeChipContext(), makeSignal());
+    t.activate(makeTickInfo(), makeChipContext(), makeSignal());
     expect(t.value === 0);
 
     // It should run 10 times and then stop
     for (let i = 0; i < 10; i++) {
-      t.tick(makeFrameInfo());
+      t.tick(makeTickInfo());
       expect(t.value).toBeCloseTo(i + 1, 0.1);
     }
     expect(t.chipState).toBe("requestedTermination");
 
-    t.terminate(makeFrameInfo());
+    t.terminate(makeTickInfo());
     expect(t.chipState).toBe("inactive");
   });
 });
