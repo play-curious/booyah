@@ -10,11 +10,29 @@ import * as running from "../src/running";
 
 const frameTime = 16;
 
+// Override the visibilityState property to test it
+type VisibilityValue = "hidden" | "visible";
+let visibility: VisibilityValue = "visible";
+Object.defineProperty(document, "visibilityState", {
+  configurable: true,
+  get: () => visibility,
+});
+function changeVisibility(value: VisibilityValue) {
+  if (visibility === value) return;
+
+  visibility = value;
+  document.dispatchEvent(new Event("visibilitychange"));
+}
+
 async function wait(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
 }
 
 describe("Running", () => {
+  beforeEach(() => {
+    changeVisibility("visible");
+  });
+
   test("runs a chip once", async () => {
     let ranCount = 0;
     const rootChip = new chip.Lambda(() => ranCount++);
@@ -73,18 +91,6 @@ describe("Running", () => {
   });
 
   test("pauses and resumes based on visibility", async () => {
-    // Override the visibilityState property to test it
-    type VisibilityValue = "hidden" | "visible";
-    let visibility: VisibilityValue = "visible";
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => visibility,
-    });
-    const changeVisibility = (value: VisibilityValue) => {
-      visibility = value;
-      document.dispatchEvent(new Event("visibilitychange"));
-    };
-
     let ranCount = 0;
     const rootChip = new chip.Functional({
       tick: () => ranCount++,
@@ -121,6 +127,32 @@ describe("Running", () => {
 
     runner.stop();
 
+    expect(rootChip.chipState).toBe("inactive");
+    expect(runner.runningStatus).toBe("stopped");
+  });
+
+  test("terminates chip after visibility change", async () => {
+    const rootChip = new chip.Block();
+    const runner = new running.Runner(rootChip);
+    runner.start();
+
+    // Short wait
+    await wait(frameTime * 5);
+
+    expect(runner.runningStatus).toBe("running");
+    expect(rootChip.chipState).toBe("active");
+
+    // Pause, and request termination on the chip
+    changeVisibility("hidden");
+    rootChip.done();
+
+    // Show  again
+    changeVisibility("visible");
+
+    // Short wait
+    await wait(frameTime * 5);
+
+    // The chip runner should be stopped
     expect(rootChip.chipState).toBe("inactive");
     expect(runner.runningStatus).toBe("stopped");
   });

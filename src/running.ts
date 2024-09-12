@@ -17,6 +17,9 @@ export class RunnerOptions {
   /** If minFps <= 0, it is ignored */
   minFps = 10;
 
+  /** Time in ms where the backup timer is called to restart the update loop */
+  backupTimerInterval = 500;
+
   /** Enable hot reloading by passing it `module.hot` */
   hmr?: HMR;
 }
@@ -31,6 +34,7 @@ export class Runner {
   private _rootContext: chip.ChipContext;
   private _rootChip: chip.Chip;
   private _visibilityChangeHandler: () => void;
+  private _backupTimerId: number;
 
   /**
    *
@@ -39,7 +43,7 @@ export class Runner {
    */
   constructor(
     private readonly _rootChipResolvable: chip.ChipResolvable,
-    options?: Partial<RunnerOptions>,
+    options?: Partial<RunnerOptions>
   ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
   }
@@ -47,28 +51,47 @@ export class Runner {
   start() {
     if (this._runningStatus !== "stopped") throw new Error("Already started");
 
+    console.debug("Booyah Runner: starting");
+
     this._visibilityChangeHandler = () => {
       if (document.visibilityState === "hidden") {
         if (this._runningStatus !== "running") return;
 
-        console.debug("Booyah Runner: pausing");
-        this._runningStatus = "paused";
+        if (this._rootChip.chipState === "requestedTermination") {
+          console.debug("Booyah Runner: stopping");
 
-        this._rootChip.pause(this._makeTickInfo());
+          // If the chip is done, stop the runner too
+          this._rootChip.terminate(tickInfo);
+          this._runningStatus = "stopped";
+        } else {
+          console.debug("Booyah Runner: pausing");
+
+          // Pause
+          this._runningStatus = "paused";
+          this._rootChip.pause(this._makeTickInfo());
+        }
       } else {
         if (this._runningStatus !== "paused") return;
 
-        console.debug("Booyah Runner: resuming");
+        if (this._rootChip.chipState === "requestedTermination") {
+          console.debug("Booyah Runner: stopping");
 
-        this._runningStatus = "running";
-        this._rootChip.resume(this._makeTickInfo());
+          // If the chip is done, stop the runner too
+          this._rootChip.terminate(tickInfo);
+          this._runningStatus = "stopped";
+        } else {
+          console.debug("Booyah Runner: resuming");
 
-        requestAnimationFrame(() => this._onTick());
+          // Resume the update loop
+          this._runningStatus = "running";
+          this._rootChip.resume(this._makeTickInfo());
+          this._requestUpdate();
+        }
       }
     };
     document.addEventListener(
       "visibilitychange",
-      this._visibilityChangeHandler,
+      this._visibilityChangeHandler
     );
 
     this._runningStatus = "running";
@@ -85,10 +108,15 @@ export class Runner {
     this._rootChip.activate(
       tickInfo,
       this._rootContext,
-      this._options.inputSignal,
+      this._options.inputSignal
     );
 
-    requestAnimationFrame(() => this._onTick());
+    this._requestUpdate();
+
+    this._backupTimerId = window.setInterval(
+      this._onBackupTimer.bind(this),
+      this._options.backupTimerInterval
+    );
 
     if (this._options.hmr) this._enableHotReloading();
   }
@@ -98,7 +126,7 @@ export class Runner {
 
     const timeStamp = performance.now();
     const timeSinceLastTick = this._clampTimeSinceLastTick(
-      timeStamp - this._lastTimeStamp,
+      timeStamp - this._lastTimeStamp
     );
 
     const tickInfo: chip.TickInfo = {
@@ -110,9 +138,11 @@ export class Runner {
 
     document.removeEventListener(
       "visibilitychange",
-      this._visibilityChangeHandler,
+      this._visibilityChangeHandler
     );
     delete this._visibilityChangeHandler;
+
+    window.clearInterval(this._backupTimerId);
   }
 
   private _onTick() {
@@ -129,7 +159,7 @@ export class Runner {
     } else {
       // Call `tick()` and start the update loop again
       this._rootChip.tick(tickInfo);
-      requestAnimationFrame(() => this._onTick());
+      this._requestUpdate();
     }
   }
 
@@ -161,7 +191,7 @@ export class Runner {
         tickInfo,
         this._rootContext,
         chip.makeSignal("afterReload"),
-        reloadMemento,
+        reloadMemento
       );
     });
   }
@@ -181,7 +211,7 @@ export class Runner {
     if (this._options.minFps >= 0) {
       timeSinceLastTick = Math.min(
         timeSinceLastTick,
-        1000 / this._options.minFps,
+        1000 / this._options.minFps
       );
     }
 
@@ -195,5 +225,22 @@ export class Runner {
 
     // Optionally clamp time since last frame
     return Math.min(timeSinceLastTick, 1000 / this._options.minFps);
+  }
+
+  private _requestUpdate() {
+    requestAnimationFrame(this._onTick.bind(this));
+  }
+
+  private _onBackupTimer() {
+    // If the game has been updated recently, don't do anything yet
+    if (
+      performance.now() - this._lastTimeStamp <
+      this._options.backupTimerInterval
+    )
+      return;
+
+    // Restart the animation loop
+    console.debug("Booyah Runner: backup timer restarting animation loop");
+    this._onTick();
   }
 }

@@ -203,10 +203,7 @@ describe("Events", () => {
 
   test("receives DOM-style events", () => {
     class CustomEvent extends Event {
-      constructor(
-        name: string,
-        public readonly value: number,
-      ) {
+      constructor(name: string, public readonly value: number) {
         super(name);
       }
     }
@@ -780,6 +777,58 @@ describe("Sequence", () => {
     expect(children[1]._onTick).toBeCalledTimes(1);
     expect(children[1]._onTerminate).toBeCalledTimes(0);
   });
+
+  test("handles pauses when chips request termination", () => {
+    const children = [new MockChip(), new MockChip()];
+    const parent = new chip.Sequence(children, {
+      terminateOnCompletion: false,
+    });
+
+    parent.activate(makeTickInfo(), makeChipContext(), makeSignal());
+
+    // Run 1st child, terminate it, and pause
+    parent.tick(makeTickInfo());
+    children[0].requestTermination();
+    parent.pause(makeTickInfo());
+
+    // Resume and run again. It should switch to the 2nd chip
+    parent.resume(makeTickInfo());
+    parent.tick(makeTickInfo());
+
+    // Both children should be ticked once
+    expect(children[0]._onActivate).toBeCalledTimes(1);
+    expect(children[0]._onTick).toBeCalledTimes(1);
+    expect(children[0]._onTerminate).toBeCalledTimes(1);
+    expect(children[1]._onActivate).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(1);
+    expect(children[1]._onTerminate).toBeCalledTimes(0);
+  });
+
+  test("handles resuming when chips request termination", () => {
+    const children = [new MockChip(), new MockChip()];
+    const parent = new chip.Sequence(children, {
+      terminateOnCompletion: false,
+    });
+
+    parent.activate(makeTickInfo(), makeChipContext(), makeSignal());
+
+    // Run 1st child, pause, and terminate it
+    parent.tick(makeTickInfo());
+    parent.pause(makeTickInfo());
+    children[0].requestTermination();
+
+    // Resume and tick again, it should switch to the 2nd chip
+    parent.resume(makeTickInfo());
+    parent.tick(makeTickInfo());
+
+    // Both children should be ticked once
+    expect(children[0]._onActivate).toBeCalledTimes(1);
+    expect(children[0]._onTick).toBeCalledTimes(1);
+    expect(children[0]._onTerminate).toBeCalledTimes(1);
+    expect(children[1]._onActivate).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(1);
+    expect(children[1]._onTerminate).toBeCalledTimes(0);
+  });
 });
 
 describe("StateMachine", () => {
@@ -915,7 +964,7 @@ describe("StateMachine", () => {
     expect(stateMachine.options.transitions.a).toBeCalledTimes(1);
     expect(stateMachine.options.transitions.a).toBeCalledWith(
       stateMachine.chipContext,
-      signal,
+      signal
     );
   });
 });
@@ -959,6 +1008,42 @@ describe("Alternative", () => {
     // Alternative should request termination as well, with an output signal of the index of the child
     expect(alternative.chipState).toBe("requestedTermination");
     expect(alternative.outputSignal.name).toBe("hello");
+  });
+
+  test("handles pause after chips request termination", () => {
+    const children = [new MockChip(), new MockChip()];
+    const alternative = new chip.Alternative(children);
+
+    // Run once
+    alternative.activate(makeTickInfo(), makeChipContext(), makeSignal());
+    alternative.tick(makeTickInfo());
+
+    // Terminate first child, then pause
+    children[0].requestTermination(chip.makeSignal("first"));
+    alternative.pause(makeTickInfo());
+
+    // Alternative should request termination as well, with an output signal of the index of the child
+    expect(alternative.chipState).toBe("requestedTermination");
+    expect(alternative.outputSignal.name).toBe("first");
+  });
+
+  test("handles resume after chips request termination", () => {
+    const children = [new MockChip(), new MockChip()];
+    const alternative = new chip.Alternative(children);
+
+    // Run once, then pause
+    alternative.activate(makeTickInfo(), makeChipContext(), makeSignal());
+    alternative.tick(makeTickInfo());
+    alternative.pause(makeTickInfo());
+
+    // Terminate first child
+    children[0].requestTermination(chip.makeSignal("first"));
+
+    alternative.resume(makeTickInfo());
+
+    // Alternative should request termination as well, with an output signal of the index of the child
+    expect(alternative.chipState).toBe("requestedTermination");
+    expect(alternative.outputSignal.name).toBe("first");
   });
 });
 
@@ -1025,7 +1110,7 @@ describe("Hot reloading", () => {
       makeTickInfo(),
       makeChipContext(),
       makeSignal(),
-      e1.makeReloadMemento(),
+      e1.makeReloadMemento()
     );
     expect(e2.value).toBe(88);
   });
@@ -1041,7 +1126,7 @@ describe("Hot reloading", () => {
       makeTickInfo(),
       makeChipContext(),
       makeSignal(),
-      e1.makeReloadMemento(),
+      e1.makeReloadMemento()
     );
 
     expect(e2.value).toBe(88);
@@ -1163,7 +1248,7 @@ describe("Hot reloading", () => {
       makeTickInfo(),
       makeChipContext(),
       makeSignal(),
-      parentV1.makeReloadMemento(),
+      parentV1.makeReloadMemento()
     );
 
     // Only 2nd child should be activate and have the new value
