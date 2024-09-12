@@ -43,7 +43,7 @@ export class Runner {
    */
   constructor(
     private readonly _rootChipResolvable: chip.ChipResolvable,
-    options?: Partial<RunnerOptions>
+    options?: Partial<RunnerOptions>,
   ) {
     this._options = chip.fillInOptions(options, new RunnerOptions());
   }
@@ -91,7 +91,7 @@ export class Runner {
     };
     document.addEventListener(
       "visibilitychange",
-      this._visibilityChangeHandler
+      this._visibilityChangeHandler,
     );
 
     this._runningStatus = "running";
@@ -108,14 +108,14 @@ export class Runner {
     this._rootChip.activate(
       tickInfo,
       this._rootContext,
-      this._options.inputSignal
+      this._options.inputSignal,
     );
 
     this._requestUpdate();
 
     this._backupTimerId = window.setInterval(
       this._onBackupTimer.bind(this),
-      this._options.backupTimerInterval
+      this._options.backupTimerInterval,
     );
 
     if (this._options.hmr) this._enableHotReloading();
@@ -126,7 +126,7 @@ export class Runner {
 
     const timeStamp = performance.now();
     const timeSinceLastTick = this._clampTimeSinceLastTick(
-      timeStamp - this._lastTimeStamp
+      timeStamp - this._lastTimeStamp,
     );
 
     const tickInfo: chip.TickInfo = {
@@ -138,7 +138,7 @@ export class Runner {
 
     document.removeEventListener(
       "visibilitychange",
-      this._visibilityChangeHandler
+      this._visibilityChangeHandler,
     );
     delete this._visibilityChangeHandler;
 
@@ -191,7 +191,7 @@ export class Runner {
         tickInfo,
         this._rootContext,
         chip.makeSignal("afterReload"),
-        reloadMemento
+        reloadMemento,
       );
     });
   }
@@ -211,7 +211,7 @@ export class Runner {
     if (this._options.minFps >= 0) {
       timeSinceLastTick = Math.min(
         timeSinceLastTick,
-        1000 / this._options.minFps
+        1000 / this._options.minFps,
       );
     }
 
