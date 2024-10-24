@@ -654,6 +654,7 @@ export abstract class Composite extends ChipBase {
     super.tick(tickInfo);
 
     this._tickChildChips();
+    this._terminateRequestedChildChips();
     this._onAfterTick();
   }
 
