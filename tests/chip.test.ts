@@ -9,7 +9,7 @@ function makeChipContext(): chip.ChipContext {
 
 function makeTickInfo(): chip.TickInfo {
   return {
-    timeSinceLastTick: 1 / 60,
+    timeSinceLastTick: 1000 / 60,
   };
 }
 
@@ -203,7 +203,10 @@ describe("Events", () => {
 
   test("receives DOM-style events", () => {
     class CustomEvent extends Event {
-      constructor(name: string, public readonly value: number) {
+      constructor(
+        name: string,
+        public readonly value: number,
+      ) {
         super(name);
       }
     }
@@ -570,13 +573,31 @@ describe("Parallel", () => {
     // Terminate one child
     children[0].requestTermination();
     parent.tick(makeTickInfo());
-    expect(parent.chipState === "active");
+    expect(parent.chipState).toBe("active");
 
     // Terminate second child
     children[1].requestTermination();
     parent.tick(makeTickInfo());
 
-    expect(parent.chipState === "inactive");
+    expect(parent.chipState).toBe("requestedTermination");
+  });
+
+  test("terminates on same tick as children calling _terminateSelf", () => {
+    // wait chip waiting exactly two makeTickInfo
+    const waitChip = new chip.Wait((2 * 1000) / 60);
+    const parent = new chip.Parallel([waitChip]);
+
+    // Run once
+    parent.activate(makeTickInfo(), makeChipContext(), makeSignal());
+    parent.tick(makeTickInfo());
+
+    expect(parent.chipState).toBe("active");
+    expect(waitChip.chipState).toBe("active");
+
+    // Terminate second child
+    parent.tick(makeTickInfo());
+    expect(waitChip.chipState).toBe("inactive");
+    expect(parent.chipState).toBe("requestedTermination");
   });
 
   test("can remove children", () => {
@@ -964,7 +985,7 @@ describe("StateMachine", () => {
     expect(stateMachine.options.transitions.a).toBeCalledTimes(1);
     expect(stateMachine.options.transitions.a).toBeCalledWith(
       stateMachine.chipContext,
-      signal
+      signal,
     );
   });
 });
@@ -1110,7 +1131,7 @@ describe("Hot reloading", () => {
       makeTickInfo(),
       makeChipContext(),
       makeSignal(),
-      e1.makeReloadMemento()
+      e1.makeReloadMemento(),
     );
     expect(e2.value).toBe(88);
   });
@@ -1126,7 +1147,7 @@ describe("Hot reloading", () => {
       makeTickInfo(),
       makeChipContext(),
       makeSignal(),
-      e1.makeReloadMemento()
+      e1.makeReloadMemento(),
     );
 
     expect(e2.value).toBe(88);
@@ -1248,7 +1269,7 @@ describe("Hot reloading", () => {
       makeTickInfo(),
       makeChipContext(),
       makeSignal(),
-      parentV1.makeReloadMemento()
+      parentV1.makeReloadMemento(),
     );
 
     // Only 2nd child should be activate and have the new value
