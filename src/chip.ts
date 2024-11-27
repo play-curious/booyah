@@ -129,7 +129,7 @@ export function resolveSignal(value?: SignalResolvable): Signal {
  * It is provided to chips by their parents.
  *
  * Instead of modifying a chip context, it should be overloaded,
- * by calling `processChipContext90`
+ * by calling `processChipContext()`
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ChipContext = Readonly<Record<string, any>>;
@@ -1000,7 +1000,7 @@ export class ParallelOptions {
  * By default, terminates when all child chips have completed, unless `options.signalOnCompletion` is false.
  */
 export class Parallel extends Composite {
-  private readonly _options: ParallelOptions;
+  private readonly _parallelOptions: ParallelOptions;
 
   private _childChipOptions: ActivateChildChipOptions[] = [];
   private _infoToChip = new Map<ActivateChildChipOptions, Chip>();
@@ -1012,7 +1012,7 @@ export class Parallel extends Composite {
   ) {
     super();
 
-    this._options = fillInOptions(options, new ParallelOptions());
+    this._parallelOptions = fillInOptions(options, new ParallelOptions());
     this._infoToChip = new Map();
 
     for (const e of childChipOptions) this.addChildChip(e);
@@ -1039,10 +1039,10 @@ export class Parallel extends Composite {
     }
   }
 
-  _onActivate() {
+  protected _onActivate() {
     if (this._childChipOptions.length === 0) {
       // Empty set, stop immediately
-      if (this._options.terminateOnCompletion) this._terminateSelf();
+      if (this._parallelOptions.terminateOnCompletion) this._terminateSelf();
       return;
     }
 
@@ -1064,10 +1064,10 @@ export class Parallel extends Composite {
     }
   }
 
-  _onAfterTick() {
+  protected _onAfterTick() {
     if (
       Object.keys(this._childChipInfos).length === 0 &&
-      this._options.terminateOnCompletion
+      this._parallelOptions.terminateOnCompletion
     )
       this._terminateSelf();
   }
