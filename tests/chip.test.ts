@@ -625,6 +625,33 @@ describe("Parallel", () => {
     expect(children[1]._onTick).toBeCalledTimes(1);
     expect(children[2]._onTick).toBeCalledTimes(3);
   });
+
+  test("can remove all children", () => {
+    const children = [new MockChip(), new MockChip(), new MockChip()];
+    const parent = new chip.Parallel(children);
+
+    // Run once
+    parent.activate(makeTickInfo(), makeChipContext(), makeSignal());
+    parent.tick(makeTickInfo());
+
+    parent.removeAllChildChips();
+
+    expect(children[0].chipState).toBe("inactive");
+    expect(children[1].chipState).toBe("inactive");
+    expect(children[2].chipState).toBe("inactive");
+
+    // @ts-ignore
+    expect(parent._childChipOptions.length).toBe(0);
+    // @ts-ignore
+    expect(parent._infoToChip.size).toBe(0);
+
+    // Run again
+    parent.tick(makeTickInfo());
+
+    expect(children[0]._onTick).toBeCalledTimes(1);
+    expect(children[1]._onTick).toBeCalledTimes(1);
+    expect(children[2]._onTick).toBeCalledTimes(1);
+  });
 });
 
 describe("Sequence", () => {

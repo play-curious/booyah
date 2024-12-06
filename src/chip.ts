@@ -1102,6 +1102,16 @@ export class Parallel extends Composite {
     }
   }
 
+  /**
+   * Remove the child chip, by value or index.
+   * If the chip is running, terminate it
+   */
+  removeAllChildChips(): void {
+    while (this._childChipOptions.length > 0) {
+      this.removeChildChip(0);
+    }
+  }
+
   indexOfChipActivationInfo(
     chip: ActivateChildChipOptions | ChipResolvable,
   ): number {
