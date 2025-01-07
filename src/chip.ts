@@ -567,7 +567,9 @@ export class Forever extends ChipBase {}
 
 /** An chip that terminates with a given output signal immediately  */
 export class Transitory extends ChipBase {
-  constructor(public readonly terminateSignal = makeSignal()) {
+  constructor(
+    public readonly terminateSignal: SignalResolvable = makeSignal(),
+  ) {
     super();
   }
 
