@@ -115,7 +115,7 @@ export function makeVideoElement(): HTMLVideoElement {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fillInOptions<T extends Record<string, any>>(
-  options: Partial<T>,
+  options: Partial<T> | undefined,
   defaults: T,
 ): T {
   if (options) return { ...defaults, ...options };
