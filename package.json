@@ -2,8 +2,14 @@
   "name": "booyah",
   "version": "4.0.4",
   "description": "HTML5 game engine",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "clean": "rimraf dist",
+    "buildEsm": "tsc",
+    "buildCjs": "tsc -p tsconfig-cjs.json",
+    "build": "yarn buildEsm && yarn buildCjs",
     "watch": "tsc --watch",
     "test": "jest",
     "testWatch": "jest --watch",
@@ -31,6 +37,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "prettier": "3.3.3",
+    "rimraf": "^6.0.1",
     "ts-jest": "^29.1.1",
     "typedoc": "^0.25.7"
   }

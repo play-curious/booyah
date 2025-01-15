@@ -34,6 +34,16 @@ export function lerpColor(a: number, b: number, p: number): number {
   );
 }
 
+export function cyclicLerpColor(
+  start: number,
+  end: number,
+  fraction: number,
+): number {
+  return fraction < 0.5
+    ? lerpColor(start, end, fraction / 0.5)
+    : lerpColor(end, start, (fraction - 0.5) / 0.5);
+}
+
 /**
  Find the direction around the circle that is shorter
  Based on https://stackoverflow.com/a/2007279

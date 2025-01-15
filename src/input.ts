@@ -1,6 +1,7 @@
 import _ from "underscore";
 
 import * as chip from "./chip";
+import * as util from "./util";
 
 export class KeyboardOptions {
   emitter: EventTarget = window;
@@ -34,7 +35,7 @@ export class Keyboard extends chip.ChipBase {
   constructor(options?: Partial<KeyboardOptions>) {
     super();
 
-    this._options = chip.fillInOptions(options, new KeyboardOptions());
+    this._options = util.fillInOptions(options, new KeyboardOptions());
   }
 
   _onActivate() {

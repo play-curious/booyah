@@ -1,24 +1,6 @@
 import { EventEmitter } from "eventemitter3";
 import * as _ from "underscore";
-
-/**
- * Fills in the missing options from the provided defaults
- * @param options Options provided by the caller
- * @param defaults Defaults provided by the author
- */
-// @es-li
-export function fillInOptions<T>(
-  options: Partial<T> | unknown,
-  defaults: T,
-): T {
-  if (options) return { ...defaults, ...(options as object) };
-  else return defaults;
-}
-
-/** Deep clone of JSON-serializable objects */
-export function cloneData<T = unknown>(o: T): T {
-  return JSON.parse(JSON.stringify(o));
-}
+import { fillInOptions, cloneData } from "./util";
 
 /**
  * Event source that uses a Node.js-like interface using `on()` and `off()`.

@@ -1,6 +1,7 @@
 import * as _ from "underscore";
 
 import * as chip from "./chip";
+import * as util from "./util";
 
 interface HMR {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,7 +46,7 @@ export class Runner {
     private readonly _rootChipResolvable: chip.ChipResolvable,
     options?: Partial<RunnerOptions>,
   ) {
-    this._options = chip.fillInOptions(options, new RunnerOptions());
+    this._options = util.fillInOptions(options, new RunnerOptions());
   }
 
   start() {
