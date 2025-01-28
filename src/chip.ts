@@ -1509,16 +1509,14 @@ export class StateMachine extends Composite {
     };
     `
 */
-export function makeTransitionTable(table: {
-  [key: string]: string | SignalFunction;
-}): SignalFunction {
+export function makeTransitionTable(table: SignalTable): SignalFunction {
   const f = function (context: ChipContext, signal: Signal): Signal {
     if (signal.name in table) {
       const signalResolvable = table[signal.name];
       if (_.isFunction(signalResolvable)) {
         return resolveSignal(signalResolvable(context, signal));
       } else {
-        return makeSignal(signalResolvable);
+        return resolveSignal(signalResolvable);
       }
     } else {
       throw new Error(`Cannot find state ${signal.name}`);
