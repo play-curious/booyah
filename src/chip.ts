@@ -1004,6 +1004,8 @@ export class Parallel extends Composite {
 
   /** Add a new chip. If the chip is running, activate it */
   addChildChip(e: ActivateChildChipOptions | ChipResolvable) {
+    if (!e) return;
+
     const info = isChipResolvable(e) ? { chip: e } : e;
     this._childChipOptions.push(info);
 
@@ -1164,6 +1166,8 @@ export class Sequence extends Composite {
 
   /** Add a new chip to the sequence */
   addChildChip(chip: ActivateChildChipOptions | ChipResolvable) {
+    if (!chip) return;
+
     if (isChipResolvable(chip)) {
       this._childChipOptions.push({ chip: chip });
     } else {
