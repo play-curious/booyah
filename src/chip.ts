@@ -1652,7 +1652,7 @@ export class MeasureTime extends ChipBase {
 
 /** Waits until time is up, then requests signal */
 export class Wait extends ChipBase {
-  private _accumulatedTime: number;
+  private _elapsedTime: number;
 
   /** @wait is in milliseconds */
   constructor(public readonly wait: number) {
@@ -1660,15 +1660,23 @@ export class Wait extends ChipBase {
   }
 
   _onActivate() {
-    this._accumulatedTime = 0;
+    this._elapsedTime = 0;
   }
 
   _onTick() {
-    this._accumulatedTime += this._lastTickInfo.timeSinceLastTick;
+    this._elapsedTime += this._lastTickInfo.timeSinceLastTick;
 
-    if (this._accumulatedTime >= this.wait) {
+    if (this._elapsedTime >= this.wait) {
       this._terminateSelf();
     }
+  }
+
+  get elapsedTime(): number {
+    return this._elapsedTime;
+  }
+
+  get remainingTime(): number {
+    return Math.max(0, this.wait - this._elapsedTime);
   }
 }
 
