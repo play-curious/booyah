@@ -14,10 +14,12 @@ import * as util from "./util";
  * @props Map of property names to options for that property (like Tween() would take)
  * @options Default options for all properties, if not overridden by @props
  */
-export function make(
-  obj: any,
-  props: { [prop: string]: Partial<TweenOptions<any, any>> },
-  options: TweenOptions<any, any>,
+export function makeParallelTween<Obj extends object>(
+  obj: Obj,
+  props: Partial<{
+    [Prop in keyof Obj]: Partial<TweenOptions<Obj[Prop], Obj>>;
+  }>,
+  options?: Partial<TweenOptions<keyof Obj, Obj>>,
 ): chip.Parallel {
   const tweens: any[] = [];
   for (const key in props) {
@@ -31,7 +33,7 @@ export function make(
   return new chip.Parallel(tweens);
 }
 
-type EasingFunctionName = keyof typeof easing;
+export type EasingFunctionName = keyof typeof easing;
 
 /**
  * Tween takes the following options:
