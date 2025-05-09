@@ -421,6 +421,27 @@ describe("Composite", () => {
     expect(parent.attr).toBeUndefined();
   });
 
+  test("creates and deletes attributes in an array", () => {
+    // Activate parent
+    parent.activate(makeTickInfo(), makeChipContext(), makeSignal());
+
+    const childChip = new MockChip();
+
+    // @ts-ignore
+    parent._activateChildChip(childChip, { attribute: "attrs[]" });
+    // @ts-ignore
+    expect(parent.attrs).toHaveLength(1);
+    // @ts-ignore
+    expect(parent.attrs[0]).toBe(childChip);
+
+    // Terminate the child chip
+    childChip.requestTermination();
+    parent.tick(makeTickInfo());
+
+    // @ts-ignore
+    expect(parent.attrs).toHaveLength(0);
+  });
+
   test("adds children to the context", () => {
     // Activate parent
     parent.activate(makeTickInfo(), makeChipContext(), makeSignal());
