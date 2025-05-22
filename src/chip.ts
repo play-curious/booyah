@@ -885,9 +885,12 @@ export abstract class Composite extends ChipBase {
     // Remove the attribute, if it exists
     if (childChipInfo.attribute) {
       if (childChipInfo.attribute.endsWith("[]")) {
-        const attributeAsArray = this[
-          childChipInfo.attribute as keyof this
-        ] as Array<Chip>;
+        // Take off the last 2 characters
+        const attributeName = childChipInfo.attribute.slice(
+          0,
+          childChipInfo.attribute.length - 2,
+        );
+        let attributeAsArray = this[attributeName as keyof this] as Array<Chip>;
         const index = attributeAsArray.indexOf(childChipInfo.chip);
         attributeAsArray.splice(index, 1);
       } else {
