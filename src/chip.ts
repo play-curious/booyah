@@ -359,7 +359,7 @@ export abstract class ChipBase extends EventEmitter implements Chip {
    */
   protected _subscribe(
     emitter: object,
-    event: string,
+    events: string | string[],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cb: (...args: any[]) => void,
     subscriptionHandler?: SubscriptionHandler,
@@ -378,15 +378,20 @@ export abstract class ChipBase extends EventEmitter implements Chip {
 
     // Store the event listener callback "unbound" for future removal, but bind it for calling with the correct "this"
     const boundCb = cb.bind(this);
-    this._eventListeners.push({
-      emitter,
-      event,
-      cb,
-      boundCb,
-      subscriptionHandler,
-    });
 
-    subscriptionHandler.subscribe(emitter, event, boundCb);
+    if (typeof events === "string") events = [events];
+
+    for (const event of events) {
+      this._eventListeners.push({
+        emitter,
+        event,
+        cb,
+        boundCb,
+        subscriptionHandler,
+      });
+
+      subscriptionHandler.subscribe(emitter, event, boundCb);
+    }
   }
 
   /**
